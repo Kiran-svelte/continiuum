@@ -1,0 +1,11 @@
+candidate_id,name,experience_years,skills,education,previous_role,assessment_score
+1,John Smith,5,Python Java SQL Machine Learning,Masters in Computer Science,Senior Developer,85
+2,Sarah Johnson,3,JavaScript React Node.js,Bachelors in Software Engineering,Full Stack Developer,78
+3,Michael Chen,7,Python Django PostgreSQL AWS,Masters in Data Science,Lead Backend Engineer,92
+4,Emily Davis,4,React TypeScript GraphQL,Bachelors in Computer Science,Frontend Developer,81
+5,David Wilson,6,Java Spring Boot Microservices,Masters in Software Engineering,Senior Java Developer,88
+6,Lisa Anderson,2,Python Flask REST API,Bachelors in Computer Science,Junior Developer,72
+7,Robert Taylor,8,AWS DevOps Kubernetes Docker,Bachelors in Information Technology,DevOps Engineer,90
+8,Jennifer Martinez,5,React Native iOS Android,Masters in Mobile Development,Mobile Developer,84
+9,William Brown,10,System Architecture Cloud Solutions,PhD in Computer Science,Solutions Architect,95
+10,Jessica Lee,4,Data Analysis Python R SQL,Masters in Data Analytics,Data Analyst,79

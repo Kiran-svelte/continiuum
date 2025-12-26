@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leave Requests - Company.AI</title>
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <link rel="stylesheet" href="../../assets/css/animations.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 50%, #0f172a 100%);
+            background-attachment: fixed;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image:
+                radial-gradient(circle at 20% 30%, rgba(236, 72, 153, 0.05) 0%, transparent 50%),
+                radial-gradient(circle at 80% 70%, rgba(139, 92, 246, 0.05) 0%, transparent 50%),
+                radial-gradient(circle at 40% 80%, rgba(59, 130, 246, 0.05) 0%, transparent 50%);
+            animation: gradientShift 15s ease infinite;
+            z-index: 0;
+        }
+
+        .main-wrapper {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            min-height: 100vh;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Reuse sidebar styles from dashboard */
+        .premium-sidebar {
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(20px);
+            border-right: 1px solid rgba(236, 72, 153, 0.2);
+            padding: 32px 24px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .premium-sidebar::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(180deg, rgba(236, 72, 153, 0.05) 0%, transparent 100%);
+            z-index: 0;
+        }
+
+        .premium-sidebar>* {
+            position: relative;
+            z-index: 1;
+        }
+
+        .logo-section {
+            margin-bottom: 48px;
+            text-align: center;
+        }
+
+        .logo-text {
+            font-size: 1.8rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 50%, #3b82f6 100%);
+            background-size: 200% 200%;
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: gradientShift 4s ease infinite;
+            letter-spacing: -0.5px;
+        }
+
+        .hr-badge {
+            display: inline-block;
+            padding: 6px 16px;
+            background: linear-gradient(135deg, rgba(236, 72, 153, 0.2), rgba(139, 92, 246, 0.2));
+            border: 1px solid rgba(236, 72, 153, 0.3);
+            border-radius: 50px;
+            color: #ec4899;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 8px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 18px;
+            margin-bottom: 8px;
+            border-radius: 12px;
+            color: rgba(255, 255, 255, 0.7);
+            text-decoration: none;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .nav-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(236, 72, 153, 0.1), transparent);
+            transition: left 0.5s;
+        }
+
+        .nav-item:hover::before {
+            left: 100%;
+        }
+
+        .nav-item:hover {
+            background: rgba(236, 72, 153, 0.1);
+            color: #ec4899;
+            transform: translateX(8px);
+        }
+
+        .nav-item.active {
+            background: linear-gradient(135deg, rgba(236, 72, 153, 0.2), rgba(139, 92, 246, 0.2));
+            color: white;
+            border: 1px solid rgba(236, 72, 153, 0.3);
+        }
+
+        .nav-item i {
+            width: 20px;
+            height: 20px;
+        }
+
+        .ai-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            color: #10b981;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #10b981;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        /* Same header and other styles as dashboard */
+        .premium-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px;
+            opacity: 0;
+            animation: fadeInDown 0.6s ease-out 0.2s forwards;
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .page-title {
+            font-size: 2.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #fff 0%, rgba(255, 255, 255, 0.7) 100%);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -1px;
+        }
+
+        /* Tabs */
+        .filter-tabs {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 32px;
+            opacity: 0;
+            animation: fadeInUp 0.5s ease-out 0.3s forwards;
+        }
+
+        .filter-tab {
+            padding: 12px 28px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .filter-tab:hover {
+            background: rgba(236, 72, 153, 0.1);
+            color: white;
+        }
+
+        .filter-tab.active {
+            background: linear-gradient(135deg, rgba(236, 72, 153, 0.3), rgba(139, 92, 246, 0.3));
+            border-color: rgba(236, 72, 153, 0.5);
+            color: white;
+        }
+
+        /* Leave Grid */
+        .leaves-grid {
+            display: grid;
+            gap: 20px;
+        }
+
+        .leave-item {
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.8), rgba(30, 41, 59, 0.6));
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 24px;
+            display: grid;
+            grid-template-columns: auto 1fr auto auto;
+            gap: 24px;
+            align-items: center;
+            transition: all 0.3s ease;
+            opacity: 0;
+            animation: fadeInLeft 0.5s ease-out forwards;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .leave-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: linear-gradient(180deg, #ec4899, #8b5cf6);
+        }
+
+        .leave-item:hover {
+            transform: translateX(8px);
+            border-color: rgba(236, 72, 153, 0.3);
+        }
+
+        .leave-avatar {
+            width: 64px;
+            height: 64px;
+            border-radius: 16px;
+            background: linear-gradient(135deg, #ec4899, #8b5cf6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.5rem;
+            color: white;
+        }
+
+        .leave-info h3 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: white;
+            margin-bottom: 4px;
+        }
+
+        .leave-type {
+            font-size: 0.95rem;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 8px;
+        }
+
+        .leave-dates {
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.5);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .leave-dates i {
+            width: 14px;
+            height: 14px;
+        }
+
+        .status-badge {
+            padding: 8px 18px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-badge.pending {
+            background: rgba(245, 158, 11, 0.2);
+            color: #fbbf24;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .status-badge.approved {
+            background: rgba(16, 185, 129, 0.2);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .status-badge.rejected {
+            background: rgba(239, 68, 68, 0.2);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .leave-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .action-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .action-btn.approve {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .action-btn.approve:hover {
+            background: rgba(16, 185, 129, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .action-btn.reject {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .action-btn.reject:hover {
+            background: rgba(239, 68, 68, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .action-btn i {
+            width: 20px;
+            height: 20px;
+        }
+
+        .icon-btn {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .icon-btn:hover {
+            background: rgba(236, 72, 153, 0.2);
+            border-color: rgba(236, 72, 153, 0.5);
+            transform: translateY(-2px);
+        }
+
+        .user-profile-btn {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 20px 8px 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .user-profile-btn:hover {
+            background: rgba(236, 72, 153, 0.2);
+            border-color: rgba(236, 72, 153, 0.5);
+            transform: translateY(-2px);
+        }
+
+        .user-avatar-circle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #ec4899, #8b5cf6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1rem;
+        }
+
+        .user-name-text {
+            color: white;
+            font-weight: 500;
+            font-size: 0.95rem;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 80px 40px;
+            opacity: 0;
+            animation: fadeInUp 0.6s ease-out 0.4s forwards;
+        }
+
+        .empty-icon {
+            width: 100px;
+            height: 100px;
+            margin: 0 auto 24px;
+            border-radius: 24px;
+            background: linear-gradient(135deg, rgba(236, 72, 153, 0.2), rgba(139, 92, 246, 0.2));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0.6;
+        }
+
+        .empty-icon i {
+            width: 50px;
+            height: 50px;
+            color: #ec4899;
+        }
+
+        .empty-title {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 12px;
+        }
+
+        .empty-desc {
+            font-size: 1rem;
+            color: rgba(255, 255, 255, 0.5);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="main-wrapper">
+        <!-- Premium Sidebar -->
+        <aside class="premium-sidebar animate-fade-in-left">
+            <div class="logo-section">
+                <h1 class="logo-text animate-scale-in">Company.AI</h1>
+                <div class="hr-badge">HR Panel</div>
+                <div class="ai-status" style="justify-content: center; margin-top: 12px;">
+                    <div class="status-dot"></div>
+                    <span>Online • HR Core v2.1</span>
+                </div>
+            </div>
+
+            <nav style="display: flex; flex-direction: column; gap: 8px;">
+                <a href="dashboard.html" class="nav-item animate-fade-in-left delay-100">
+                    <i data-lucide="layout-dashboard"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="leave-requests.html" class="nav-item active animate-fade-in-left delay-200">
+                    <i data-lucide="file-text"></i>
+                    <span>Leave Requests</span>
+                </a>
+                <a href="employees.html" class="nav-item animate-fade-in-left delay-300">
+                    <i data-lucide="users"></i>
+                    <span>Employees</span>
+                </a>
+                <a href="reports.html" class="nav-item animate-fade-in-left delay-400">
+                    <i data-lucide="bar-chart-3"></i>
+                    <span>Reports</span>
+                </a>
+            </nav>
+
+            <div style="margin-top: auto; padding-top: 32px;">
+                <button id="logoutBtn" class="nav-item"
+                    style="width: 100%; color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3);">
+                    <i data-lucide="log-out"></i>
+                    <span>Logout</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main style="padding: 40px; max-width: 1600px;">
+            <!-- Premium Header -->
+            <header class="premium-header">
+                <div>
+                    <h1 class="page-title">Leave Requests Management</h1>
+                    <p style="color: rgba(255,255,255,0.5); margin-top: 8px; font-size: 1rem;">Review and manage all
+                        employee leave requests</p>
+                </div>
+                <div style="display: flex; align-items: center; gap: 16px;">
+                    <button class="icon-btn" onclick="UI.showToast('No new notifications', 'info')">
+                        <i data-lucide="bell"></i>
+                    </button>
+                    <div class="user-profile-btn" onclick="UI.showToast('Profile page coming soon', 'info')">
+                        <div class="user-avatar-circle" id="userAvatar">H</div>
+                        <span class="user-name-text" id="userName">HR Manager</span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Filter Tabs -->
+            <div class="filter-tabs">
+                <button class="filter-tab active" onclick="filterLeaves('all')">All Requests</button>
+                <button class="filter-tab" onclick="filterLeaves('pending')">Pending</button>
+                <button class="filter-tab" onclick="filterLeaves('approved')">Approved</button>
+                <button class="filter-tab" onclick="filterLeaves('rejected')">Rejected</button>
+            </div>
+
+            <!-- Leaves Grid -->
+            <div class="leaves-grid" id="leavesGrid">
+                <div class="empty-state">
+                    <div class="loading-spinner"
+                        style="margin: 0 auto 24px; width: 50px; height: 50px; border-width: 4px;"></div>
+                    <div class="empty-title">Loading leave requests...</div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="../../assets/js/api.js"></script>
+    <script>
+        lucide.createIcons();
+
+        let allLeaves = [];
+        let currentFilter = 'all';
+
+        async function init() {
+            const userStr = localStorage.getItem('user');
+            if (!userStr) {
+                window.location.href = '../../index.html';
+                return;
+            }
+
+            const user = JSON.parse(userStr);
+            if (user.role !== 'hr' && user.role !== 'admin') {
+                UI.showToast('Access denied. HR access required.', 'error');
+                setTimeout(() => window.location.href = '../../index.html', 2000);
+                return;
+            }
+
+            document.getElementById('userName').innerText = user.name;
+            document.getElementById('userAvatar').innerText = user.name.charAt(0).toUpperCase();
+
+            loadLeaves();
+        }
+
+        async function loadLeaves() {
+            try {
+                allLeaves = await API.get('/leaves/all');
+                renderLeaves();
+            } catch (error) {
+                console.error('Error loading leaves:', error);
+                document.getElementById('leavesGrid').innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon"><i data-lucide="alert-circle"></i></div>
+                        <div class="empty-title">Failed to load leave requests</div>
+                        <div class="empty-desc">Please try again later</div>
+                    </div>
+                `;
+                lucide.createIcons();
+            }
+        }
+
+        function renderLeaves() {
+            const container = document.getElementById('leavesGrid');
+
+            const filtered = currentFilter === 'all'
+                ? allLeaves
+                : allLeaves.filter(l => l.status.toLowerCase() === currentFilter);
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon"><i data-lucide="check-circle"></i></div>
+                        <div class="empty-title">No ${currentFilter} requests found</div>
+                        <div class="empty-desc">All caught up!</div>
+                    </div>
+                `;
+                lucide.createIcons();
+                return;
+            }
+
+            const html = filtered.map((leave, idx) => {
+                const start = new Date(leave.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                const end = new Date(leave.end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                const dateStr = start === end ? start : `${start} - ${end}`;
+                const userName = leave.user_name || 'Employee';
+                const isPending = leave.status === 'Pending';
+
+                return `
+                    <div class="leave-item hover-lift" style="animation-delay: ${idx * 0.03}s;">
+                        <div class="leave-avatar">${userName.charAt(0).toUpperCase()}</div>
+                        <div class="leave-info">
+                            <h3>${userName}</h3>
+                            <div class="leave-type">${leave.leave_type}</div>
+                            <div class="leave-dates">
+                                <i data-lucide="calendar"></i>
+                                ${dateStr}
+                            </div>
+                        </div>
+                        <span class="status-badge ${leave.status.toLowerCase()}">${leave.status}</span>
+                        ${isPending ? `
+                            <div class="leave-actions">
+                                <button class="action-btn approve ripple" onclick="handleLeaveAction(${leave.id}, 'Approved')" title="Approve">
+                                    <i data-lucide="check"></i>
+                                </button>
+                                <button class="action-btn reject ripple" onclick="handleLeaveAction(${leave.id}, 'Rejected')" title="Reject">
+                                    <i data-lucide="x"></i>
+                                </button>
+                            </div>
+                        ` : '<div></div>'}
+                    </div>
+                `;
+            }).join('');
+
+            container.innerHTML = html;
+            lucide.createIcons();
+        }
+
+        function filterLeaves(filter) {
+            currentFilter = filter;
+
+            document.querySelectorAll('.filter-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            renderLeaves();
+        }
+
+        window.handleLeaveAction = async function (leaveId, status) {
+            try {
+                await API.put(`/leaves/${leaveId}/status`, { status });
+                UI.showToast(`Leave request ${status.toLowerCase()} successfully!`, 'success');
+                loadLeaves();
+            } catch (error) {
+                UI.showToast(error.message || 'Failed to update leave request', 'error');
+            }
+        };
+
+        document.getElementById('logoutBtn').onclick = () => {
+            localStorage.clear();
+            window.location.href = '../../index.html';
+        };
+
+        init();
+    </script>
+</body>
+
+</html>

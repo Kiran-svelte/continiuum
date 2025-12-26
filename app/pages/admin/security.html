@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Security Center - Company.AI</title>
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <link rel="stylesheet" href="../../assets/css/animations.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
+        body {
+            background: #000000;
+            position: relative;
+            overflow-x: hidden;
+            font-family: 'Share Tech Mono', monospace;
+        }
+
+        #matrix-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            opacity: 0.15;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background:
+                radial-gradient(circle at 50% 50%, rgba(255, 0, 0, 0.05) 0%, transparent 50%),
+                linear-gradient(90deg, rgba(0, 255, 65, 0.03) 1px, transparent 1px),
+                linear-gradient(rgba(0, 255, 65, 0.03) 1px, transparent 1px);
+            background-size: 100% 100%, 50px 50px, 50px 50px;
+            z-index: 1;
+            animation: gridMove 20s linear infinite;
+        }
+
+        @keyframes gridMove {
+            0% {
+                transform: translate(0, 0);
+            }
+
+            100% {
+                transform: translate(50px, 50px);
+            }
+        }
+
+        .main-wrapper {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            min-height: 100vh;
+            position: relative;
+            z-index: 2;
+        }
+
+        /* Sidebar - Same as other pages */
+        .cyber-sidebar {
+            background: rgba(0, 10, 5, 0.95);
+            backdrop-filter: blur(10px);
+            border-right: 2px solid #00ff41;
+            padding: 32px 24px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 0 30px rgba(0, 255, 65, 0.3);
+        }
+
+        .cyber-sidebar::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 2px;
+            height: 100%;
+            background: linear-gradient(180deg, #00ff41, transparent);
+            animation: scanLine 3s linear infinite;
+        }
+
+        @keyframes scanLine {
+            0% {
+                transform: translateY(-100%);
+            }
+
+            100% {
+                transform: translateY(100vh);
+            }
+        }
+
+        .logo-section {
+            margin-bottom: 48px;
+            text-align: center;
+        }
+
+        .logo-text {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: #00ff41;
+            text-shadow: 0 0 10px #00ff41, 0 0 20px #00ff41;
+            letter-spacing: 2px;
+            animation: glitchText 3s infinite;
+        }
+
+        @keyframes glitchText {
+
+            0%,
+            90%,
+            100% {
+                text-shadow: 0 0 10px #00ff41, 0 0 20px #00ff41;
+            }
+
+            92%,
+            94%,
+            96%,
+            98% {
+                text-shadow: 0 0 20px #ff0000, 0 0 40px #ff0000;
+            }
+        }
+
+        .admin-badge {
+            display: inline-block;
+            padding: 6px 16px;
+            background: rgba(0, 255, 65, 0.1);
+            border: 1px solid #00ff41;
+            border-radius: 4px;
+            color: #00ff41;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-top: 8px;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .system-status {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 0.75rem;
+            color: #00ff41;
+            margin-top: 12px;
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #00ff41;
+            box-shadow: 0 0 10px #00ff41;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 18px;
+            margin-bottom: 8px;
+            background: rgba(0, 255, 65, 0.05);
+            border: 1px solid rgba(0, 255, 65, 0.2);
+            border-left: 3px solid transparent;
+            color: rgba(0, 255, 65, 0.7);
+            text-decoration: none;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .nav-item:hover {
+            background: rgba(0, 255, 65, 0.15);
+            border-left-color: #00ff41;
+            color: #00ff41;
+            box-shadow: 0 0 15px rgba(0, 255, 65, 0.3);
+        }
+
+        .nav-item.active {
+            background: rgba(0, 255, 65, 0.2);
+            border-left-color: #00ff41;
+            color: #00ff41;
+            box-shadow: 0 0 20px rgba(0, 255, 65, 0.4);
+        }
+
+        .nav-item i {
+            width: 20px;
+            height: 20px;
+        }
+
+        .cyber-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px;
+            padding: 20px;
+            background: rgba(255, 0, 0, 0.05);
+            border: 1px solid rgba(255, 0, 0, 0.3);
+            border-left: 4px solid #ff0000;
+            opacity: 0;
+            animation: fadeInDown 0.6s ease-out 0.2s forwards;
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .page-title {
+            font-size: 2rem;
+            font-weight: 800;
+            color: #ff0000;
+            text-shadow: 0 0 20px rgba(255, 0, 0, 0.8);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        /* Security Alert Cards */
+        .alert-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+
+        .alert-card {
+            background: rgba(10, 0, 0, 0.9);
+            border: 1px solid rgba(255, 0, 0, 0.3);
+            border-left: 4px solid #ff0000;
+            padding: 24px;
+            position: relative;
+            overflow: hidden;
+            opacity: 0;
+            animation: fadeInUp 0.6s ease-out forwards;
+        }
+
+        .alert-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #ff0000, transparent);
+            animation: scanHorizontal 2s linear infinite;
+        }
+
+        @keyframes scanHorizontal {
+            0% {
+                left: -100%;
+            }
+
+            100% {
+                left: 100%;
+            }
+        }
+
+        .alert-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .alert-level {
+            padding: 4px 12px;
+            border-radius: 2px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .alert-level.critical {
+            background: rgba(255, 0, 0, 0.2);
+            border: 1px solid #ff0000;
+            color: #ff0000;
+            animation: pulse 1s ease-in-out infinite;
+        }
+
+        .alert-level.warning {
+            background: rgba(255, 215, 0, 0.2);
+            border: 1px solid #ffd700;
+            color: #ffd700;
+        }
+
+        .alert-level.info {
+            background: rgba(0, 255, 65, 0.2);
+            border: 1px solid #00ff41;
+            color: #00ff41;
+        }
+
+        .alert-title {
+            color: #ff0000;
+            font-size: 1rem;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .alert-description {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.85rem;
+            line-height: 1.6;
+        }
+
+        .alert-time {
+            color: rgba(255, 0, 0, 0.6);
+            font-size: 0.75rem;
+            margin-top: 12px;
+        }
+
+        /* Security Log Terminal */
+        .security-log {
+            background: rgba(0, 0, 0, 0.9);
+            border: 1px solid #ff0000;
+            border-radius: 4px;
+            padding: 20px;
+            margin-bottom: 32px;
+            position: relative;
+            opacity: 0;
+            animation: fadeInUp 0.6s ease-out 0.4s forwards;
+            box-shadow: 0 0 30px rgba(255, 0, 0, 0.2);
+        }
+
+        .log-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid rgba(255, 0, 0, 0.3);
+        }
+
+        .log-title {
+            color: #ff0000;
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .log-dots {
+            display: flex;
+            gap: 6px;
+            margin-left: auto;
+        }
+
+        .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .dot.red {
+            background: #ff0000;
+            box-shadow: 0 0 10px #ff0000;
+        }
+
+        .dot.yellow {
+            background: #ffd700;
+            box-shadow: 0 0 10px #ffd700;
+            animation-delay: 0.3s;
+        }
+
+        .dot.green {
+            background: #00ff41;
+            box-shadow: 0 0 10px #00ff41;
+            animation-delay: 0.6s;
+        }
+
+        .log-content {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.85rem;
+            line-height: 1.8;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .log-content::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .log-content::-webkit-scrollbar-thumb {
+            background: #ff0000;
+        }
+
+        .log-line {
+            color: rgba(255, 0, 0, 0.8);
+            margin-bottom: 4px;
+            opacity: 0;
+            animation: typeIn 0.3s ease-out forwards;
+        }
+
+        @keyframes typeIn {
+            from {
+                opacity: 0;
+                transform: translateX(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .log-line.warning {
+            color: rgba(255, 215, 0, 0.8);
+        }
+
+        .log-line.success {
+            color: rgba(0, 255, 65, 0.8);
+        }
+
+        .log-prompt {
+            color: #ff0000;
+            margin-right: 8px;
+        }
+
+        .user-avatar-circle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #00ff41, #00dd35);
+            border: 2px solid #00ff41;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1rem;
+            color: #000;
+        }
+
+        .user-name-text {
+            color: #00ff41;
+            font-weight: 500;
+            font-size: 0.95rem;
+        }
+
+        .icon-btn {
+            width: 40px;
+            height: 40px;
+            background: rgba(0, 255, 65, 0.1);
+            border: 1px solid rgba(0, 255, 65, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #00ff41;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .icon-btn:hover {
+            background: rgba(0, 255, 65, 0.2);
+            box-shadow: 0 0 15px rgba(0, 255, 65, 0.5);
+        }
+
+        .user-profile-btn {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 16px 8px 8px;
+            background: rgba(0, 255, 65, 0.05);
+            border: 1px solid rgba(0, 255, 65, 0.3);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .user-profile-btn:hover {
+            background: rgba(0, 255, 65, 0.15);
+            box-shadow: 0 0 15px rgba(0, 255, 65, 0.3);
+        }
+
+        /* Firewall Status */
+        .firewall-panel {
+            background: rgba(0, 10, 5, 0.9);
+            border: 1px solid rgba(0, 255, 65, 0.3);
+            border-left: 4px solid #00ff41;
+            padding: 24px;
+            margin-bottom: 32px;
+            opacity: 0;
+            animation: fadeInUp 0.6s ease-out 0.5s forwards;
+        }
+
+        .firewall-status {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px;
+            background: rgba(0, 255, 65, 0.05);
+            border: 1px solid rgba(0, 255, 65, 0.2);
+            border-radius: 4px;
+            margin-bottom: 16px;
+        }
+
+        .firewall-label {
+            color: rgba(0, 255, 65, 0.8);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+        }
+
+        .firewall-value {
+            color: #00ff41;
+            font-size: 1rem;
+            font-weight: 700;
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="matrix-canvas"></canvas>
+
+    <div class="main-wrapper">
+        <aside class="cyber-sidebar animate-fade-in-left">
+            <div class="logo-section">
+                <h1 class="logo-text animate-scale-in">COMPANY.AI</h1>
+                <div class="admin-badge">[ADMIN]</div>
+                <div class="system-status">
+                    <div class="status-indicator"></div>
+                    <span>SYSTEM ONLINE</span>
+                </div>
+            </div>
+
+            <nav style="display: flex; flex-direction: column; gap: 8px;">
+                <a href="dashboard.html" class="nav-item animate-fade-in-left delay-100">
+                    <i data-lucide="terminal"></i>
+                    <span>COMMAND CENTER</span>
+                </a>
+                <a href="users.html" class="nav-item animate-fade-in-left delay-200">
+                    <i data-lucide="users"></i>
+                    <span>USER CONTROL</span>
+                </a>
+                <a href="system.html" class="nav-item animate-fade-in-left delay-300">
+                    <i data-lucide="server"></i>
+                    <span>SYSTEM MONITOR</span>
+                </a>
+                <a href="security.html" class="nav-item active animate-fade-in-left delay-400">
+                    <i data-lucide="shield"></i>
+                    <span>SECURITY</span>
+                </a>
+            </nav>
+
+            <div style="margin-top: auto; padding-top: 32px;">
+                <button id="logoutBtn" class="nav-item"
+                    style="width: 100%; color: #ff0000; border-color: rgba(255, 0, 0, 0.3);">
+                    <i data-lucide="log-out"></i>
+                    <span>DISCONNECT</span>
+                </button>
+            </div>
+        </aside>
+
+        <main style="padding: 40px; max-width: 1600px;">
+            <header class="cyber-header">
+                <div>
+                    <h1 class="page-title">SECURITY CENTER</h1>
+                    <div style="color: rgba(255,0,0,0.7); margin-top: 8px; font-size: 0.85rem;">THREAT MONITORING &
+                        FIREWALL CONTROL</div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 16px;">
+                    <button class="icon-btn">
+                        <i data-lucide="bell"></i>
+                    </button>
+                    <div class="user-profile-btn">
+                        <div class="user-avatar-circle" id="userAvatar">A</div>
+                        <span class="user-name-text" id="userName">ADMIN</span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Security Alerts -->
+            <div class="alert-grid">
+                <div class="alert-card delay-100">
+                    <div class="alert-header">
+                        <i data-lucide="alert-triangle" style="width: 24px; height: 24px; color: #ff0000;"></i>
+                        <div class="alert-level critical">CRITICAL</div>
+                    </div>
+                    <div class="alert-title">NO ACTIVE THREATS</div>
+                    <div class="alert-description">All systems are secure. No unauthorized access attempts detected.
+                    </div>
+                    <div class="alert-time">Last Scan: Just now</div>
+                </div>
+
+                <div class="alert-card delay-200">
+                    <div class="alert-header">
+                        <i data-lucide="shield-check" style="width: 24px; height: 24px; color: #00ff41;"></i>
+                        <div class="alert-level info">INFO</div>
+                    </div>
+                    <div class="alert-title" style="color: #00ff41;">FIREWALL ACTIVE</div>
+                    <div class="alert-description">All ports are secured. Intrusion detection is operational.</div>
+                    <div class="alert-time" style="color: rgba(0,255,65,0.6);">Status: Protected</div>
+                </div>
+
+                <div class="alert-card delay-300">
+                    <div class="alert-header">
+                        <i data-lucide="lock" style="width: 24px; height: 24px; color: #00ff41;"></i>
+                        <div class="alert-level info">INFO</div>
+                    </div>
+                    <div class="alert-title" style="color: #00ff41;">ENCRYPTION ENABLED</div>
+                    <div class="alert-description">All data transfers are encrypted with TLS 1.3.</div>
+                    <div class="alert-time" style="color: rgba(0,255,65,0.6);">Status: Secure</div>
+                </div>
+            </div>
+
+            <!-- Security Log -->
+            <div class="security-log">
+                <div class="log-header">
+                    <i data-lucide="terminal" style="width: 20px; height: 20px; color: #ff0000;"></i>
+                    <span class="log-title">SECURITY EVENT LOG</span>
+                    <div class="log-dots">
+                        <div class="dot red"></div>
+                        <div class="dot yellow"></div>
+                        <div class="dot green"></div>
+                    </div>
+                </div>
+                <div class="log-content" id="securityLog">
+                    <!-- Logs will be added here -->
+                </div>
+            </div>
+
+            <!-- Firewall Control -->
+            <div class="firewall-panel">
+                <h2 style="color: #00ff41; font-size: 1.2rem; margin-bottom: 20px; text-transform: uppercase;">
+                    <i data-lucide="shield"
+                        style="width: 20px; height: 20px; display: inline; vertical-align: middle;"></i>
+                    FIREWALL STATUS
+                </h2>
+
+                <div class="firewall-status">
+                    <div class="firewall-label">Incoming Connections</div>
+                    <div class="firewall-value">BLOCKED</div>
+                </div>
+
+                <div class="firewall-status">
+                    <div class="firewall-label">Outgoing Connections</div>
+                    <div class="firewall-value">ALLOWED</div>
+                </div>
+
+                <div class="firewall-status">
+                    <div class="firewall-label">DDoS Protection</div>
+                    <div class="firewall-value">ACTIVE</div>
+                </div>
+
+                <div class="firewall-status">
+                    <div class="firewall-label">Intrusion Detection</div>
+                    <div class="firewall-value">ENABLED</div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="../../assets/js/api.js"></script>
+    <script>
+        lucide.createIcons();
+
+        // Matrix Rain
+        const canvas = document.getElementById('matrix-canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%^&*()';
+        const fontSize = 14;
+        const columns = canvas.width / fontSize;
+        const drops = Array(Math.floor(columns)).fill(1);
+
+        function drawMatrix() {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#00ff41';
+            ctx.font = fontSize + 'px monospace';
+
+            for (let i = 0; i < drops.length; i++) {
+                const text = chars[Math.floor(Math.random() * chars.length)];
+                ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+                if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+                    drops[i] = 0;
+                }
+                drops[i]++;
+            }
+        }
+
+        setInterval(drawMatrix, 50);
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+
+        // Security Logs
+        const securityLogs = [
+            { type: 'success', msg: '[FIREWALL] All incoming connections filtered' },
+            { type: 'success', msg: '[AUTH] User authentication successful' },
+            { type: 'warning', msg: '[MONITOR] High CPU usage detected: 75%' },
+            { type: 'success', msg: '[DATABASE] Connection pool optimized' },
+            { type: 'success', msg: '[NETWORK] SSL/TLS handshake completed' },
+            { type: 'warning', msg: '[API] Rate limit approaching threshold' },
+            { type: 'success', msg: '[SECURITY] No threats detected in last scan' },
+            { type: 'success', msg: '[BACKUP] Automated backup completed' }
+        ];
+
+        let logIndex = 0;
+        const logContainer = document.getElementById('securityLog');
+
+        function addSecurityLog() {
+            const log = securityLogs[logIndex % securityLogs.length];
+            const line = document.createElement('div');
+            line.className = `log-line ${log.type}`;
+            line.style.animationDelay = '0s';
+
+            const now = new Date();
+            const timestamp = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+
+            line.innerHTML = `<span class="log-prompt">[${timestamp}]</span>${log.msg}`;
+            logContainer.appendChild(line);
+            logContainer.scrollTop = logContainer.scrollHeight;
+
+            if (logContainer.children.length > 12) {
+                logContainer.removeChild(logContainer.children[0]);
+            }
+
+            logIndex++;
+        }
+
+        // Add initial logs
+        for (let i = 0; i < 6; i++) {
+            setTimeout(() => addSecurityLog(), i * 200);
+        }
+
+        // Continue adding logs
+        setInterval(addSecurityLog, 4000);
+
+        async function init() {
+            const userStr = localStorage.getItem('user');
+            if (!userStr) {
+                window.location.href = '../../index.html';
+                return;
+            }
+
+            const user = JSON.parse(userStr);
+            if (user.role !== 'admin') {
+                UI.showToast('ACCESS DENIED: Admin privileges required', 'error');
+                setTimeout(() => window.location.href = '../../index.html', 2000);
+                return;
+            }
+
+            document.getElementById('userName').innerText = user.name;
+            document.getElementById('userAvatar').innerText = user.name.charAt(0).toUpperCase();
+        }
+
+        document.getElementById('logoutBtn').onclick = () => {
+            localStorage.clear();
+            window.location.href = '../../index.html';
+        };
+
+        init();
+    </script>
+</body>
+
+</html>

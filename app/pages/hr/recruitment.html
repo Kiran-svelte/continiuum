@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recruitment Dashboard - Company.AI</title>
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <link rel="stylesheet" href="../../assets/css/animations.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 50%, #0f172a 100%);
+            background-attachment: fixed;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image:
+                radial-gradient(circle at 20% 30%, rgba(236, 72, 153, 0.05) 0%, transparent 50%),
+                radial-gradient(circle at 80% 70%, rgba(139, 92, 246, 0.05) 0%, transparent 50%);
+            animation: gradientShift 15s ease infinite;
+            z-index: 0;
+        }
+
+        .main-wrapper {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            min-height: 100vh;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Reuse Premium Sidebar & Header Styles */
+        .premium-sidebar {
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(20px);
+            border-right: 1px solid rgba(236, 72, 153, 0.2);
+            padding: 32px 24px;
+        }
+
+        .logo-text {
+            font-size: 1.8rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 50%, #3b82f6 100%);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 18px;
+            margin-bottom: 8px;
+            border-radius: 12px;
+            color: rgba(255, 255, 255, 0.7);
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .nav-item:hover,
+        .nav-item.active {
+            background: linear-gradient(135deg, rgba(236, 72, 153, 0.2), rgba(139, 92, 246, 0.2));
+            color: white;
+            border: 1px solid rgba(236, 72, 153, 0.3);
+        }
+
+        .premium-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px;
+        }
+
+        .page-title {
+            font-size: 2.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #fff 0%, rgba(255, 255, 255, 0.7) 100%);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Recruitment Specific Styles */
+        .candidate-card {
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.8), rgba(30, 41, 59, 0.6));
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(236, 72, 153, 0.3);
+            border-radius: 24px;
+            padding: 32px;
+            margin-bottom: 24px;
+        }
+
+        .candidate-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 24px;
+        }
+
+        .candidate-info h2 {
+            font-size: 1.8rem;
+            color: white;
+            margin-bottom: 8px;
+        }
+
+        .candidate-role {
+            color: #ec4899;
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .ai-tools-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+
+        .ai-btn {
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            color: white;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .ai-btn:hover {
+            background: rgba(236, 72, 153, 0.1);
+            border-color: rgba(236, 72, 153, 0.5);
+            transform: translateY(-2px);
+        }
+
+        .ai-btn-icon {
+            margin-bottom: 12px;
+            color: #ec4899;
+        }
+
+        .ai-btn-title {
+            font-weight: 700;
+            font-size: 1.1rem;
+            margin-bottom: 4px;
+        }
+
+        .ai-btn-desc {
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .ai-result-box {
+            background: rgba(15, 23, 42, 0.9);
+            border: 1px solid rgba(236, 72, 153, 0.3);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 16px;
+            display: none;
+            color: #e2e8f0;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+
+        .action-bar {
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding-top: 24px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 16px;
+        }
+
+        .btn-offer {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-reject {
+            background: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-weight: 600;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="main-wrapper">
+        <aside class="premium-sidebar">
+            <div class="logo-section" style="text-align: center; margin-bottom: 48px;">
+                <h1 class="logo-text">Company.AI</h1>
+                <div style="color: #10b981; font-size: 0.8rem; margin-top: 8px;">HR Core v2.1 • Online</div>
+            </div>
+            <nav style="display: flex; flex-direction: column; gap: 8px;">
+                <a href="dashboard.html" class="nav-item">
+                    <i data-lucide="layout-dashboard"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="leave-requests.html" class="nav-item">
+                    <i data-lucide="file-text"></i>
+                    <span>Leave Requests</span>
+                </a>
+                <a href="recruitment.html" class="nav-item active">
+                    <i data-lucide="users"></i>
+                    <span>Recruitment</span>
+                </a>
+                <a href="performance.html" class="nav-item">
+                    <i data-lucide="bar-chart"></i>
+                    <span>Performance</span>
+                </a>
+            </nav>
+        </aside>
+
+        <main style="padding: 40px;">
+            <header class="premium-header">
+                <div>
+                    <h1 class="page-title">Recruitment Dashboard</h1>
+                    <p style="color: rgba(255,255,255,0.6);">AI-Powered Candidate Analysis & Hiring</p>
+                </div>
+                <div style="display: flex; align-items: center; gap: 16px;">
+                    <button class="nav-item" style="width: 40px; justify-content: center;"><i
+                            data-lucide="bell"></i></button>
+                    <div class="nav-item" style="border-radius: 50px;">HR Manager</div>
+                </div>
+            </header>
+
+            <!-- Candidate Card -->
+            <div class="candidate-card">
+                <div class="candidate-header">
+                    <div class="candidate-info">
+                        <h2>Sarah Chen</h2>
+                        <div class="candidate-role">Senior Software Engineer • 5y Experience</div>
+                        <div style="margin-top: 8px; color: rgba(255,255,255,0.5);">Application ID: #CAND-8921 • Python,
+                            AWS, React</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-size: 2rem; font-weight: 800; color: #10b981;">92%</div>
+                        <div style="font-size: 0.8rem; color: rgba(255,255,255,0.5);">Match Score</div>
+                    </div>
+                </div>
+
+                <h3 style="color: white; margin-bottom: 20px;">🤖 AI Recruitment Tools (Port 8004)</h3>
+
+                <div class="ai-tools-grid">
+                    <!-- 1. AI Score -->
+                    <button class="ai-btn" onclick="aiAction('score')">
+                        <i data-lucide="bar-chart-2" class="ai-btn-icon"></i>
+                        <div class="ai-btn-title">AI Candidate Score</div>
+                        <div class="ai-btn-desc">Analyze resume & skills</div>
+                    </button>
+
+                    <!-- 2. Interview Questions -->
+                    <button class="ai-btn" onclick="aiAction('questions')">
+                        <i data-lucide="help-circle" class="ai-btn-icon"></i>
+                        <div class="ai-btn-title">Generate Questions</div>
+                        <div class="ai-btn-desc">Role-specific interview prep</div>
+                    </button>
+
+                    <!-- 3. Salary -->
+                    <button class="ai-btn" onclick="aiAction('salary')">
+                        <i data-lucide="dollar-sign" class="ai-btn-icon"></i>
+                        <div class="ai-btn-title">Salary Recommender</div>
+                        <div class="ai-btn-desc">Market data analysis</div>
+                    </button>
+
+                    <!-- 4. Prediction -->
+                    <button class="ai-btn" onclick="aiAction('predict')">
+                        <i data-lucide="trending-up" class="ai-btn-icon"></i>
+                        <div class="ai-btn-title">Success Prediction</div>
+                        <div class="ai-btn-desc">Retention & growth forecast</div>
+                    </button>
+                </div>
+
+                <div id="aiResult" class="ai-result-box"></div>
+
+                <div class="action-bar">
+                    <button class="btn-reject" onclick="handleOffer('REJECT')">Reject Candidate</button>
+                    <button class="btn-offer" onclick="handleOffer('OFFER')">
+                        <i data-lucide="check-circle"></i>
+                        Extend Offer
+                    </button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="../../assets/js/api.js"></script>
+    <script>
+        lucide.createIcons();
+
+        async function aiAction(type) {
+            const resultBox = document.getElementById('aiResult');
+            resultBox.style.display = 'block';
+            resultBox.innerHTML = '<span class="loading-spinner"></span> AI Analysis in progress...';
+
+            let endpoint = '';
+            let payload = { candidateId: 'CAND-8921' };
+
+            // Map button actions to REAL backend endpoints
+            switch (type) {
+                case 'score':
+                    endpoint = '/recruitment/score';
+                    payload.resume = 'sarah_resume.pdf';
+                    break;
+                case 'questions':
+                    endpoint = '/recruitment/questions';
+                    payload.role = 'Senior Engineer';
+                    payload.skills = ['Python', 'AWS'];
+                    break;
+                case 'salary':
+                    endpoint = '/recruitment/salary';
+                    payload.experience = 5;
+                    payload.location = 'Remote';
+                    payload.role = 'Senior Engineer';
+                    break;
+                case 'predict':
+                    endpoint = '/recruitment/predict';
+                    break;
+            }
+
+            try {
+                // REAL API CALL to backend (Port 5000) which forwards to AI (Port 8004)
+                const response = await API.post(endpoint, payload);
+
+                // NO FALLBACKS - Use ONLY what AI returns
+                let responseText = "";
+
+                if (type === 'score') {
+                    if (!response.score) throw new Error('AI did not return score data');
+                    responseText = `Score: ${response.score}/100 • ${response.verdict}\nPrediction: ${response.roi}\nCultural Fit: ${response.culturalFit}%`;
+                }
+                if (type === 'questions') {
+                    if (!response.questions) throw new Error('AI did not return questions');
+                    responseText = response.questions.join('\n');
+                }
+                if (type === 'salary') {
+                    if (!response.analysis) throw new Error('AI did not return salary analysis');
+                    responseText = `Analysis: ${response.analysis}\nRecommend: ${response.recommendation}\nSign-on: ${response.signOn}`;
+                }
+                if (type === 'predict') {
+                    if (!response.promotion) throw new Error('AI did not return prediction');
+                    responseText = `${response.promotion}\n${response.retention}\n${response.leadership}`;
+                }
+
+                resultBox.innerHTML = `<strong>✨ AI Response (RAG Model - Port 8004):</strong>\n\n${responseText}`;
+
+            } catch (error) {
+                resultBox.innerHTML = `<strong style="color: #ef4444;">⚠️ REAL ERROR - NO SIMULATION:</strong>\n\n${error.message}\n\n<strong>Required:</strong> Python RAG service must be running on Port 8004 with:\n• Resume embeddings\n• Vector database (FAISS/Pinecone)\n• LLM integration (OpenAI/Claude)\n\nNo demo data will be shown.`;
+            }
+        }
+
+        async function handleOffer(action) {
+            if (!confirm(`Are you sure you want to ${action} this candidate?`)) return;
+
+            try {
+                // REAL API CALL to backend
+                const response = await API.post('/recruitment/offer', {
+                    candidateId: 'CAND-8921',
+                    action,
+                    salary: action === 'OFFER' ? 145000 : null,
+                    startDate: action === 'OFFER' ? '2024-11-01' : null
+                });
+
+                UI.showToast(`${action} processed successfully! ${response.message}`, 'success');
+            } catch (e) {
+                UI.showToast(`Error: ${e.message}`, 'error');
+            }
+        }
+    </script>
+</body>
+
+</html>

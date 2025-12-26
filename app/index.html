@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Company.AI - Login</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+
+<body>
+
+    <div class="auth-container">
+        <!-- Floating Elements Background -->
+        <div
+            style="position: absolute; width: 300px; height: 300px; background: var(--primary-glow); filter: blur(100px); border-radius: 50%; top: 10%; left: 20%; animation: float 8s ease-in-out infinite;">
+        </div>
+        <div
+            style="position: absolute; width: 400px; height: 400px; background: rgba(139, 92, 246, 0.2); filter: blur(120px); border-radius: 50%; bottom: 10%; right: 20%; animation: float 10s ease-in-out infinite reverse;">
+        </div>
+
+        <div class="glass-panel animate-fade-in"
+            style="width: 100%; max-width: 440px; padding: 40px; position: relative; z-index: 10;">
+            <div style="text-align: center; margin-bottom: 32px;">
+                <h1
+                    style="font-size: 2rem; font-weight: 700; margin-bottom: 8px; background: linear-gradient(135deg, #fff, #94a3b8); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                    Welcome Back</h1>
+                <p style="color: var(--text-muted);">Sign in to access your dashboard</p>
+            </div>
+
+            <form id="loginForm">
+                <div class="input-group">
+                    <input type="email" id="email" class="input-field" placeholder="name@company.com" required
+                        value="employee@company.com">
+                    <i data-lucide="mail" class="input-icon"></i>
+                </div>
+
+                <div class="input-group">
+                    <input type="password" id="password" class="input-field" placeholder="••••••••" required
+                        value="employee123">
+                    <i data-lucide="lock" class="input-icon"></i>
+                </div>
+
+                <button type="submit" id="loginBtn" class="btn btn-primary"
+                    style="width: 100%; justify-content: center; margin-top: 10px;">
+                    Sign In <i data-lucide="arrow-right" style="width: 18px;"></i>
+                </button>
+            </form>
+
+            <div
+                style="margin-top: 24px; text-align: center; font-size: 0.85rem; color: var(--text-muted); line-height: 1.6;">
+                <p>Demo Credentials:</p>
+                <div
+                    style="background: rgba(255,255,255,0.05); padding: 8px; border-radius: 8px; margin-top: 8px; display: inline-block;">
+                    <code style="color: var(--primary);">employee@company.com</code> / <code>employee123</code>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="assets/js/api.js"></script>
+    <script>
+        lucide.createIcons();
+
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            UI.setLoading('loginBtn', true);
+
+            try {
+                // Call Real Backend
+                const data = await API.post('/auth/login', { email, password });
+
+                UI.showToast('Login Successful! Redirecting...', 'success');
+                localStorage.setItem('token', data.token);
+                localStorage.setItem('user', JSON.stringify(data));
+
+                // Redirect based on role
+                setTimeout(() => {
+                    const role = data.role || 'employee';
+                    window.location.href = `pages/${role}/dashboard.html`;
+                }, 1000); // Small delay for animation
+
+            } catch (error) {
+                UI.showToast(error.message || 'Login failed', 'error');
+            } finally {
+                UI.setLoading('loginBtn', false, 'Sign In <i data-lucide="arrow-right" style="width: 18px;"></i>');
+                lucide.createIcons(); // Re-render icons after innerHTML change
+            }
+        });
+    </script>
+</body>
+
+</html>

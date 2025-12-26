@@ -1,0 +1,4 @@
+Error: Can't create table `company`.`employees` (errno: 150 "Foreign key constraint is incorrectly formed")
+    at PromiseConnection.query (C:\xampp\htdocs\Company\backend\node_modules\mysql2\lib\promise\connection.js:29:22)
+    at migrate (C:\xampp\htdocs\Company\backend\src\scripts\run_migration.js:37:26)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)

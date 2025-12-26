@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Command Center - Company.AI</title>
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <link rel="stylesheet" href="../../assets/css/animations.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
+        body {
+            background: #000000;
+            position: relative;
+            overflow-x: hidden;
+            font-family: 'Share Tech Mono', monospace;
+        }
+
+        /* Matrix Code Rain Background */
+        #matrix-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            opacity: 0.15;
+        }
+
+        /* Cyber Grid Background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background:
+                linear-gradient(90deg, rgba(0, 255, 65, 0.03) 1px, transparent 1px),
+                linear-gradient(rgba(0, 255, 65, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            z-index: 1;
+            animation: gridMove 20s linear infinite;
+        }
+
+        @keyframes gridMove {
+            0% {
+                transform: translate(0, 0);
+            }
+
+            100% {
+                transform: translate(50px, 50px);
+            }
+        }
+
+        .main-wrapper {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            min-height: 100vh;
+            position: relative;
+            z-index: 2;
+        }
+
+        /* Cyber Sidebar */
+        .cyber-sidebar {
+            background: rgba(0, 10, 5, 0.95);
+            backdrop-filter: blur(10px);
+            border-right: 2px solid #00ff41;
+            padding: 32px 24px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 0 30px rgba(0, 255, 65, 0.3);
+        }
+
+        .cyber-sidebar::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 2px;
+            height: 100%;
+            background: linear-gradient(180deg, #00ff41, transparent);
+            animation: scanLine 3s linear infinite;
+        }
+
+        @keyframes scanLine {
+            0% {
+                transform: translateY(-100%);
+            }
+
+            100% {
+                transform: translateY(100vh);
+            }
+        }
+
+        .logo-section {
+            margin-bottom: 48px;
+            text-align: center;
+            position: relative;
+        }
+
+        .logo-text {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: #00ff41;
+            text-shadow: 0 0 10px #00ff41, 0 0 20px #00ff41;
+            letter-spacing: 2px;
+            animation: glitchText 3s infinite;
+        }
+
+        @keyframes glitchText {
+
+            0%,
+            90%,
+            100% {
+                text-shadow: 0 0 10px #00ff41, 0 0 20px #00ff41;
+            }
+
+            92%,
+            94%,
+            96%,
+            98% {
+                text-shadow: 0 0 20px #ff0000, 0 0 40px #ff0000;
+            }
+        }
+
+        .admin-badge {
+            display: inline-block;
+            padding: 6px 16px;
+            background: rgba(0, 255, 65, 0.1);
+            border: 1px solid #00ff41;
+            border-radius: 4px;
+            color: #00ff41;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-top: 8px;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .system-status {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 0.75rem;
+            color: #00ff41;
+            margin-top: 12px;
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #00ff41;
+            box-shadow: 0 0 10px #00ff41;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 18px;
+            margin-bottom: 8px;
+            background: rgba(0, 255, 65, 0.05);
+            border: 1px solid rgba(0, 255, 65, 0.2);
+            border-left: 3px solid transparent;
+            color: rgba(0, 255, 65, 0.7);
+            text-decoration: none;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            font-family: 'Share Tech Mono', monospace;
+        }
+
+        .nav-item:hover {
+            background: rgba(0, 255, 65, 0.15);
+            border-left-color: #00ff41;
+            color: #00ff41;
+            box-shadow: 0 0 15px rgba(0, 255, 65, 0.3);
+        }
+
+        .nav-item.active {
+            background: rgba(0, 255, 65, 0.2);
+            border-left-color: #00ff41;
+            color: #00ff41;
+            box-shadow: 0 0 20px rgba(0, 255, 65, 0.4);
+        }
+
+        .nav-item i {
+            width: 20px;
+            height: 20px;
+        }
+
+        /* Cyber Header */
+        .cyber-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px;
+            padding: 20px;
+            background: rgba(0, 255, 65, 0.05);
+            border: 1px solid rgba(0, 255, 65, 0.3);
+            border-left: 4px solid #00ff41;
+            opacity: 0;
+            animation: fadeInDown 0.6s ease-out 0.2s forwards;
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .page-title {
+            font-size: 2rem;
+            font-weight: 800;
+            color: #00ff41;
+            text-shadow: 0 0 20px rgba(0, 255, 65, 0.8);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .terminal-time {
+            font-size: 0.9rem;
+            color: rgba(0, 255, 65, 0.7);
+            font-family: 'Share Tech Mono', monospace;
+        }
+
+        /* Live Stats Grid with Tracking */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+
+        .stat-card {
+            background: rgba(0, 10, 5, 0.9);
+            border: 1px solid rgba(0, 255, 65, 0.3);
+            border-left: 4px solid #00ff41;
+            padding: 24px;
+            position: relative;
+            overflow: hidden;
+            opacity: 0;
+            animation: fadeInUp 0.6s ease-out forwards;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #00ff41, transparent);
+            animation: scanHorizontal 3s linear infinite;
+        }
+
+        @keyframes scanHorizontal {
+            0% {
+                left: -100%;
+            }
+
+            100% {
+                left: 100%;
+            }
+        }
+
+        .stat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: rgba(0, 255, 65, 0.7);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .stat-icon {
+            width: 32px;
+            height: 32px;
+            color: #00ff41;
+            opacity: 0.8;
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #00ff41;
+            text-shadow: 0 0 15px rgba(0, 255, 65, 0.8);
+            margin-bottom: 8px;
+            font-family: 'Share Tech Mono', monospace;
+        }
+
+        .stat-subtitle {
+            font-size: 0.8rem;
+            color: rgba(0, 255, 65, 0.5);
+        }
+
+        /* Live Activity Terminal */
+        .terminal-container {
+            background: rgba(0, 0, 0, 0.9);
+            border: 1px solid #00ff41;
+            border-radius: 4px;
+            padding: 20px;
+            margin-bottom: 32px;
+            position: relative;
+            opacity: 0;
+            animation: fadeInUp 0.6s ease-out 0.4s forwards;
+            box-shadow: 0 0 30px rgba(0, 255, 65, 0.2);
+        }
+
+        .terminal-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid rgba(0, 255, 65, 0.3);
+        }
+
+        .terminal-title {
+            color: #00ff41;
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .terminal-dots {
+            display: flex;
+            gap: 6px;
+            margin-left: auto;
+        }
+
+        .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .dot.green {
+            background: #00ff41;
+            box-shadow: 0 0 10px #00ff41;
+        }
+
+        .dot.yellow {
+            background: #ffff00;
+            box-shadow: 0 0 10px #ffff00;
+            animation-delay: 0.3s;
+        }
+
+        .dot.red {
+            background: #ff0000;
+            box-shadow: 0 0 10px #ff0000;
+            animation-delay: 0.6s;
+        }
+
+        .terminal-content {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.85rem;
+            line-height: 1.8;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .terminal-content::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .terminal-content::-webkit-scrollbar-thumb {
+            background: #00ff41;
+        }
+
+        .terminal-line {
+            color: rgba(0, 255, 65, 0.8);
+            margin-bottom: 4px;
+            opacity: 0;
+            animation: typeIn 0.3s ease-out forwards;
+        }
+
+        @keyframes typeIn {
+            from {
+                opacity: 0;
+                transform: translateX(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .terminal-prompt {
+            color: #00ff41;
+            margin-right: 8px;
+        }
+
+        .terminal-cursor {
+            display: inline-block;
+            width: 8px;
+            height: 14px;
+            background: #00ff41;
+            animation: blink 1s step-end infinite;
+        }
+
+        @keyframes blink {
+            50% {
+                opacity: 0;
+            }
+        }
+
+        /* System Monitoring Cards */
+        .monitor-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 24px;
+        }
+
+        .monitor-card {
+            background: rgba(0, 10, 5, 0.9);
+            border: 1px solid rgba(0, 255, 65, 0.3);
+            padding: 24px;
+            position: relative;
+            opacity: 0;
+            animation: fadeInUp 0.6s ease-out forwards;
+        }
+
+        .monitor-title {
+            color: #00ff41;
+            font-size: 1rem;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .monitor-title i {
+            width: 20px;
+            height: 20px;
+        }
+
+        .progress-bar-container {
+            margin-bottom: 16px;
+        }
+
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            color: rgba(0, 255, 65, 0.7);
+            font-size: 0.8rem;
+            margin-bottom: 8px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(0, 255, 65, 0.1);
+            border: 1px solid rgba(0, 255, 65, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00ff41, #00dd35);
+            box-shadow: 0 0 15px rgba(0, 255, 65, 0.8);
+            animation: progressPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes progressPulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.7;
+            }
+        }
+
+        .user-avatar-circle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #00ff41, #00dd35);
+            border: 2px solid #00ff41;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1rem;
+            color: #000;
+        }
+
+        .user-name-text {
+            color: #00ff41;
+            font-weight: 500;
+            font-size: 0.95rem;
+        }
+
+        .icon-btn {
+            width: 40px;
+            height: 40px;
+            background: rgba(0, 255, 65, 0.1);
+            border: 1px solid rgba(0, 255, 65, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #00ff41;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .icon-btn:hover {
+            background: rgba(0, 255, 65, 0.2);
+            box-shadow: 0 0 15px rgba(0, 255, 65, 0.5);
+        }
+
+        .user-profile-btn {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 16px 8px 8px;
+            background: rgba(0, 255, 65, 0.05);
+            border: 1px solid rgba(0, 255, 65, 0.3);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .user-profile-btn:hover {
+            background: rgba(0, 255, 65, 0.15);
+            box-shadow: 0 0 15px rgba(0, 255, 65, 0.3);
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Matrix Background Canvas -->
+    <canvas id="matrix-canvas"></canvas>
+
+    <div class="main-wrapper">
+        <!-- Cyber Sidebar -->
+        <aside class="cyber-sidebar animate-fade-in-left">
+            <div class="logo-section">
+                <h1 class="logo-text animate-scale-in">COMPANY.AI</h1>
+                <div class="admin-badge">[ADMIN]</div>
+                <div class="system-status">
+                    <div class="status-indicator"></div>
+                    <span>SYSTEM ONLINE</span>
+                </div>
+            </div>
+
+            <nav style="display: flex; flex-direction: column; gap: 8px;">
+                <a href="dashboard.html" class="nav-item active animate-fade-in-left delay-100">
+                    <i data-lucide="terminal"></i>
+                    <span>COMMAND CENTER</span>
+                </a>
+                <a href="users.html" class="nav-item animate-fade-in-left delay-200">
+                    <i data-lucide="users"></i>
+                    <span>USER CONTROL</span>
+                </a>
+                <a href="system.html" class="nav-item animate-fade-in-left delay-300">
+                    <i data-lucide="server"></i>
+                    <span>SYSTEM MONITOR</span>
+                </a>
+                <a href="security.html" class="nav-item animate-fade-in-left delay-400">
+                    <i data-lucide="shield"></i>
+                    <span>SECURITY</span>
+                </a>
+            </nav>
+
+            <div style="margin-top: auto; padding-top: 32px;">
+                <button id="logoutBtn" class="nav-item"
+                    style="width: 100%; color: #ff0000; border-color: rgba(255, 0, 0, 0.3);">
+                    <i data-lucide="log-out"></i>
+                    <span>DISCONNECT</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main style="padding: 40px; max-width: 1600px;">
+            <!-- Cyber Header -->
+            <header class="cyber-header">
+                <div>
+                    <h1 class="page-title">ADMIN COMMAND CENTER</h1>
+                    <div class="terminal-time" id="systemTime">SYSTEM TIME: LOADING...</div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 16px;">
+                    <button class="icon-btn">
+                        <i data-lucide="bell"></i>
+                    </button>
+                    <div class="user-profile-btn">
+                        <div class="user-avatar-circle" id="userAvatar">A</div>
+                        <span class="user-name-text" id="userName">ADMIN</span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Stats Grid -->
+            <div class="stats-grid">
+                <div class="stat-card delay-100">
+                    <div class="stat-header">
+                        <div class="stat-label">Total Users</div>
+                        <i data-lucide="users" class="stat-icon"></i>
+                    </div>
+                    <div class="stat-value" id="totalUsers">0</div>
+                    <div class="stat-subtitle">Registered in system</div>
+                </div>
+
+                <div class="stat-card delay-200">
+                    <div class="stat-header">
+                        <div class="stat-label">Active Sessions</div>
+                        <i data-lucide="activity" class="stat-icon"></i>
+                    </div>
+                    <div class="stat-value" id="activeSessions">0</div>
+                    <div class="stat-subtitle">Live connections</div>
+                </div>
+
+                <div class="stat-card delay-300">
+                    <div class="stat-header">
+                        <div class="stat-label">Pending Requests</div>
+                        <i data-lucide="clock" class="stat-icon"></i>
+                    </div>
+                    <div class="stat-value" id="pendingReq">0</div>
+                    <div class="stat-subtitle">Awaiting processing</div>
+                </div>
+
+                <div class="stat-card delay-400">
+                    <div class="stat-header">
+                        <div class="stat-label">System Health</div>
+                        <i data-lucide="shield-check" class="stat-icon"></i>
+                    </div>
+                    <div class="stat-value">98%</div>
+                    <div class="stat-subtitle">All systems operational</div>
+                </div>
+            </div>
+
+            <!-- Live Activity Terminal -->
+            <div class="terminal-container">
+                <div class="terminal-header">
+                    <i data-lucide="terminal" style="width: 20px; height: 20px; color: #00ff41;"></i>
+                    <span class="terminal-title">LIVE SYSTEM ACTIVITY</span>
+                    <div class="terminal-dots">
+                        <div class="dot green"></div>
+                        <div class="dot yellow"></div>
+                        <div class="dot red"></div>
+                    </div>
+                </div>
+                <div class="terminal-content" id="terminalContent">
+                    <!-- Live logs will be added here -->
+                </div>
+            </div>
+
+            <!-- System Monitoring -->
+            <div class="monitor-grid">
+                <div class="monitor-card delay-500">
+                    <div class="monitor-title">
+                        <i data-lucide="cpu"></i>
+                        RESOURCE USAGE
+                    </div>
+                    <div class="progress-bar-container">
+                        <div class="progress-label">
+                            <span>CPU</span>
+                            <span id="cpuUsage">--</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="cpuBar" style="width: 45%;"></div>
+                        </div>
+                    </div>
+                    <div class="progress-bar-container">
+                        <div class="progress-label">
+                            <span>MEMORY</span>
+                            <span id="memUsage">--</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="memBar" style="width: 62%;"></div>
+                        </div>
+                    </div>
+                    <div class="progress-bar-container">
+                        <div class="progress-label">
+                            <span>STORAGE</span>
+                            <span id="storageUsage">--</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="storageBar" style="width: 38%;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="monitor-card delay-600">
+                    <div class="monitor-title">
+                        <i data-lucide="wifi"></i>
+                        NETWORK STATUS
+                    </div>
+                    <div class="progress-bar-container">
+                        <div class="progress-label">
+                            <span>BANDWIDTH</span>
+                            <span id="bandwidth">--</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 75%;"></div>
+                        </div>
+                    </div>
+                    <div class="progress-bar-container">
+                        <div class="progress-label">
+                            <span>LATENCY</span>
+                            <span id="latency">--</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 15%;"></div>
+                        </div>
+                    </div>
+                    <div class="progress-bar-container">
+                        <div class="progress-label">
+                            <span>UPTIME</span>
+                            <span id="uptime">--</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 99%;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="../../assets/js/api.js"></script>
+    <script>
+        lucide.createIcons();
+
+        // Matrix Rain Effect
+        const canvas = document.getElementById('matrix-canvas');
+        const ctx = canvas.getContext('2d');
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%^&*()';
+        const fontSize = 14;
+        const columns = canvas.width / fontSize;
+        const drops = Array(Math.floor(columns)).fill(1);
+
+        function drawMatrix() {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = '#00ff41';
+            ctx.font = fontSize + 'px monospace';
+
+            for (let i = 0; i < drops.length; i++) {
+                const text = chars[Math.floor(Math.random() * chars.length)];
+                ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+
+                if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+                    drops[i] = 0;
+                }
+                drops[i]++;
+            }
+        }
+
+        setInterval(drawMatrix, 50);
+
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+
+        // Live Terminal
+        const terminalLogs = [
+            '[SYSTEM] Initializing neural core...',
+            '[AUTH] User authentication successful',
+            '[DATABASE] Connection established',
+            '[API] All endpoints operational',
+            '[SECURITY] Firewall active',
+            '[MONITOR] System health check: PASSED',
+            '[AI] NLP Engine loaded',
+            '[CACHE] Redis connection stable',
+            '[NETWORK] Bandwidth: OPTIMAL',
+            '[LOG] Session tracking enabled'
+        ];
+
+        let logIndex = 0;
+        const terminal = document.getElementById('terminalContent');
+
+        function addTerminalLog() {
+            const line = document.createElement('div');
+            line.className = 'terminal-line';
+            line.style.animationDelay = '0s';
+
+            const now = new Date();
+            const timestamp = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+
+            line.innerHTML = `<span class="terminal-prompt">[${timestamp}]</span>${terminalLogs[logIndex % terminalLogs.length]}`;
+            terminal.appendChild(line);
+            terminal.scrollTop = terminal.scrollHeight;
+
+            if (terminal.children.length > 15) {
+                terminal.removeChild(terminal.children[0]);
+            }
+
+            logIndex++;
+        }
+
+        // Add initial logs
+        for (let i = 0; i < 8; i++) {
+            setTimeout(() => addTerminalLog(), i * 200);
+        }
+
+        // Continue adding logs
+        setInterval(addTerminalLog, 3000);
+
+        // Update time
+        function updateTime() {
+            const now = new Date();
+            const timeStr = now.toLocaleString('en-US', {
+                hour12: false,
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+            document.getElementById('systemTime').textContent = `SYSTEM TIME: ${timeStr}`;
+        }
+        updateTime();
+        setInterval(updateTime, 1000);
+
+        // Simulate resource usage updates
+        function updateResources() {
+            const cpu = Math.floor(Math.random() * 30 + 40);
+            const mem = Math.floor(Math.random() * 20 + 55);
+            const storage = Math.floor(Math.random() * 15 + 30);
+
+            document.getElementById('cpuUsage').textContent = cpu + '%';
+            document.getElementById('memUsage').textContent = mem + '%';
+            document.getElementById('storageUsage').textContent = storage + '%';
+
+            document.getElementById('cpuBar').style.width = cpu + '%';
+            document.getElementById('memBar').style.width = mem + '%';
+            document.getElementById('storageBar').style.width = storage + '%';
+
+            document.getElementById('bandwidth').textContent = (Math.random() * 50 + 50).toFixed(1) + ' Mbps';
+            document.getElementById('latency').textContent = Math.floor(Math.random() * 30 + 10) + ' ms';
+            document.getElementById('uptime').textContent = '99.8%';
+        }
+        updateResources();
+        setInterval(updateResources, 5000);
+
+        // Load dashboard data
+        async function init() {
+            const userStr = localStorage.getItem('user');
+            if (!userStr) {
+                window.location.href = '../../index.html';
+                return;
+            }
+
+            const user = JSON.parse(userStr);
+            if (user.role !== 'admin') {
+                UI.showToast('ACCESS DENIED: Admin privileges required', 'error');
+                setTimeout(() => window.location.href = '../../index.html', 2000);
+                return;
+            }
+
+            document.getElementById('userName').innerText = user.name;
+            document.getElementById('userAvatar').innerText = user.name.charAt(0).toUpperCase();
+
+            try {
+                const users = await API.get('/users/all');
+                document.getElementById('totalUsers').textContent = users.length;
+                document.getElementById('activeSessions').textContent = Math.floor(users.length * 0.6);
+
+                const leaves = await API.get('/leaves/all');
+                const pending = leaves.filter(l => l.status === 'Pending').length;
+                document.getElementById('pendingReq').textContent = pending;
+            } catch (e) {
+                console.error('Error loading data:', e);
+            }
+        }
+
+        document.getElementById('logoutBtn').onclick = () => {
+            localStorage.clear();
+            window.location.href = '../../index.html';
+        };
+
+        init();
+    </script>
+</body>
+
+</html>

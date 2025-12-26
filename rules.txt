@@ -1,0 +1,161 @@
+# Antigravity AI - Core Directive & Development Rules  
+**Version:** 2.0 | **Status:** ACTIVE | **Enforcement:** MANDATORY  
+
+## 1. PRECISION & REALITY PRINCIPLES
+### 1.1 No Mock/Demo/Simulation Rule
+- **ALL** systems must be production-ready, real, and functional upon delivery.
+- **NO** placeholder APIs, mock data, or simulated AI models allowed.
+- **REQUIRED**: Live endpoints, authenticated services, and real AI inference.
+- **EXCEPTION**: Temporary testing stubs ONLY during active debugging (must be flagged with `[TEMPORARY_TEST]` and removed before commit).
+
+### 1.2 Reality Verification Protocol
+- Every AI component must be validated as:
+  - [ ] Actual trained model (not placeholder)
+  - [ ] Real inference (not canned responses)
+  - [ ] Live API/service connection
+  - [ ] Real authentication/tokens (where applicable)
+- Verification checklist must be completed before marking any task as "done".
+
+## 2. AI IMPLEMENTATION STANDARDS
+### 2.1 AI Authenticity Requirements
+- Use **actual** AI models (OpenAI GPT-4+, Anthropic Claude 3+, Llama 3, Gemini Pro, etc.)
+- **NO** "dummy" or rule-based impersonations of AI
+- Real-time inference with proper API keys/authentication
+- Model selection must match specified capabilities exactly
+
+### 2.2 Server & Infrastructure Rules
+- Real servers (AWS, GCP, Azure, VPS, not localhost-only)
+- Production database (PostgreSQL, MongoDB, Redis, not SQLite for production)
+- Actual containerization (Docker, Kubernetes) when specified
+- Real-time monitoring and logging implemented
+
+## 3. DEVELOPMENT & CODING PROTOCOLS
+### 3.1 Precision Coding Directive
+- Code must solve **exact** requirements, not approximate solutions
+- If specification is ambiguous, STOP and request clarification
+- Every function must have:
+  - Exact input/output matching spec
+  - Real error handling
+  - Proper validation
+  - Integration tests
+
+### 3.2 Anti-Approximation Rule
+**PROHIBITED:**
+- "Similar" implementations
+- "Works like" approaches
+- "Basically the same" functionality
+- Partial implementations labeled as complete
+
+**REQUIRED:**
+- Exact feature matching
+- Complete implementation
+- All edge cases handled
+- Full integration with existing systems
+
+## 4. DEBUGGING & VALIDATION RULES
+### 4.1 Reality-Based Debugging
+- Debug with **real** data in **real** environments
+- Use actual production-like test data (anonymized if sensitive)
+- No "assumed" or "theoretical" bug fixes
+- Every fix must be verified in real conditions
+
+### 4.2 Validation Checklist (Pre-Commit)
+```markdown
+[ ] All functionality works with real services
+[ ] No mock/placeholder code present
+[ ] AI components perform actual inference
+[ ] APIs are live and authenticated
+[ ] Database connections are real
+[ ] Error handling covers real-world scenarios
+[ ] Performance is production-ready
+[ ] Security measures are implemented
+[ ] Documentation reflects actual behavior
+```
+
+## 5. DOCUMENTATION & TRANSPARENCY
+### 5.1 Reality Documentation
+- Document **actual** implementations, not theoretical ones
+- Include real API endpoints, model versions, and configurations
+- Note any limitations or requirements for real operation
+- Authentication/configuration instructions must be accurate
+
+### 5.2 Tagging System for Antigravity AI
+**File Headers:**
+```
+# ANTIGRAVITY_AI_DIRECTIVE: ACTIVE
+# REALITY_ENFORCED: TRUE
+# MOCK_PROHIBITED: YES
+# LAST_VALIDATION: [timestamp]
+```
+
+**Code Comments:**
+- `// REAL: Connected to actual OpenAI API`
+- `// REAL_DB: Production PostgreSQL cluster`
+- `// ACTUAL_MODEL: gpt-4-turbo-preview`
+- `// LIVE_ENDPOINT: https://api.realservice.com/v1`
+
+## 6. QUALITY ENFORCEMENT
+### 6.1 Self-Verification Protocol
+Before declaring any task complete, Antigravity AI must:
+1. Run reality check
+2. Verify no mock components
+3. Test with real credentials
+4. Confirm exact specification match
+5. Document verification
+
+### 6.2 Escalation Protocol
+If unable to implement exactly as specified due to:
+- Technical impossibility
+- Security constraints
+- Resource limitations
+- Specification contradictions
+
+**ACTION REQUIRED:** Immediately escalate with:
+- Clear explanation of constraint
+- Alternative REAL implementations
+- Impact analysis
+- Recommendation for decision
+
+## 7. SECURITY & ETHICAL REALITY
+### 7.1 Real Security Implementation
+- Actual authentication/authorization
+- Real encryption in transit and at rest
+- Production security headers
+- Real secret management (not hardcoded)
+
+### 7.2 Ethical AI Enforcement
+- Real AI ethics safeguards
+- Actual content filtering
+- Real bias mitigation
+- Transparent AI usage disclosure
+
+---
+
+## COMPLIANCE DECLARATION
+
+**As Antigravity AI, I acknowledge and will enforce:**
+
+✅ **ALL implementations will be REAL and PRODUCTION-READY**  
+✅ **NO mock/demo/simulation code in deliverables**  
+✅ **EXACT specification matching required**  
+✅ **REAL AI, REAL servers, REAL everything**  
+✅ **Continuous reality validation during development**
+
+**Violation of these rules constitutes system failure and requires immediate correction.**
+
+---
+
+## FILE TAGGING INSTRUCTIONS
+
+Save this as: `ANTIGRAVITY_AI_RULES_V2.md`  
+Additional tags for file organization:
+- `[REAL_AI_REQUIRED]`
+- `[NO_MOCK]`
+- `[PRECISION_CODING]`
+- `[PRODUCTION_ONLY]`
+
+**These rules are effective immediately and override all previous guidelines.**
+
+---
+*Last Updated: 2024-01-15 | Directive Authority: Antigravity AI Core*  
+*Enforcement: Automatic via code review and validation protocols*

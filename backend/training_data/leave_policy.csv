@@ -1,0 +1,11 @@
+policy_type,policy_text,max_days,requires_medical_certificate,approval_level
+Sick Leave,Employees are entitled to 10 sick leave days per year. Medical certificate required for absences exceeding 2 consecutive days.,10,TRUE,Manager
+Annual Leave,Employees receive 20 annual leave days per year. Must be requested at least 2 weeks in advance.,20,FALSE,Manager
+Emergency Leave,Emergency leave granted for family emergencies or unforeseen circumstances. Maximum 5 days per year.,5,FALSE,HR Manager
+Maternity Leave,Female employees entitled to 6 months (180 days) paid maternity leave. Medical certificate required.,180,TRUE,HR Manager
+Paternity Leave,Male employees entitled to 2 weeks (14 days) paid paternity leave upon birth of child.,14,TRUE,Manager
+Bereavement Leave,Employees granted 5 days bereavement leave for immediate family members.,5,FALSE,Manager
+Study Leave,Employees pursuing approved courses may request study leave. Maximum 10 days per year.,10,FALSE,HR Manager
+Unpaid Leave,Unpaid leave may be granted at manager's discretion after all paid leave is exhausted.,0,FALSE,Senior Management
+Compensatory Leave,Overtime work may be compensated with time off. Must be approved by manager.,0,FALSE,Manager
+Public Holidays,Company observes all national public holidays. No leave deduction for public holidays.,0,FALSE,Automatic

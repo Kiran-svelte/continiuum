@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Neural Core - Admin</title>
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <link rel="stylesheet" href="../../assets/css/animations.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            background-color: #000;
+            color: #0f0;
+            font-family: 'Courier New', Courier, monospace;
+            overflow-x: hidden;
+            margin: 0;
+            height: 100vh;
+        }
+
+        /* Matrix Rain Background */
+        #matrix-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            opacity: 0.15;
+            pointer-events: none;
+        }
+
+        .main-wrapper {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            min-height: 100vh;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Admin Sidebar */
+        .admin-sidebar {
+            background: rgba(0, 20, 0, 0.9);
+            border-right: 1px solid #0f0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 2px 0 15px rgba(0, 255, 0, 0.2);
+        }
+
+        .admin-logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #0f0;
+            text-shadow: 0 0 10px #0f0;
+            margin-bottom: 40px;
+            text-align: center;
+            border-bottom: 1px solid #0f0;
+            padding-bottom: 20px;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            color: #0f0;
+            text-decoration: none;
+            margin-bottom: 10px;
+            border: 1px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .nav-link:hover,
+        .nav-link.active {
+            background: rgba(0, 255, 0, 0.1);
+            border: 1px solid #0f0;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.2);
+            text-shadow: 0 0 5px #0f0;
+        }
+
+        .nav-link i {
+            margin-right: 12px;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .header-title {
+            font-size: 2rem;
+            color: #0f0;
+            text-transform: uppercase;
+            text-shadow: 0 0 10px #0f0;
+            margin-bottom: 10px;
+            letter-spacing: 2px;
+        }
+
+        .status-panel {
+            background: rgba(0, 20, 0, 0.8);
+            border: 1px solid #0f0;
+            padding: 20px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* Control Grid */
+        .control-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .control-card {
+            background: rgba(0, 10, 0, 0.9);
+            border: 1px solid #0f0;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .control-card h3 {
+            border-bottom: 1px solid #0f0;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .action-btn {
+            width: 100%;
+            background: transparent;
+            color: #0f0;
+            border: 1px solid #0f0;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            text-transform: uppercase;
+            cursor: pointer;
+            margin-bottom: 10px;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .action-btn:hover {
+            background: #0f0;
+            color: #000;
+            box-shadow: 0 0 20px #0f0;
+        }
+
+        .action-btn.danger {
+            color: #f00;
+            border-color: #f00;
+        }
+
+        .action-btn.danger:hover {
+            background: #f00;
+            color: #000;
+            box-shadow: 0 0 20px #f00;
+        }
+
+        .log-terminal {
+            background: #000;
+            border: 1px solid #0f0;
+            height: 150px;
+            padding: 10px;
+            overflow-y: scroll;
+            font-size: 0.8rem;
+            margin-top: 10px;
+            color: #0f0;
+        }
+
+        .log-line {
+            margin-bottom: 4px;
+        }
+
+        .log-time {
+            color: #0a0;
+            margin-right: 8px;
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="matrix-canvas"></canvas>
+
+    <div class="main-wrapper">
+        <aside class="admin-sidebar">
+            <div class="admin-logo">ADMIN // ROOT</div>
+            <nav>
+                <a href="dashboard.html" class="nav-link"><i data-lucide="layout-dashboard"></i> COMMAND</a>
+                <a href="users.html" class="nav-link"><i data-lucide="users"></i> USERS</a>
+                <a href="system.html" class="nav-link"><i data-lucide="cpu"></i> SYSTEM</a>
+                <a href="security.html" class="nav-link"><i data-lucide="shield-alert"></i> SECURITY</a>
+                <a href="ai-control.html" class="nav-link active"><i data-lucide="brain-circuit"></i> NEURAL CORE</a>
+            </nav>
+            <div style="margin-top: auto;">
+                <button id="logoutBtn" class="nav-link" style="width: 100%; border: 1px solid #f00; color: #f00;">
+                    <i data-lucide="log-out"></i> LOGOUT
+                </button>
+            </div>
+        </aside>
+
+        <div class="content">
+            <div class="header-title">AI CONTROL CENTER [PORT 8007]</div>
+
+            <div class="status-panel">
+                <div>
+                    <div>ACTIVE MODELS: 6/7</div>
+                    <div>SYSTEM HEALTH: 98%</div>
+                </div>
+                <div style="text-align: right; color: #0f0;">
+                    STATUS: ONLINE<br>
+                    LATENCY: 12ms
+                </div>
+            </div>
+
+            <div class="control-grid">
+                <!-- Monitor -->
+                <div class="control-card">
+                    <h3><i data-lucide="activity"></i> MONITORING</h3>
+                    <button class="action-btn" onclick="runCommand('MONITOR', 8001)">
+                        MONITOR PORT 8001
+                    </button>
+                    <div id="monitor-log" class="log-terminal">
+                        <div class="log-line">Waiting for command...</div>
+                    </div>
+                </div>
+
+                <!-- Training -->
+                <div class="control-card">
+                    <h3><i data-lucide="graduation-cap"></i> TRAINING</h3>
+                    <button class="action-btn" onclick="runCommand('TRAIN', 8001)">
+                        TRAIN LEAVE AI
+                    </button>
+                    <div id="train-log" class="log-terminal">
+                        <div class="log-line">Model v2.1 loaded.</div>
+                    </div>
+                </div>
+
+                <!-- Testing -->
+                <div class="control-card">
+                    <h3><i data-lucide="flask-conical"></i> TESTING & ROLLBACK</h3>
+                    <button class="action-btn" onclick="runCommand('TEST', 8004)">
+                        TEST RECRUITMENT AI
+                    </button>
+                    <button class="action-btn" onclick="runCommand('ROLLBACK', 8007)">
+                        ROLLBACK MODEL
+                    </button>
+                    <button class="action-btn" onclick="runCommand('ABTEST', 8007)">
+                        RUN A/B TEST
+                    </button>
+                    <div id="test-log" class="log-terminal">
+                        <div class="log-line">Ready for test sequence.</div>
+                    </div>
+                </div>
+
+                <!-- Emergency -->
+                <div class="control-card" style="border-color: #f00;">
+                    <h3 style="color: #f00; border-color: #f00;"><i data-lucide="siren"></i> EMERGENCY OVERRIDE</h3>
+                    <p style="margin-bottom: 20px; color: #f00;">WARNING: This will halt all AI operations immediately.
+                    </p>
+                    <button class="action-btn danger" onclick="emergencyStop()">
+                        <i data-lucide="skull"></i> EMERGENCY STOP
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../../assets/js/api.js"></script>
+    <script>
+        lucide.createIcons();
+
+        // Matrix Rain
+        const canvas = document.getElementById('matrix-canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        const letters = '01010101ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        const fontSize = 14;
+        const columns = canvas.width / fontSize;
+        const drops = Array(Math.floor(columns)).fill(1);
+
+        function drawMatrix() {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#0f0';
+            ctx.font = fontSize + 'px monospace';
+            for (let i = 0; i < drops.length; i++) {
+                const text = letters.charAt(Math.floor(Math.random() * letters.length));
+                ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+                if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0;
+                drops[i]++;
+            }
+        }
+        setInterval(drawMatrix, 33);
+
+        // Command Handler - REAL API CALLS ONLY
+        async function runCommand(cmd, port) {
+            const logId = cmd === 'MONITOR' ? 'monitor-log' : cmd === 'TRAIN' ? 'train-log' : 'test-log';
+            const terminal = document.getElementById(logId);
+
+            log(terminal, `> SENDING ${cmd} TO RAG MODEL PORT ${port}...`);
+
+            try {
+                let endpoint = '';
+                let method = 'GET';
+                let payload = {};
+
+                if (cmd === 'MONITOR') {
+                    endpoint = `/ai/monitor/${port}`;
+                } else if (cmd === 'TRAIN') {
+                    endpoint = `/ai/train/${port}`;
+                    method = 'POST';
+                    payload = { document: 'POLICY_DOC_V2.PDF' };
+                } else if (cmd === 'TEST') {
+                    endpoint = `/ai/test/${port}`;
+                    method = 'POST';
+                    payload = { testCase: 'Candidate: 5y Python' };
+                } else if (cmd === 'ROLLBACK') {
+                    endpoint = '/ai/rollback';
+                    method = 'POST';
+                    payload = { version: '2.1' };
+                } else if (cmd === 'ABTEST') {
+                    endpoint = '/ai/ab-test';
+                    method = 'POST';
+                }
+
+                const response = method === 'POST'
+                    ? await API.post(endpoint, payload)
+                    : await API.get(endpoint);
+
+                if (!response || !response.status) {
+                    throw new Error('AI service returned no data');
+                }
+
+                // Display REAL response from AI
+                Object.entries(response).forEach(([key, value]) => {
+                    log(terminal, `> ${key.toUpperCase()}: ${value}`);
+                });
+
+            } catch (error) {
+                log(terminal, `> ⚠️ RAG MODEL ERROR: ${error.message}`);
+                log(terminal, `> Required: Port ${port} with RAG/LLM integration`);
+                log(terminal, `> No simulation data will be shown`);
+            }
+        }
+
+        async function emergencyStop() {
+            if (!confirm("CONFIRM EMERGENCY SHUTDOWN OF ALL SYSTEMS?")) return;
+
+            try {
+                await API.post('/ai/stop', { reason: 'EMERGENCY_OVERRIDE' });
+                alert("⚠️ SYSTEM HALTED. AI AGENTS DISCONNECTED.");
+            } catch (error) {
+                alert(`ERROR: ${error.message}`);
+            }
+        }
+
+        function log(element, text) {
+            const div = document.createElement('div');
+            div.className = 'log-line';
+            div.innerText = text;
+            element.appendChild(div);
+            element.scrollTop = element.scrollHeight;
+        }
+
+        document.getElementById('logoutBtn').onclick = () => {
+            localStorage.clear();
+            window.location.href = '../../index.html';
+        };
+    </script>
+</body>
+
+</html>

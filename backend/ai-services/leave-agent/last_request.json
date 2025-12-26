@@ -1,0 +1,43 @@
+{
+  "text": "I need sick leave tomorrow",
+  "employee_id": "EMP001",
+  "extracted_info": {
+    "employeeId": "EMP001",
+    "type": "sick",
+    "dates": [
+      "2025-12-26"
+    ],
+    "duration": 1,
+    "reason": ""
+  },
+  "team_state": {
+    "employee": {
+      "emp_id": "EMP001",
+      "full_name": "Rajesh Kumar",
+      "email": "rajesh.kumar@company.com",
+      "department": "Engineering",
+      "position": "Senior Developer",
+      "manager_id": "MGR001",
+      "hire_date": "2022-01-14T18:30:00.000Z",
+      "employment_type": "full-time",
+      "work_location": "Bangalore",
+      "created_at": "2025-12-25T15:56:00.000Z"
+    },
+    "balance": null,
+    "team": {
+      "team_id": "TEAM001",
+      "team_name": "Backend Engineering",
+      "department": "Engineering",
+      "manager_id": "MGR001",
+      "min_coverage": 4,
+      "max_concurrent_leave": 3,
+      "created_at": "2025-12-25T15:56:00.000Z",
+      "role_in_team": "Senior Developer",
+      "teamSize": 4,
+      "alreadyOnLeave": 0,
+      "conflicts": []
+    },
+    "blackoutDates": []
+  },
+  "leave_balance": null
+}
