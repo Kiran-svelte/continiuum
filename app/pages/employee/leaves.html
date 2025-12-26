@@ -575,10 +575,11 @@
 
         async function loadLeaves() {
             try {
-                allLeaves = await API.get('/leaves/my-leaves');
+                const response = await API.get('/leaves/my-leaves');
+                allLeaves = response.leaves || response || [];
                 renderLeaves();
             } catch (e) {
-                console.error(e);
+                console.error('Failed to load leaves:', e);
                 document.getElementById('leavesContainer').innerHTML = `
                     <div class="empty-state">
                         <div class="empty-icon">

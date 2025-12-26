@@ -146,25 +146,33 @@ def extract_leave_info(text: str) -> Dict:
     text_lower = text.lower()
     today = datetime.now()
     
-    # Extract number of days
-    days_requested = 1  # Default
+    # Extract number of days - default to 1 day
+    days_requested = 1
     
-    # Pattern: "X days" or "X day"
+    # Pattern: "X days" or "X day" (including "1 day")
     days_match = re.search(r'(\d+)\s*days?', text_lower)
     if days_match:
-        days_requested = int(days_match.group(1))
+        days_requested = max(1, int(days_match.group(1)))
+    
+    # Check for "half day" -> 1 day
+    if "half day" in text_lower or "half-day" in text_lower:
+        days_requested = 1
+    
+    # Pattern: "a day" or "one day" or "1 day"
+    if re.search(r'\b(a|one|1)\s*day\b', text_lower):
+        days_requested = 1
     
     # Pattern: "a week" = 5 business days
-    if "a week" in text_lower or "one week" in text_lower:
+    if "a week" in text_lower or "one week" in text_lower or "1 week" in text_lower:
         days_requested = 5
     elif "two weeks" in text_lower or "2 weeks" in text_lower:
         days_requested = 10
-    elif "a month" in text_lower or "one month" in text_lower:
+    elif "a month" in text_lower or "one month" in text_lower or "1 month" in text_lower:
         days_requested = 22  # ~22 business days in a month
     
-    # Detect leave type
+    # Detect leave type - check for sick/unwell indicators first
     leave_type = "Annual Leave"
-    if any(kw in text_lower for kw in ["sick", "ill", "fever", "cold", "flu", "doctor", "medical", "hospital", "health"]):
+    if any(kw in text_lower for kw in ["sick", "ill", "fever", "cold", "flu", "doctor", "medical", "hospital", "health", "unwell", "not feeling well", "feeling unwell", "not well"]):
         leave_type = "Sick Leave"
     elif any(kw in text_lower for kw in ["emergency", "urgent", "crisis", "family emergency"]):
         leave_type = "Emergency Leave"
@@ -311,9 +319,21 @@ def get_leave_balance(emp_id: str, leave_type: str) -> int:
 
 def get_team_status(emp_id: str, start_date: str, end_date: str) -> Dict:
     """Get team status including who's on leave"""
+    # Default response for employees not in teams
+    default_response = {
+        "team_id": None,
+        "team_name": "No Team",
+        "team_size": 1,
+        "on_leave": 0,
+        "would_be_on_leave": 1,
+        "available": 0,
+        "min_coverage": 0,
+        "members_on_leave": []
+    }
+    
     conn = get_db_connection()
     if not conn:
-        return {"team_size": 5, "on_leave": 0, "available": 5}
+        return default_response
     
     try:
         cur = conn.cursor(dictionary=True)
@@ -331,7 +351,7 @@ def get_team_status(emp_id: str, start_date: str, end_date: str) -> Dict:
         if not team:
             cur.close()
             conn.close()
-            return {"team_size": 5, "on_leave": 0, "available": 5, "min_coverage": 3}
+            return default_response
         
         # Get team members on leave during requested period
         cur.execute("""
@@ -388,10 +408,10 @@ def get_blackout_dates(start_date: str, end_date: str) -> List[Dict]:
     
     try:
         cur = conn.cursor(dictionary=True)
+        # Check table structure - some tables might not have is_active column
         cur.execute("""
             SELECT * FROM blackout_dates
-            WHERE is_active = TRUE
-            AND NOT (end_date < %s OR start_date > %s)
+            WHERE NOT (end_date < %s OR start_date > %s)
         """, (start_date, end_date))
         blackouts = cur.fetchall()
         cur.close()
@@ -556,12 +576,13 @@ def check_rule006_notice(leave_info: Dict) -> Dict:
     """RULE006: Check advance notice requirement"""
     leave_type = leave_info['leave_type']
     start_date = datetime.strptime(leave_info['start_date'], "%Y-%m-%d")
-    today = datetime.now()
+    today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
     
     days_notice = (start_date - today).days
     required_notice = CONSTRAINT_RULES["RULE006"]["notice_days"].get(leave_type, 3)
     
-    passed = days_notice >= required_notice
+    # If no notice required (0), always pass. Otherwise check days_notice >= required
+    passed = (required_notice == 0) or (days_notice >= required_notice)
     
     return {
         "rule_id": "RULE006",

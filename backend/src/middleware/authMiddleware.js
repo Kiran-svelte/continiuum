@@ -8,9 +8,11 @@ const authenticateToken = (req, res, next) => {
 
     // Demo token - in production, verify JWT
     if (token === 'demo-token-123' || req.path === '/health' || req.path === '/constraints/status') {
-        // Add demo user data
+        // Add demo user data - use consistent EMP001 for demo
         req.user = {
-            id: 'EMP' + Math.floor(Math.random() * 1000),
+            id: 'EMP001',
+            emp_id: 'EMP001',
+            employeeId: 'EMP001',
             name: 'Demo User',
             role: 'employee',
             department: 'Engineering'

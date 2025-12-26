@@ -21,31 +21,42 @@ window.checkLeaveConstraints = async function (requestText) {
         });
 
         if (!response.ok) {
-            const errData = await response.json();
-            throw new Error(errData.message || 'Server error');
+            const errData = await response.json().catch(() => ({}));
+            throw new Error(errData.message || errData.error || 'Server error');
         }
 
         const data = await response.json();
         console.log('✅ Result received:', data);
 
+        // Format violations array safely
+        let violationsList = [];
+        if (data.violations && Array.isArray(data.violations)) {
+            violationsList = data.violations;
+        } else if (data.constraintResults && data.constraintResults.violations) {
+            violationsList = data.constraintResults.violations.map(v => 
+                `${v.rule_id}: ${v.rule_name}`
+            );
+        }
+
         // Display mapping for the detailed UI
         window.displayResult({
             approved: data.approved,
-            message: data.message,
-            details: data.details,
-            violations: data.violations,
-            engine: data.engine,
-            responseTime: data.responseTime,
-            constraintsChecked: '14+ rules',
-            priority: data.approved ? (data.message.includes('Sick') ? '3.0' : '1.5') : '1.0',
+            message: data.message || (data.approved ? '✅ Leave Approved' : '❌ Leave Escalated'),
+            details: data.details || data.decisionReason || '',
+            violations: violationsList,
+            engine: data.engine || 'Constraint Engine v1.0',
+            responseTime: data.responseTime || '0ms',
+            constraintsChecked: data.constraintResults ? 
+                `${data.constraintResults.passed}/${data.constraintResults.total_rules} passed` : '14+ rules',
+            priority: data.approved ? '3.0' : '1.0',
             history: {
-                employee: data.employee,
-                department: data.department,
-                team: data.team,
+                employee: data.employee || 'Unknown',
+                department: data.department || 'Unknown',
+                team: data.team || 'Unknown',
                 balance: data.leaveBalance ? `${data.leaveBalance.remaining} days remaining` : 'Unknown'
             },
-            suggestions: data.suggestions,
-            alternatives: data.alternativeDates
+            suggestions: data.suggestions || [],
+            alternativeDates: data.alternativeDates || []
         });
 
     } catch (error) {
@@ -56,7 +67,8 @@ window.checkLeaveConstraints = async function (requestText) {
             details: error.message,
             violations: ['Failed to reach backend analysis services'],
             engine: 'Frontend Fallback',
-            responseTime: '0ms'
+            responseTime: '0ms',
+            constraintsChecked: '0'
         });
     }
 };

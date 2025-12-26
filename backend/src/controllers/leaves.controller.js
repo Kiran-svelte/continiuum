@@ -80,21 +80,52 @@ exports.analyzeLeaveRequest = async (req, res) => {
             console.error('DB Log Error:', dbError.message);
         }
 
-        // Return formatted response
+        // Return formatted response for frontend
+        const leaveType = engineResponse.leave_request.type;
+        const daysRequested = engineResponse.leave_request.days_requested;
+        const startDate = engineResponse.leave_request.start_date;
+        const endDate = engineResponse.leave_request.end_date;
+        
+        // Format message for UI
+        let message, details;
+        if (engineResponse.approved) {
+            message = `✅ ${leaveType} Approved`;
+            details = `Your ${daysRequested} day(s) ${leaveType.toLowerCase()} from ${startDate} to ${endDate} has been approved.`;
+        } else {
+            message = `❌ ${leaveType} Escalated to HR`;
+            details = `${engineResponse.constraint_results.failed} constraint(s) need review. ${engineResponse.decision_reason}`;
+        }
+        
+        // Format violations for UI
+        const violations = engineResponse.constraint_results.violations.map(v => 
+            `${v.rule_id}: ${v.rule_name} - ${v.message}`
+        );
+        
         res.json({
             success: true,
             approved: engineResponse.approved,
             status: engineResponse.status,
             requestId: requestId,
             
+            // UI-friendly fields
+            message: message,
+            details: details,
+            violations: violations,
+            
             // Employee Info
-            employee: engineResponse.employee,
+            employee: engineResponse.employee?.name || 'Unknown',
+            department: engineResponse.employee?.department || 'Unknown',
+            team: engineResponse.team_status?.team_name || 'No Team',
             
             // Leave Details
             leaveRequest: engineResponse.leave_request,
             
             // Balance Info
             balance: engineResponse.balance,
+            leaveBalance: {
+                remaining: engineResponse.balance?.current || 0,
+                afterApproval: engineResponse.balance?.after_approval || 0
+            },
             
             // Team Status
             teamStatus: engineResponse.team_status,
@@ -104,7 +135,7 @@ exports.analyzeLeaveRequest = async (req, res) => {
             
             // Decision Info
             decisionReason: engineResponse.decision_reason,
-            suggestions: engineResponse.suggestions,
+            suggestions: engineResponse.suggestions || [],
             
             // Meta
             engine: 'Constraint Satisfaction Engine v1.0',

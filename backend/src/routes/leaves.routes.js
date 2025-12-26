@@ -7,7 +7,27 @@ const db = require('../config/db');
 // Main constraint-based analysis endpoint
 router.post('/analyze', authenticateToken, leavesController.analyzeLeaveRequest);
 
-// Get my leave requests (for employee panel)
+// Get my leave requests - from token (for employee panel)
+router.get('/my-leaves', authenticateToken, async (req, res) => {
+    try {
+        // Get employee ID from authenticated user
+        const empId = req.user?.emp_id || req.user?.employeeId || req.user?.id;
+        if (!empId) {
+            return res.status(400).json({ success: false, error: 'Employee ID not found in token' });
+        }
+        const [leaves] = await db.execute(`
+            SELECT * FROM leave_requests 
+            WHERE emp_id = ? 
+            ORDER BY created_at DESC
+        `, [empId]);
+        res.json({ success: true, leaves: leaves || [] });
+    } catch (error) {
+        console.error('Error fetching leaves:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Get my leave requests with explicit empId (legacy support)
 router.get('/my-leaves/:empId', authenticateToken, async (req, res) => {
     try {
         const [leaves] = await db.execute(`
