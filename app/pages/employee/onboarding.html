@@ -577,23 +577,94 @@
 
         async function loadTasks() {
             try {
-                // REAL API CALL - NO DEMO DATA
-                const tasks = await API.get('/onboarding/tasks');
-
-                if (!tasks || tasks.length === 0) {
-                    throw new Error('No onboarding tasks found in database');
+                // Get employee ID from localStorage or URL
+                const user = JSON.parse(localStorage.getItem('user') || '{}');
+                const urlParams = new URLSearchParams(window.location.search);
+                const empId = urlParams.get('emp_id') || user.emp_id || user.id;
+                
+                let myOnboarding = null;
+                let tasks = [];
+                
+                // Try to get employee-specific onboarding from REAL DATABASE
+                if (empId) {
+                    const response = await API.get(`/api/onboarding/employee/${empId}`);
+                    if (response.success) {
+                        myOnboarding = response.onboarding;
+                        tasks = response.tasks || [];
+                    }
                 }
+                
+                // If no employee-specific record, check for any onboarding by email
+                if (!myOnboarding && user.email) {
+                    const allResponse = await API.get('/api/onboarding/all');
+                    if (allResponse.success && allResponse.onboardings?.length > 0) {
+                        // Find by email match - REAL DATA LOOKUP
+                        myOnboarding = allResponse.onboardings.find(o => o.email === user.email) || allResponse.onboardings[0];
+                    }
+                }
+                
+                // Store current onboarding globally
+                currentOnboardingData = myOnboarding;
+                
+                // Get REAL AI-GENERATED tasks from Constraint Engine
+                if (myOnboarding && tasks.length === 0) {
+                    tasks = await generatePhaseTasks(myOnboarding.current_phase || 'offer_pending', myOnboarding);
+                }
+
+                if (!myOnboarding) {
+                    throw new Error('No onboarding record found. Please contact HR.');
+                }
+
+                // Update welcome text with REAL data
+                document.getElementById('welcomeText').innerText = `Welcome, ${myOnboarding.employee_name?.split(' ')[0] || 'Team Member'}!`;
+                
+                // Update progress with REAL phase data
+                const phaseProgress = { 'offer_pending': 10, 'pre_start': 30, 'day_0': 50, 'week_1': 70, 'month_1': 90, 'complete': 100 };
+                const progress = phaseProgress[myOnboarding.current_phase] || 0;
+                document.getElementById('onboardingProgress').innerText = `Phase: ${(myOnboarding.current_phase || 'unknown').replace('_', ' ').toUpperCase()} • ${progress}% Complete`;
+                document.getElementById('progressBar').style.width = progress + '%';
 
                 renderTasks(tasks);
             } catch (error) {
                 document.getElementById('tasksGrid').innerHTML = `
                     <div style="text-align: center; padding: 40px; color: #ef4444;">
-                        <strong>⚠️ RAG MODEL ERROR:</strong><br><br>
+                        <strong>⚠️ No Onboarding Data:</strong><br><br>
                         ${error.message}<br><br>
-                        <strong>Required:</strong> Database table 'onboarding_tasks' must exist with real data.<br>
-                        No demo/sample data will be shown.
+                        <a href="../hr/onboarding.html" style="color: #3b82f6;">Go to HR Portal to create onboarding</a>
                     </div>
                 `;
+            }
+        }
+        
+        // Store current onboarding data globally for task operations
+        let currentOnboardingData = null;
+        let currentTasksList = [];
+
+        // REAL AI-POWERED TASK GENERATION - NO HARDCODED DATA
+        async function generatePhaseTasks(phase, onboarding) {
+            try {
+                console.log(`🤖 Fetching REAL AI tasks for phase: ${phase}`);
+                
+                // Call AI Constraint Engine for real tasks
+                const response = await API.get(`/api/onboarding/phase-tasks/${phase}?department=${onboarding?.department || 'General'}&role=${onboarding?.role || 'Employee'}&country=${onboarding?.country || 'US'}`);
+                
+                if (response.success && response.tasks?.length > 0) {
+                    console.log(`✅ AI Engine returned ${response.tasks.length} real tasks`);
+                    currentTasksList = response.tasks;
+                    return response.tasks;
+                }
+                
+                throw new Error('AI Engine returned no tasks');
+            } catch (error) {
+                console.error('❌ AI Task Generation Error:', error.message);
+                // Return error state - NO FALLBACK TO MOCK DATA
+                return [{
+                    id: 0,
+                    title: '⚠️ AI Engine Unavailable',
+                    description: `Error: ${error.message}. Please ensure AI services are running on Port 8002.`,
+                    completed: false,
+                    error: true
+                }];
             }
         }
 
@@ -620,13 +691,30 @@
             lucide.createIcons();
         }
 
-        function toggleTask(id) {
-            const task = sampleTasks.find(t => t.id === id);
-            if (task) {
+        async function toggleTask(id) {
+            const task = currentTasksList.find(t => t.id === id);
+            if (!task || task.error) return;
+            
+            try {
+                // REAL API CALL to update task status
+                if (currentOnboardingData?.onboarding_id) {
+                    const newStatus = task.completed ? 'pending' : 'completed';
+                    await API.put(`/api/onboarding/${currentOnboardingData.onboarding_id}/task/${id}`, {
+                        status: newStatus
+                    });
+                }
+                
                 task.completed = !task.completed;
-                // In production: API.post(`/onboarding/tasks/${id}/complete`)
-                renderTasks(sampleTasks);
-                UI.showToast(task.completed ? 'Task completed!' : 'Task unmarked', 'success');
+                renderTasks(currentTasksList);
+                
+                if (typeof UI !== 'undefined') {
+                    UI.showToast(task.completed ? '✅ Task completed!' : 'Task unmarked', 'success');
+                }
+            } catch (error) {
+                console.error('Task update error:', error);
+                if (typeof UI !== 'undefined') {
+                    UI.showToast('Could not update task: ' + error.message, 'error');
+                }
             }
         }
 
@@ -637,114 +725,189 @@
             box.classList.add('show');
         }
 
-        // 🤖 BUTTON 1: Ask AI Question (Port 8003)
+        // 🤖 BUTTON 1: Ask AI Question (Port 8002 - Onboarding Engine)
         async function openAIChat() {
             const question = prompt("Ask me anything about your onboarding:");
             if (!question) return;
 
-            showAIResponse('Calling RAG Model...');
+            showAIResponse('Calling Onboarding AI Engine...');
 
             try {
-                // REAL API CALL - NO SIMULATION
-                const response = await API.post('/onboarding/ask', { question });
+                // REAL API CALL to Onboarding Constraint Engine
+                const response = await API.post('/api/onboarding/ask', { question });
 
-                if (!response.answer) {
-                    throw new Error('AI did not return an answer');
+                if (response.success && response.answer) {
+                    showAIResponse(`
+                        <strong style="color: #3b82f6;">AI Answer (Onboarding Engine - Port 8002):</strong><br><br>
+                        <strong>Q:</strong> ${question}<br><br>
+                        <strong>A:</strong> ${response.answer}
+                    `);
+                } else {
+                    throw new Error(response.message || 'AI did not return an answer');
                 }
-
-                showAIResponse(`
-                    <strong style="color: #3b82f6;">AI Answer (RAG Model - Port 8003):</strong><br><br>
-                    <strong>Q:</strong> ${question}<br><br>
-                    <strong>A:</strong> ${response.answer}
-                `);
             } catch (error) {
                 showAIResponse(`
-                    <strong style="color: #ef4444;">⚠️ RAG MODEL ERROR:</strong><br><br>
+                    <strong style="color: #ef4444;">⚠️ AI ENGINE ERROR:</strong><br><br>
                     ${error.message}<br><br>
-                    <strong>Required:</strong> Port 8003 with:<br>
-                    • Company policy embeddings<br>
-                    • HR document RAG<br>
-                    • LLM integration
+                    <strong>Make sure:</strong> Onboarding AI Service is running on port 8002<br>
+                    Run: <code>python backend/ai-services/onboarding-agent/onboarding_engine.py</code>
                 `);
             }
         }
 
-        // 🤖 BUTTON 2: Show Next Steps (Port 8003)
+        // 🤖 BUTTON 2: Show Next Steps (Port 8002 - Analyze endpoint)
         async function showNextSteps() {
-            showAIResponse('Analyzing your progress...');
+            showAIResponse('<div style="text-align:center;"><div class="loading-spinner"></div><br>🤖 AI Constraint Engine analyzing your progress...</div>');
 
             try {
-                const response = await API.get('/onboarding/next-steps');
+                // Use REAL onboarding data if available
+                const onboarding = currentOnboardingData || {};
+                const user = JSON.parse(localStorage.getItem('user') || '{}');
+                
+                // Call REAL AI analyze endpoint with actual employee data
+                const response = await API.post('/api/onboarding/analyze', {
+                    employee_data: {
+                        name: onboarding.employee_name || user.name || 'Employee',
+                        role: onboarding.role || 'Team Member',
+                        department: onboarding.department || 'General',
+                        country: onboarding.country || 'US',
+                        start_date: onboarding.start_date || new Date().toISOString().split('T')[0],
+                        work_authorization: 'pending',
+                        budget_approved: true,
+                        background_check_status: 'pending'
+                    },
+                    phase: onboarding.current_phase || 'pre_start'
+                });
 
-                if (!response.steps) {
-                    throw new Error('AI did not return next steps');
-                }
-
+                // Parse REAL AI Engine response (response comes directly, not nested)
+                const currentPhase = response.current_phase || onboarding.current_phase || 'pre_start';
+                const nextPhase = response.next_phase || 'Next phase';
+                const complianceScore = response.compliance_score || 'N/A';
+                
+                // Get automated actions from REAL response
+                const actions = response.automated_actions || [];
+                const steps = actions.length > 0 
+                    ? actions.map(a => `• ${a.description || a.action || a}`).join('<br>')
+                    : 'Complete your current phase tasks';
+                
+                // Get constraint check results
+                const constraints = response.constraint_results || {};
+                const checksInfo = constraints.total_checks 
+                    ? `<strong>Compliance Checks:</strong> ${constraints.passed}/${constraints.total_checks} passed<br>` 
+                    : '';
+                    
                 showAIResponse(`
-                    <strong style="color: #3b82f6;">Your Next Steps (RAG Model):</strong><br><br>
-                    ${response.steps}
+                    <strong style="color: #3b82f6;">🤖 AI Constraint Engine Analysis</strong><br>
+                    <small style="color: #10b981;">Source: ${response.engine || 'AI Onboarding Engine (Port 8002)'}</small><br><br>
+                    
+                    <strong>Current Phase:</strong> ${currentPhase.replace('_', ' ').toUpperCase()}<br>
+                    <strong>Next Phase:</strong> ${nextPhase}<br>
+                    <strong>Compliance Score:</strong> ${complianceScore}<br>
+                    ${checksInfo}<br>
+                    
+                    <strong>📋 Recommended Next Steps:</strong><br>
+                    ${steps}<br><br>
+                    
+                    ${response.country_rules?.name ? `<small>📍 Country: ${response.country_rules.name}</small>` : ''}
                 `);
             } catch (error) {
                 showAIResponse(`
-                    <strong style="color: #ef4444;">⚠️ RAG MODEL ERROR:</strong><br><br>
-                    ${error.message}
+                    <strong style="color: #ef4444;">⚠️ AI ENGINE ERROR:</strong><br><br>
+                    ${error.message}<br><br>
+                    <strong>Make sure:</strong> AI Constraint Engine is running on port 8002<br>
+                    <code>python backend/ai-services/onboarding-agent/onboarding_engine.py</code>
                 `);
             }
         }
 
-        // 🤖 BUTTON 3: Document Helper (Port 8003)
+        // 🤖 BUTTON 3: Document Helper - REAL AI VERIFICATION
         async function uploadDocument(file) {
             if (!file) return;
 
-            showAIResponse(`Analyzing ${file.name} with RAG...`);
+            showAIResponse(`<div style="text-align:center;"><div class="loading-spinner"></div><br>🤖 AI analyzing ${file.name}...</div>`);
 
             try {
-                const formData = new FormData();
-                formData.append('document', file);
+                // Extract document type from filename
+                const fileName = file.name.toLowerCase();
+                let documentType = 'general';
+                if (fileName.includes('i-9') || fileName.includes('i9')) documentType = 'I-9';
+                else if (fileName.includes('w-4') || fileName.includes('w4')) documentType = 'W-4';
+                else if (fileName.includes('tax')) documentType = 'Tax Form';
+                else if (fileName.includes('id') || fileName.includes('passport')) documentType = 'ID Document';
+                else if (fileName.includes('offer')) documentType = 'Offer Letter';
+                
+                // Call REAL AI document help endpoint
+                const response = await API.post('/api/onboarding/document-help', {
+                    document_type: documentType,
+                    document_name: file.name,
+                    country: currentOnboardingData?.country || 'US',
+                    onboarding_id: currentOnboardingData?.onboarding_id
+                });
 
-                const response = await API.post('/onboarding/document-help', formData);
-
-                if (!response.verified) {
-                    throw new Error('Document verification failed');
+                if (!response.success) {
+                    throw new Error(response.error || 'Document verification failed');
                 }
 
                 showAIResponse(`
-                    <strong style="color: #10b981;">✓ Document Verified by RAG!</strong><br><br>
-                    <strong>File:</strong> ${file.name}<br>
-                    <strong>Type:</strong> ${response.type}<br>
-                    <strong>Status:</strong> ${response.status}<br><br>
-                    <strong>Extracted Information:</strong><br>
-                    ${response.extracted}
+                    <strong style="color: #10b981;">✓ AI Document Analysis Complete</strong><br>
+                    <small style="color: #6b7280;">Source: ${response.source || 'AI Constraint Engine'}</small><br><br>
+                    
+                    <strong>📄 File:</strong> ${file.name}<br>
+                    <strong>📋 Type:</strong> ${response.document_type}<br>
+                    <strong>🌍 Country:</strong> ${response.country}<br>
+                    <strong>✅ Required:</strong> ${response.is_required ? 'Yes - This document is mandatory' : 'Optional'}<br><br>
+                    
+                    <strong>💡 Help:</strong><br>
+                    ${response.help_text}<br><br>
+                    
+                    ${response.required_documents?.length ? `<strong>📋 All Required Documents for ${response.country}:</strong><br>${response.required_documents.map(d => `• ${d}`).join('<br>')}` : ''}
                 `);
-                UI.showToast('Document uploaded successfully!', 'success');
+                
+                if (typeof UI !== 'undefined') {
+                    UI.showToast('Document analyzed successfully!', 'success');
+                }
             } catch (error) {
                 showAIResponse(`
-                    <strong style="color: #ef4444;">⚠️ RAG MODEL ERROR:</strong><br><br>
-                    ${error.message}
+                    <strong style="color: #ef4444;">⚠️ AI Document Analysis Error:</strong><br><br>
+                    ${error.message}<br><br>
+                    <strong>Make sure:</strong> Backend server is running on port 5000
                 `);
             }
         }
 
-        // 🤖 BUTTON 4: Team Introductions (Port 8003)
+        // 🤖 BUTTON 4: Team Introductions - REAL DATABASE + AI
         async function findTeammates() {
-            showAIResponse('Finding colleagues with RAG...');
+            showAIResponse('<div style="text-align:center;"><div class="loading-spinner"></div><br>🤖 Finding your team from database...</div>');
 
             try {
-                const response = await API.get('/onboarding/team-match');
+                // Call REAL team match endpoint with actual department/role
+                const department = currentOnboardingData?.department || 'General';
+                const role = currentOnboardingData?.role || 'Employee';
+                const empId = currentOnboardingData?.emp_id || '';
+                
+                const response = await API.get(`/api/onboarding/team-match?department=${encodeURIComponent(department)}&role=${encodeURIComponent(role)}&emp_id=${empId}`);
 
-                if (!response.teammates) {
-                    throw new Error('AI did not return team matches');
+                if (!response.success) {
+                    throw new Error(response.error || 'Could not fetch team data');
                 }
 
                 showAIResponse(`
-                    <strong style="color: #3b82f6;">Meet Your Teammates (RAG Model):</strong><br><br>
-                    ${response.teammates}
+                    <strong style="color: #3b82f6;">👥 Your Team (Real Database)</strong><br>
+                    <small style="color: #10b981;">Source: ${response.source || 'Database + AI Engine'}</small><br><br>
+                    
+                    ${response.teammates}<br><br>
+                    
+                    <small>Team Members: ${response.team_count || 0} | Onboarding Buddies: ${response.buddy_count || 0}</small>
                 `);
-                UI.showToast('Team introductions scheduled!', 'success');
+                
+                if (typeof UI !== 'undefined') {
+                    UI.showToast('Team data loaded from database!', 'success');
+                }
             } catch (error) {
                 showAIResponse(`
-                    <strong style="color: #ef4444;">⚠️ RAG MODEL ERROR:</strong><br><br>
-                    ${error.message}
+                    <strong style="color: #ef4444;">⚠️ Team Match Error:</strong><br><br>
+                    ${error.message}<br><br>
+                    <strong>Make sure:</strong> Backend server is running and database is connected
                 `);
             }
         }

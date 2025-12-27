@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Onboarding Tracker</title>
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', sans-serif; 
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 50%, #0f172a 100%);
+            background-attachment: fixed;
+            min-height: 100vh; 
+        }
+        
+        .main-wrapper {
+            display: flex;
+            min-height: 100vh;
+        }
+        
+        .premium-sidebar {
+            background: rgba(15, 23, 42, 0.9);
+            backdrop-filter: blur(20px);
+            border-right: 1px solid rgba(236, 72, 153, 0.2);
+            padding: 32px 24px;
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 280px;
+            height: 100vh;
+            z-index: 100;
+        }
+        
+        .logo-section { margin-bottom: 48px; text-align: center; }
+        .logo-text {
+            font-size: 1.8rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 50%, #3b82f6 100%);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .hr-badge {
+            display: inline-block;
+            padding: 6px 16px;
+            background: linear-gradient(135deg, rgba(236, 72, 153, 0.2), rgba(139, 92, 246, 0.2));
+            border: 1px solid rgba(236, 72, 153, 0.3);
+            border-radius: 50px;
+            color: #ec4899;
+            font-size: 0.75rem;
+            font-weight: 700;
+            margin-top: 8px;
+        }
+        .ai-status-sidebar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            color: #10b981;
+            justify-content: center;
+            margin-top: 12px;
+        }
+        .status-dot {
+            width: 8px; height: 8px;
+            background: #10b981;
+            border-radius: 50%;
+            animation: pulse-dot 2s infinite;
+        }
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 18px;
+            margin-bottom: 8px;
+            border-radius: 12px;
+            color: rgba(255, 255, 255, 0.7);
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+        .nav-item:hover {
+            background: rgba(236, 72, 153, 0.1);
+            color: #ec4899;
+            transform: translateX(8px);
+        }
+        .nav-item.active {
+            background: linear-gradient(135deg, rgba(22, 163, 74, 0.3), rgba(21, 128, 61, 0.3));
+            color: #4ade80;
+            border: 1px solid rgba(22, 163, 74, 0.5);
+        }
+        .nav-item i { width: 20px; height: 20px; }
+        
+        .main-content {
+            margin-left: 280px;
+            padding: 2rem;
+            min-height: 100vh;
+            flex: 1;
+            width: calc(100% - 280px);
+        }
+        
+        .container { max-width: 1400px; margin: 0 auto; width: 100%; }
+        
+        .search-box {
+            background: rgba(30, 41, 59, 0.8);
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .search-box h2 { margin-bottom: 1rem; color: white; }
+        .search-row { display: flex; gap: 1rem; }
+        .search-row select, .search-row button {
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+        .search-row select { flex: 1; border: 2px solid rgba(255,255,255,0.2); background: rgba(30, 41, 59, 0.9); color: white; }
+        .search-row button {
+            background: #16a34a;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .search-row button:hover { background: #15803d; }
+        
+        .tracking-panel {
+            background: rgba(30, 41, 59, 0.8);
+            border-radius: 12px;
+            padding: 2rem;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .employee-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding-bottom: 1.5rem;
+            border-bottom: 2px solid rgba(255,255,255,0.1);
+            margin-bottom: 1.5rem;
+        }
+        .employee-info h2 { color: white; margin-bottom: 0.5rem; }
+        .employee-meta { color: rgba(255,255,255,0.7); font-size: 0.9rem; }
+        .employee-meta span { margin-right: 1rem; }
+        
+        .phase-badge {
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+        .phase-badge.offer_pending { background: #fef3c7; color: #92400e; }
+        .phase-badge.pre_start { background: #dbeafe; color: #1e40af; }
+        .phase-badge.day_0 { background: #dcfce7; color: #166534; }
+        .phase-badge.week_1 { background: #f3e8ff; color: #7c3aed; }
+        
+        .ai-status {
+            background: linear-gradient(135deg, #16a34a, #15803d);
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .ai-status .pulse {
+            width: 12px;
+            height: 12px;
+            background: #4ade80;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.2); }
+        }
+        
+        .tracking-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+        }
+        
+        .tracking-card {
+            background: rgba(15, 23, 42, 0.8);
+            border-radius: 12px;
+            padding: 1.5rem;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .tracking-card h3 {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            color: white;
+        }
+        .tracking-card .count {
+            margin-left: auto;
+            background: #16a34a;
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+        }
+        
+        .item-list { list-style: none; }
+        .item-list li {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem;
+            background: rgba(30, 41, 59, 0.9);
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            border: 1px solid rgba(255,255,255,0.1);
+            color: white;
+        }
+        .item-list li.completed { background: rgba(22, 163, 74, 0.2); border-color: #16a34a; }
+        .item-list li.pending { background: rgba(245, 158, 11, 0.2); border-color: #f59e0b; }
+        .item-list li .status-icon { font-size: 1.25rem; }
+        .item-list li .item-name { flex: 1; }
+        .item-list li .item-status {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+        }
+        .item-status.completed { background: #16a34a; color: white; }
+        .item-status.pending { background: #f59e0b; color: white; }
+        .item-status.in_progress { background: #3b82f6; color: white; }
+        
+        .empty-state {
+            text-align: center;
+            padding: 2rem;
+            color: rgba(255,255,255,0.7);
+        }
+        
+        .action-buttons {
+            margin-top: 1.5rem;
+            display: flex;
+            gap: 1rem;
+        }
+        .action-buttons button {
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+        }
+        .btn-advance { background: #16a34a; color: white; }
+        .btn-analyze { background: #3b82f6; color: white; }
+        .btn-refresh { background: #6b7280; color: white; }
+        
+        .analysis-result {
+            margin-top: 1.5rem;
+            padding: 1.5rem;
+            background: #f0fdf4;
+            border-radius: 12px;
+            border: 2px solid #16a34a;
+        }
+        .analysis-result h4 { margin-bottom: 1rem; color: #166534; }
+        
+        .loading {
+            text-align: center;
+            padding: 3rem;
+        }
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #e5e7eb;
+            border-top-color: #16a34a;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div class="main-wrapper">
+        <!-- Premium Sidebar -->
+        <aside class="premium-sidebar">
+            <div class="logo-section">
+                <div class="logo-text">HR Suite</div>
+                <span class="hr-badge">HR PORTAL</span>
+                <div class="ai-status-sidebar">
+                    <span class="status-dot"></span>
+                    AI Engine Active
+                </div>
+            </div>
+            
+            <nav style="display: flex; flex-direction: column; gap: 8px;">
+                <a href="dashboard.html" class="nav-item">
+                    <i data-lucide="layout-dashboard"></i>
+                    Dashboard
+                </a>
+                <a href="leave-requests.html" class="nav-item">
+                    <i data-lucide="calendar-days"></i>
+                    Leave Requests
+                </a>
+                <a href="employees.html" class="nav-item">
+                    <i data-lucide="users"></i>
+                    Employees
+                </a>
+                <a href="onboarding.html" class="nav-item active">
+                    <i data-lucide="user-plus"></i>
+                    Onboarding
+                </a>
+                <a href="reports.html" class="nav-item">
+                    <i data-lucide="bar-chart-3"></i>
+                    Reports
+                </a>
+            </nav>
+            
+            <div style="margin-top: auto; padding-top: 24px; border-top: 1px solid rgba(255,255,255,0.1);">
+                <button onclick="logout()" class="nav-item" style="width: 100%; border: none; background: rgba(239, 68, 68, 0.1); cursor: pointer;">
+                    <i data-lucide="log-out"></i>
+                    Logout
+                </button>
+            </div>
+        </aside>
+        
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="container">
+                <div class="search-box">
+                    <h2>🔍 Select Employee to Track</h2>
+                    <div class="search-row">
+                        <select id="employeeSelect">
+                            <option value="">Loading employees...</option>
+                        </select>
+                        <button onclick="loadTracking()">🔍 Track Employee</button>
+                        <button onclick="loadEmployees()" style="background: #6b7280;">🔄 Refresh List</button>
+                    </div>
+                </div>
+                
+                <div id="trackingContent">
+                    <div class="empty-state">
+                        <h3>👆 Select an employee above to see REAL AI tracking</h3>
+                        <p>Data is pulled directly from MySQL database in real-time</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <script src="../../assets/js/api.js"></script>
+    <script>
+        let currentOnboarding = null;
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            loadEmployees().then(() => {
+                // Check for ?id= parameter
+                const urlParams = new URLSearchParams(window.location.search);
+                const id = urlParams.get('id');
+                if (id) {
+                    document.getElementById('employeeSelect').value = id;
+                    loadTracking();
+                }
+            });
+        });
+        
+        async function loadEmployees() {
+            try {
+                const response = await API.get('/onboarding/all');
+                const employees = response.onboardings || [];
+                
+                const select = document.getElementById('employeeSelect');
+                select.innerHTML = '<option value="">-- Select Employee --</option>';
+                
+                employees.forEach(emp => {
+                    select.innerHTML += `<option value="${emp.onboarding_id}">${emp.employee_name} (${emp.role || 'N/A'}) - ${emp.current_phase}</option>`;
+                });
+            } catch (error) {
+                console.error('Error loading employees:', error);
+            }
+        }
+        
+        async function loadTracking() {
+            const onboardingId = document.getElementById('employeeSelect').value;
+            if (!onboardingId) {
+                alert('Please select an employee');
+                return;
+            }
+            
+            document.getElementById('trackingContent').innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>🤖 AI Loading REAL data from database...</p>
+                </div>
+            `;
+            
+            try {
+                // Get REAL data from database
+                const response = await API.get(`/onboarding/${onboardingId}`);
+                currentOnboarding = response;
+                
+                renderTracking(response);
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('trackingContent').innerHTML = `
+                    <div class="empty-state">
+                        <h3>❌ Error loading data</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+        
+        function renderTracking(data) {
+            const emp = data.onboarding || {};
+            const tasks = data.tasks || [];
+            const docs = data.documents || [];
+            const training = data.training || [];
+            const access = data.systemAccess || [];
+            
+            const completedTasks = tasks.filter(t => t.status === 'completed').length;
+            const completedDocs = docs.filter(d => d.status === 'submitted' || d.status === 'approved').length;
+            const completedTraining = training.filter(t => t.status === 'completed').length;
+            const approvedAccess = access.filter(a => a.status === 'provisioned' || a.status === 'approved').length;
+            
+            const totalItems = tasks.length + docs.length + training.length + access.length;
+            const completedItems = completedTasks + completedDocs + completedTraining + approvedAccess;
+            const progressPercent = totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
+            
+            document.getElementById('trackingContent').innerHTML = `
+                <div class="tracking-panel">
+                    <div class="employee-header">
+                        <div class="employee-info">
+                            <h2>${emp.employee_name || 'Unknown'}</h2>
+                            <div class="employee-meta">
+                                <span>📧 ${emp.email || 'N/A'}</span>
+                                <span>💼 ${emp.role || 'N/A'}</span>
+                                <span>🏢 ${emp.department || 'N/A'}</span>
+                                <span>📅 Start: ${emp.start_date || 'N/A'}</span>
+                            </div>
+                            <div class="employee-meta" style="margin-top: 0.5rem;">
+                                <strong>Onboarding ID:</strong> <code style="background: #e5e7eb; padding: 0.25rem 0.5rem; border-radius: 4px;">${emp.onboarding_id}</code>
+                            </div>
+                        </div>
+                        <span class="phase-badge ${emp.current_phase}">${(emp.current_phase || 'unknown').replace('_', ' ').toUpperCase()}</span>
+                    </div>
+                    
+                    <div class="ai-status">
+                        <span class="pulse"></span>
+                        <span>🤖 AI TRACKING ACTIVE</span>
+                        <span style="margin-left: auto;">Progress: <strong>${progressPercent}%</strong> (${completedItems}/${totalItems} items)</span>
+                    </div>
+                    
+                    <div class="tracking-grid">
+                        <!-- TASKS -->
+                        <div class="tracking-card">
+                            <h3>✔️ Tasks <span class="count">${completedTasks}/${tasks.length}</span></h3>
+                            <ul class="item-list">
+                                ${tasks.length === 0 ? '<li class="empty-state">No tasks found in database</li>' : 
+                                    tasks.map(t => `
+                                        <li class="${t.status}">
+                                            <span class="status-icon">${t.status === 'completed' ? '✅' : '⏳'}</span>
+                                            <span class="item-name">${t.task_name}</span>
+                                            <span class="item-status ${t.status}">${t.status}</span>
+                                        </li>
+                                    `).join('')}
+                            </ul>
+                        </div>
+                        
+                        <!-- DOCUMENTS -->
+                        <div class="tracking-card">
+                            <h3>📄 Documents <span class="count">${completedDocs}/${docs.length}</span></h3>
+                            <ul class="item-list">
+                                ${docs.length === 0 ? '<li class="empty-state">No documents in database</li>' : 
+                                    docs.map(d => `
+                                        <li class="${d.status === 'submitted' ? 'completed' : 'pending'}">
+                                            <span class="status-icon">${d.status === 'submitted' ? '✅' : '📋'}</span>
+                                            <span class="item-name">${d.document_name}</span>
+                                            <span class="item-status ${d.status}">${d.status}</span>
+                                        </li>
+                                    `).join('')}
+                            </ul>
+                        </div>
+                        
+                        <!-- TRAINING -->
+                        <div class="tracking-card">
+                            <h3>📚 Training <span class="count">${completedTraining}/${training.length}</span></h3>
+                            <ul class="item-list">
+                                ${training.length === 0 ? '<li class="empty-state">No training in database</li>' : 
+                                    training.map(t => `
+                                        <li class="${t.status}">
+                                            <span class="status-icon">${t.status === 'completed' ? '✅' : '📖'}</span>
+                                            <span class="item-name">${t.course_name} ${t.score ? `(Score: ${t.score})` : ''}</span>
+                                            <span class="item-status ${t.status}">${t.status}</span>
+                                        </li>
+                                    `).join('')}
+                            </ul>
+                        </div>
+                        
+                        <!-- SYSTEM ACCESS -->
+                        <div class="tracking-card">
+                            <h3>🔑 System Access <span class="count">${approvedAccess}/${access.length}</span></h3>
+                            <ul class="item-list">
+                                ${access.length === 0 ? '<li class="empty-state">No access requests in database</li>' : 
+                                    access.map(a => `
+                                        <li class="${a.status === 'provisioned' ? 'completed' : 'pending'}">
+                                            <span class="status-icon">${a.status === 'provisioned' ? '✅' : '🔐'}</span>
+                                            <span class="item-name">${a.system_name} (${a.access_type})</span>
+                                            <span class="item-status ${a.status}">${a.status}</span>
+                                        </li>
+                                    `).join('')}
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="action-buttons">
+                        <button class="btn-refresh" onclick="loadTracking()">🔄 Refresh Data</button>
+                        <button class="btn-analyze" onclick="runAIAnalysis()">🤖 Run AI Analysis</button>
+                        <button class="btn-advance" onclick="advancePhase()">⏭️ Advance Phase</button>
+                    </div>
+                    
+                    <div id="analysisResult"></div>
+                </div>
+            `;
+        }
+        
+        async function runAIAnalysis() {
+            if (!currentOnboarding) return;
+            
+            const emp = currentOnboarding.onboarding;
+            document.getElementById('analysisResult').innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>🤖 AI Constraint Engine analyzing (Port 8002)...</p>
+                </div>
+            `;
+            
+            try {
+                const response = await API.post('/onboarding/analyze', {
+                    employee_data: {
+                        name: emp.employee_name,
+                        role: emp.role,
+                        department: emp.department,
+                        country: emp.country,
+                        start_date: emp.start_date,
+                        current_phase: emp.current_phase
+                    },
+                    phase: emp.current_phase
+                });
+                
+                const analysis = response.analysis || response;
+                
+                document.getElementById('analysisResult').innerHTML = `
+                    <div class="analysis-result">
+                        <h4>🤖 AI CONSTRAINT ENGINE ANALYSIS (Real-time from Port 8002)</h4>
+                        <p><strong>Compliance Score:</strong> ${response.compliance_score || 'N/A'}</p>
+                        <p><strong>Current Phase:</strong> ${emp.current_phase}</p>
+                        <p><strong>Engine:</strong> ${response.engine || 'AI Onboarding Constraint Engine'}</p>
+                        
+                        ${analysis.automated_actions ? `
+                            <h5 style="margin-top: 1rem;">Recommended Actions:</h5>
+                            <ul style="padding-left: 1.5rem;">
+                                ${analysis.automated_actions.map(a => `<li>${a.description || a.action}</li>`).join('')}
+                            </ul>
+                        ` : ''}
+                        
+                        ${analysis.constraint_results ? `
+                            <h5 style="margin-top: 1rem;">Constraint Check Results:</h5>
+                            <p>Total Checks: ${analysis.constraint_results.total_constraints || 0}</p>
+                            <p>Passed: ${analysis.constraint_results.satisfied || 0}</p>
+                            <p>Violations: ${analysis.constraint_results.violated || 0}</p>
+                        ` : ''}
+                    </div>
+                `;
+            } catch (error) {
+                document.getElementById('analysisResult').innerHTML = `
+                    <div class="analysis-result" style="background: #fef2f2; border-color: #ef4444;">
+                        <h4>❌ Error running AI analysis</h4>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+        
+        async function advancePhase() {
+            if (!currentOnboarding) return;
+            
+            const emp = currentOnboarding.onboarding;
+            const phases = ['offer_pending', 'pre_start', 'day_0', 'week_1', 'month_1', 'complete'];
+            const currentIndex = phases.indexOf(emp.current_phase);
+            const nextPhase = phases[currentIndex + 1];
+            
+            if (!nextPhase) {
+                alert('Already at final phase!');
+                return;
+            }
+            
+            if (!confirm(`Advance ${emp.employee_name} from ${emp.current_phase} to ${nextPhase}?`)) {
+                return;
+            }
+            
+            try {
+                const response = await API.post('/onboarding/advance-phase', {
+                    onboarding_id: emp.onboarding_id,
+                    target_phase: nextPhase
+                });
+                
+                if (response.success) {
+                    alert(`✅ Phase advanced to ${nextPhase}!`);
+                    loadTracking();
+                } else {
+                    alert('❌ ' + (response.error || 'Failed to advance phase'));
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+        
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = '../../index.html';
+        }
+        
+        // Initialize Lucide icons
+        lucide.createIcons();
+    </script>
+</body>
+</html>

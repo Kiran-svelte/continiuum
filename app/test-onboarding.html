@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Onboarding API Test</title>
+    <style>
+        body { font-family: Arial; padding: 20px; background: #1a1a2e; color: white; }
+        .result { background: #2d2d4a; padding: 15px; margin: 10px 0; border-radius: 8px; }
+        .success { border-left: 4px solid #10b981; }
+        .error { border-left: 4px solid #ef4444; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        pre { background: #0a0a1a; padding: 10px; overflow: auto; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Onboarding API Direct Test</h1>
+    
+    <div>
+        <button onclick="testLogin()">1. Test Login</button>
+        <button onclick="testStats()">2. Test Stats</button>
+        <button onclick="testAll()">3. Test All Employees</button>
+        <button onclick="runFullTest()">🚀 Run Full Test</button>
+    </div>
+    
+    <div id="results"></div>
+    
+    <script>
+        const API_URL = 'http://localhost:5000/api';
+        let token = localStorage.getItem('token');
+        
+        function log(msg, isError = false) {
+            document.getElementById('results').innerHTML += 
+                `<div class="result ${isError ? 'error' : 'success'}">${msg}</div>`;
+        }
+        
+        async function testLogin() {
+            document.getElementById('results').innerHTML = '';
+            try {
+                const res = await fetch(`${API_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: 'hr@company.com', password: 'password123' })
+                });
+                const data = await res.json();
+                if (data.token) {
+                    token = data.token;
+                    localStorage.setItem('token', token);
+                    localStorage.setItem('user', JSON.stringify(data));
+                    log(`✅ LOGIN SUCCESS<br>Role: ${data.role}<br>Token: ${token.substring(0,50)}...`);
+                } else {
+                    log(`❌ LOGIN FAILED: ${JSON.stringify(data)}`, true);
+                }
+            } catch (e) {
+                log(`❌ LOGIN ERROR: ${e.message}`, true);
+            }
+        }
+        
+        async function testStats() {
+            try {
+                const res = await fetch(`${API_URL}/onboarding/stats`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                log(`✅ STATS SUCCESS<pre>${JSON.stringify(data, null, 2)}</pre>`);
+            } catch (e) {
+                log(`❌ STATS ERROR: ${e.message}`, true);
+            }
+        }
+        
+        async function testAll() {
+            try {
+                const res = await fetch(`${API_URL}/onboarding/all`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                const count = data.onboardings ? data.onboardings.length : 0;
+                log(`✅ ALL EMPLOYEES: Found ${count} employees<pre>${JSON.stringify(data.onboardings?.slice(0,3), null, 2)}...</pre>`);
+            } catch (e) {
+                log(`❌ ALL ERROR: ${e.message}`, true);
+            }
+        }
+        
+        async function runFullTest() {
+            document.getElementById('results').innerHTML = '<h3>Running Full Test...</h3>';
+            await testLogin();
+            await testStats();
+            await testAll();
+            log('<h3>✅ ALL TESTS COMPLETE - If all green, APIs are working!</h3>');
+        }
+        
+        // Auto-run on load
+        window.onload = () => {
+            if (token) {
+                log(`Found existing token: ${token.substring(0,30)}...`);
+            } else {
+                log('No token found - click Login first');
+            }
+        };
+    </script>
+</body>
+</html>

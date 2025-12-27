@@ -347,6 +347,12 @@
             border: 1px solid rgba(16, 185, 129, 0.3);
         }
 
+        .status-badge.ai-approved {
+            background: rgba(139, 92, 246, 0.2);
+            color: #a78bfa;
+            border: 1px solid rgba(139, 92, 246, 0.3);
+        }
+
         .status-badge.rejected {
             background: rgba(239, 68, 68, 0.2);
             color: #f87171;
@@ -634,10 +640,30 @@
                     minute: '2-digit'
                 });
 
+                // Determine display status - AI approved vs HR approved
+                let displayStatus = leave.status;
+                let statusClass = leave.status.toLowerCase();
+                const statusLower = leave.status.toLowerCase();
+                
+                if (statusLower === 'approved') {
+                    if (leave.approved_by && leave.approved_by.startsWith('HR:')) {
+                        displayStatus = 'Approved';
+                    } else {
+                        displayStatus = 'AI Approved';
+                        statusClass = 'ai-approved';
+                    }
+                } else if (statusLower === 'rejected') {
+                    displayStatus = leave.approved_by && leave.approved_by.startsWith('HR:') ? 'Rejected' : 'AI Rejected';
+                } else {
+                    displayStatus = 'Pending';
+                }
+
+                const iconName = statusLower === 'pending' ? 'clock' : statusLower === 'approved' ? 'check-circle' : 'x-circle';
+
                 return `
                     <div class="leave-card hover-lift" style="animation-delay: ${idx * 0.05}s;">
                         <div class="leave-icon animate-float">
-                            <i data-lucide="${leave.status === 'Pending' ? 'clock' : leave.status === 'Approved' ? 'check-circle' : 'x-circle'}"></i>
+                            <i data-lucide="${iconName}"></i>
                         </div>
                         <div class="leave-details">
                             <div class="leave-type">${leave.leave_type}</div>
@@ -648,7 +674,7 @@
                             ${leave.reason ? `<div class="leave-reason">${leave.reason}</div>` : ''}
                         </div>
                         <div class="leave-meta">
-                            <span class="status-badge ${leave.status.toLowerCase()}">${leave.status}</span>
+                            <span class="status-badge ${statusClass}">${displayStatus}</span>
                             <div class="leave-submitted">
                                 <i data-lucide="clock" style="width: 14px; height: 14px; display: inline; vertical-align: middle;"></i>
                                 ${submitted}

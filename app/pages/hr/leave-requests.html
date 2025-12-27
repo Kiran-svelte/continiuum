@@ -321,6 +321,12 @@
             border: 1px solid rgba(16, 185, 129, 0.3);
         }
 
+        .status-badge.ai-approved {
+            background: rgba(139, 92, 246, 0.2);
+            color: #a78bfa;
+            border: 1px solid rgba(139, 92, 246, 0.3);
+        }
+
         .status-badge.rejected {
             background: rgba(239, 68, 68, 0.2);
             color: #f87171;
@@ -492,6 +498,10 @@
                     <i data-lucide="users"></i>
                     <span>Employees</span>
                 </a>
+                <a href="onboarding.html" class="nav-item animate-fade-in-left delay-350">
+                    <i data-lucide="user-plus"></i>
+                    <span>Onboarding</span>
+                </a>
                 <a href="reports.html" class="nav-item animate-fade-in-left delay-400">
                     <i data-lucide="bar-chart-3"></i>
                     <span>Reports</span>
@@ -575,7 +585,8 @@
 
         async function loadLeaves() {
             try {
-                allLeaves = await API.get('/leaves/all');
+                const response = await API.get('/leaves/all');
+                allLeaves = response.leaves || response || [];
                 renderLeaves();
             } catch (error) {
                 console.error('Error loading leaves:', error);
@@ -613,8 +624,24 @@
                 const start = new Date(leave.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
                 const end = new Date(leave.end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
                 const dateStr = start === end ? start : `${start} - ${end}`;
-                const userName = leave.user_name || 'Employee';
-                const isPending = leave.status === 'Pending';
+                const userName = leave.employee_name || leave.user_name || 'Employee';
+                const isPending = leave.status.toLowerCase() === 'pending';
+                
+                // Determine display status - AI approved vs HR approved
+                let displayStatus = leave.status;
+                let statusClass = leave.status.toLowerCase();
+                if (leave.status.toLowerCase() === 'approved') {
+                    if (leave.approved_by && leave.approved_by.startsWith('HR:')) {
+                        displayStatus = 'APPROVED';
+                    } else {
+                        displayStatus = 'AI APPROVED';
+                        statusClass = 'ai-approved';
+                    }
+                } else if (leave.status.toLowerCase() === 'rejected') {
+                    displayStatus = leave.approved_by && leave.approved_by.startsWith('HR:') ? 'REJECTED' : 'AI REJECTED';
+                } else {
+                    displayStatus = 'PENDING';
+                }
 
                 return `
                     <div class="leave-item hover-lift" style="animation-delay: ${idx * 0.03}s;">
@@ -627,13 +654,13 @@
                                 ${dateStr}
                             </div>
                         </div>
-                        <span class="status-badge ${leave.status.toLowerCase()}">${leave.status}</span>
+                        <span class="status-badge ${statusClass}">${displayStatus}</span>
                         ${isPending ? `
                             <div class="leave-actions">
-                                <button class="action-btn approve ripple" onclick="handleLeaveAction(${leave.id}, 'Approved')" title="Approve">
+                                <button class="action-btn approve ripple" onclick="handleLeaveAction('${leave.request_id}', 'Approved')" title="Approve">
                                     <i data-lucide="check"></i>
                                 </button>
-                                <button class="action-btn reject ripple" onclick="handleLeaveAction(${leave.id}, 'Rejected')" title="Reject">
+                                <button class="action-btn reject ripple" onclick="handleLeaveAction('${leave.request_id}', 'Rejected')" title="Reject">
                                     <i data-lucide="x"></i>
                                 </button>
                             </div>

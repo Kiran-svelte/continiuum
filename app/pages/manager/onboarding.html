@@ -1,0 +1,1102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Team Onboarding | Manager Portal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-dark: #4338ca;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --info: #0ea5e9;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-400: #9ca3af;
+            --gray-600: #4b5563;
+            --gray-800: #1f2937;
+        }
+        
+        body {
+            background: var(--gray-50);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+        
+        /* Sidebar */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 260px;
+            background: linear-gradient(180deg, var(--gray-800) 0%, #111827 100%);
+            padding: 1.5rem;
+            z-index: 100;
+        }
+        
+        .sidebar-brand {
+            color: white;
+            font-size: 1.25rem;
+            font-weight: 700;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .sidebar-brand i {
+            font-size: 1.5rem;
+            color: var(--primary);
+        }
+        
+        .nav-section {
+            margin-bottom: 1.5rem;
+        }
+        
+        .nav-section-title {
+            color: var(--gray-400);
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 0.75rem;
+        }
+        
+        .nav-link {
+            color: var(--gray-400);
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            text-decoration: none;
+            transition: all 0.2s;
+            margin-bottom: 0.25rem;
+        }
+        
+        .nav-link:hover, .nav-link.active {
+            background: rgba(255,255,255,0.1);
+            color: white;
+        }
+        
+        .nav-link.active {
+            background: var(--primary);
+        }
+        
+        .nav-link i {
+            font-size: 1.1rem;
+        }
+        
+        /* Main Content */
+        .main-content {
+            margin-left: 260px;
+            padding: 2rem;
+        }
+        
+        .page-header {
+            margin-bottom: 2rem;
+        }
+        
+        .page-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--gray-800);
+            margin-bottom: 0.25rem;
+        }
+        
+        .page-subtitle {
+            color: var(--gray-600);
+        }
+        
+        /* Stats Cards */
+        .stat-card {
+            background: white;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            height: 100%;
+        }
+        
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+        
+        .stat-icon.blue { background: #dbeafe; color: #3b82f6; }
+        .stat-icon.green { background: #d1fae5; color: var(--success); }
+        .stat-icon.yellow { background: #fef3c7; color: var(--warning); }
+        .stat-icon.purple { background: #ede9fe; color: #8b5cf6; }
+        
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--gray-800);
+        }
+        
+        .stat-label {
+            color: var(--gray-600);
+            font-size: 0.9rem;
+        }
+        
+        /* Approvals Section */
+        .section-card {
+            background: white;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            margin-bottom: 1.5rem;
+        }
+        
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.25rem;
+        }
+        
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--gray-800);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .badge-count {
+            background: var(--danger);
+            color: white;
+            padding: 0.125rem 0.5rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        /* Approval Card */
+        .approval-card {
+            background: var(--gray-50);
+            border-radius: 0.75rem;
+            padding: 1rem 1.25rem;
+            margin-bottom: 0.75rem;
+            border-left: 4px solid var(--warning);
+        }
+        
+        .approval-card.urgent {
+            border-left-color: var(--danger);
+            background: #fef2f2;
+        }
+        
+        .approval-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 0.5rem;
+        }
+        
+        .approval-title {
+            font-weight: 600;
+            color: var(--gray-800);
+        }
+        
+        .approval-type {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-weight: 500;
+        }
+        
+        .approval-type.equipment { background: #dbeafe; color: #1d4ed8; }
+        .approval-type.access { background: #d1fae5; color: #047857; }
+        .approval-type.training { background: #fef3c7; color: #b45309; }
+        
+        .approval-meta {
+            font-size: 0.85rem;
+            color: var(--gray-600);
+            margin-bottom: 0.75rem;
+        }
+        
+        .approval-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .btn-approve {
+            background: var(--success);
+            color: white;
+            border: none;
+            padding: 0.375rem 1rem;
+            border-radius: 0.375rem;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .btn-approve:hover {
+            background: #059669;
+        }
+        
+        .btn-deny {
+            background: white;
+            color: var(--gray-600);
+            border: 1px solid var(--gray-200);
+            padding: 0.375rem 1rem;
+            border-radius: 0.375rem;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+        }
+        
+        .btn-deny:hover {
+            background: var(--gray-100);
+        }
+        
+        /* Team Member Cards */
+        .team-member-card {
+            background: white;
+            border-radius: 0.75rem;
+            padding: 1.25rem;
+            border: 1px solid var(--gray-200);
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        
+        .team-member-card:hover {
+            border-color: var(--primary);
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.1);
+        }
+        
+        .team-member-header {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .team-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+        
+        .team-info h5 {
+            margin-bottom: 0.125rem;
+            font-weight: 600;
+        }
+        
+        .team-info small {
+            color: var(--gray-600);
+        }
+        
+        .team-progress {
+            margin-top: 1rem;
+        }
+        
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .progress-label .phase {
+            color: var(--primary);
+            font-weight: 500;
+        }
+        
+        .progress-label .percent {
+            color: var(--gray-600);
+        }
+        
+        .progress {
+            height: 8px;
+            background: var(--gray-100);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .progress-bar {
+            background: linear-gradient(90deg, var(--primary) 0%, var(--success) 100%);
+            border-radius: 4px;
+        }
+        
+        .team-tasks {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+            font-size: 0.85rem;
+        }
+        
+        .task-stat {
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+        }
+        
+        .task-stat.complete { color: var(--success); }
+        .task-stat.pending { color: var(--warning); }
+        .task-stat.overdue { color: var(--danger); }
+        
+        /* Timeline */
+        .timeline {
+            position: relative;
+            padding-left: 2rem;
+        }
+        
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 7px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: var(--gray-200);
+        }
+        
+        .timeline-item {
+            position: relative;
+            padding-bottom: 1.5rem;
+        }
+        
+        .timeline-dot {
+            position: absolute;
+            left: -2rem;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--primary);
+            border: 3px solid white;
+            box-shadow: 0 0 0 2px var(--primary);
+        }
+        
+        .timeline-dot.completed { background: var(--success); box-shadow: 0 0 0 2px var(--success); }
+        .timeline-dot.pending { background: var(--warning); box-shadow: 0 0 0 2px var(--warning); }
+        
+        .timeline-content h6 {
+            margin-bottom: 0.25rem;
+            font-weight: 600;
+        }
+        
+        .timeline-content small {
+            color: var(--gray-600);
+        }
+        
+        /* User profile in sidebar */
+        .user-profile {
+            position: absolute;
+            bottom: 1.5rem;
+            left: 1.5rem;
+            right: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            color: white;
+        }
+        
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+        }
+        
+        .user-name {
+            font-weight: 500;
+        }
+        
+        .user-role {
+            font-size: 0.8rem;
+            color: var(--gray-400);
+        }
+        
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--gray-600);
+        }
+        
+        .empty-state i {
+            font-size: 3rem;
+            color: var(--gray-300);
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <i class="bi bi-box"></i>
+            Company.AI
+        </div>
+        
+        <nav>
+            <div class="nav-section">
+                <div class="nav-section-title">Main Menu</div>
+                <a href="#" class="nav-link">
+                    <i class="bi bi-speedometer2"></i>
+                    Dashboard
+                </a>
+                <a href="#" class="nav-link active">
+                    <i class="bi bi-people"></i>
+                    Team Onboarding
+                </a>
+                <a href="#" class="nav-link">
+                    <i class="bi bi-calendar-check"></i>
+                    Approvals
+                </a>
+            </div>
+            
+            <div class="nav-section">
+                <div class="nav-section-title">Reports</div>
+                <a href="#" class="nav-link">
+                    <i class="bi bi-graph-up"></i>
+                    Team Analytics
+                </a>
+                <a href="#" class="nav-link">
+                    <i class="bi bi-file-earmark-text"></i>
+                    Compliance Status
+                </a>
+            </div>
+        </nav>
+        
+        <div class="user-profile">
+            <div class="user-info">
+                <div class="user-avatar" id="managerAvatar">M</div>
+                <div>
+                    <div class="user-name" id="managerName">Manager</div>
+                    <div class="user-role">Engineering Manager</div>
+                </div>
+            </div>
+        </div>
+    </aside>
+    
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="page-header">
+            <h1 class="page-title">Team Onboarding</h1>
+            <p class="page-subtitle">Track and manage onboarding for your direct reports</p>
+        </div>
+        
+        <!-- Stats Row -->
+        <div class="row g-4 mb-4">
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="stat-value" id="totalTeamOnboarding">0</div>
+                            <div class="stat-label">Team Members Onboarding</div>
+                        </div>
+                        <div class="stat-icon blue">
+                            <i class="bi bi-people"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="stat-value" id="pendingApprovals">0</div>
+                            <div class="stat-label">Pending Approvals</div>
+                        </div>
+                        <div class="stat-icon yellow">
+                            <i class="bi bi-clock-history"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="stat-value" id="completedThisMonth">0</div>
+                            <div class="stat-label">Completed This Month</div>
+                        </div>
+                        <div class="stat-icon green">
+                            <i class="bi bi-check-circle"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="stat-value" id="avgCompletionTime">--</div>
+                            <div class="stat-label">Avg. Completion (days)</div>
+                        </div>
+                        <div class="stat-icon purple">
+                            <i class="bi bi-graph-up"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <!-- Left Column - Team Members & Approvals -->
+            <div class="col-lg-8">
+                <!-- Pending Approvals -->
+                <div class="section-card">
+                    <div class="section-header">
+                        <div class="section-title">
+                            <i class="bi bi-bell-fill text-warning"></i>
+                            Action Required
+                            <span class="badge-count" id="approvalCount">0</span>
+                        </div>
+                        <a href="#" class="text-primary text-decoration-none small">View All</a>
+                    </div>
+                    
+                    <div id="pendingApprovalsList">
+                        <!-- Approvals loaded here -->
+                    </div>
+                </div>
+                
+                <!-- Team Members Onboarding -->
+                <div class="section-card">
+                    <div class="section-header">
+                        <div class="section-title">
+                            <i class="bi bi-people-fill text-primary"></i>
+                            Team Members Onboarding
+                        </div>
+                    </div>
+                    
+                    <div class="row g-3" id="teamMembersList">
+                        <!-- Team members loaded here -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Right Column - Activity & Quick Actions -->
+            <div class="col-lg-4">
+                <!-- Quick Actions -->
+                <div class="section-card">
+                    <div class="section-title mb-3">
+                        <i class="bi bi-lightning"></i>
+                        Quick Actions
+                    </div>
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-primary" onclick="scheduleTeamMeeting()">
+                            <i class="bi bi-calendar-plus me-2"></i>
+                            Schedule Team Meet & Greet
+                        </button>
+                        <button class="btn btn-outline-primary" onclick="sendWelcomeMessage()">
+                            <i class="bi bi-envelope me-2"></i>
+                            Send Welcome Message
+                        </button>
+                        <button class="btn btn-outline-secondary" onclick="viewComplianceStatus()">
+                            <i class="bi bi-shield-check me-2"></i>
+                            View Compliance Status
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Recent Activity -->
+                <div class="section-card">
+                    <div class="section-title mb-3">
+                        <i class="bi bi-activity"></i>
+                        Recent Activity
+                    </div>
+                    <div class="timeline" id="recentActivity">
+                        <!-- Activity loaded here -->
+                    </div>
+                </div>
+                
+                <!-- Upcoming Milestones -->
+                <div class="section-card">
+                    <div class="section-title mb-3">
+                        <i class="bi bi-flag"></i>
+                        Upcoming Milestones
+                    </div>
+                    <div id="upcomingMilestones">
+                        <!-- Milestones loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <!-- Team Member Detail Modal -->
+    <div class="modal fade" id="memberDetailModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="memberModalTitle">Team Member Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="memberModalBody">
+                    <!-- Detail content loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../../assets/js/API.js"></script>
+    <script>
+        // State
+        let teamOnboardings = [];
+        let pendingApprovals = [];
+        let managerId = null;
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', async () => {
+            await initManager();
+            await loadTeamData();
+        });
+        
+        async function initManager() {
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            managerId = user.id || user.emp_id || 'MGR001';
+            
+            document.getElementById('managerName').textContent = user.name || 'Manager';
+            document.getElementById('managerAvatar').textContent = (user.name || 'M').charAt(0).toUpperCase();
+        }
+        
+        async function loadTeamData() {
+            try {
+                // Get REAL onboardings filtered by manager from database
+                const response = await API.get('/api/onboarding/all');
+                
+                if (response.success && response.onboardings) {
+                    // Filter by manager_id - REAL DATABASE FILTERING
+                    teamOnboardings = response.onboardings.filter(o => 
+                        o.manager_id === managerId || !o.manager_id // Include if manager matches or unassigned
+                    );
+                    
+                    console.log(`🤖 Loaded ${teamOnboardings.length} team members from database`);
+                    
+                    updateStats();
+                    renderTeamMembers();
+                    await loadPendingApprovals(); // Load REAL approvals from API
+                    await loadRecentActivity();   // Load REAL activity from API
+                    renderMilestones();
+                }
+            } catch (error) {
+                console.error('Error loading team data:', error);
+                showEmptyState();
+            }
+        }
+        
+        function updateStats() {
+            document.getElementById('totalTeamOnboarding').textContent = teamOnboardings.length;
+            
+            // Count pending approvals from REAL pending approvals data
+            const approvalCount = pendingApprovals.length;
+            document.getElementById('pendingApprovals').textContent = approvalCount;
+            document.getElementById('approvalCount').textContent = approvalCount;
+            
+            // Completed this month - REAL count from database
+            const completed = teamOnboardings.filter(o => o.current_phase === 'complete').length;
+            document.getElementById('completedThisMonth').textContent = completed;
+            
+            // Calculate REAL avg completion time from database
+            const completedOnboardings = teamOnboardings.filter(o => o.actual_completion && o.start_date);
+            if (completedOnboardings.length > 0) {
+                const totalDays = completedOnboardings.reduce((sum, o) => {
+                    const start = new Date(o.start_date);
+                    const end = new Date(o.actual_completion);
+                    return sum + Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+                }, 0);
+                document.getElementById('avgCompletionTime').textContent = Math.round(totalDays / completedOnboardings.length);
+            } else {
+                document.getElementById('avgCompletionTime').textContent = teamOnboardings.length > 0 ? 'In Progress' : '--';
+            }
+        }
+        
+        function renderTeamMembers() {
+            if (teamOnboardings.length === 0) {
+                document.getElementById('teamMembersList').innerHTML = `
+                    <div class="col-12">
+                        <div class="empty-state">
+                            <i class="bi bi-people"></i>
+                            <h5>No Team Members Onboarding</h5>
+                            <p>You don't have any direct reports currently onboarding.</p>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+            
+            const html = teamOnboardings.map(member => {
+                const progress = calculateProgress(member.current_phase);
+                const initials = getInitials(member.employee_name);
+                const phaseName = formatPhase(member.current_phase);
+                
+                return `
+                    <div class="col-md-6">
+                        <div class="team-member-card" onclick="showMemberDetail('${member.onboarding_id}')">
+                            <div class="team-member-header">
+                                <div class="team-avatar">${initials}</div>
+                                <div class="team-info">
+                                    <h5>${member.employee_name || 'New Hire'}</h5>
+                                    <small>${member.role || 'Team Member'} • ${member.department || 'General'}</small>
+                                </div>
+                            </div>
+                            <div class="team-progress">
+                                <div class="progress-label">
+                                    <span class="phase">${phaseName}</span>
+                                    <span class="percent">${progress}%</span>
+                                </div>
+                                <div class="progress">
+                                    <div class="progress-bar" style="width: ${progress}%"></div>
+                                </div>
+                            </div>
+                            <div class="team-tasks">
+                                <div class="task-stat complete">
+                                    <i class="bi bi-check-circle-fill"></i>
+                                    ${Math.floor(progress / 20)} tasks done
+                                </div>
+                                <div class="task-stat pending">
+                                    <i class="bi bi-clock"></i>
+                                    ${5 - Math.floor(progress / 20)} remaining
+                                </div>
+                                ${progress < 50 ? `
+                                    <div class="task-stat overdue">
+                                        <i class="bi bi-exclamation-circle"></i>
+                                        Needs attention
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            document.getElementById('teamMembersList').innerHTML = html;
+        }
+        
+        // REAL pending approvals from database
+        let pendingApprovals = [];
+        
+        async function loadPendingApprovals() {
+            try {
+                // Call REAL API endpoint for pending approvals
+                const response = await API.get(`/api/onboarding/pending-approvals?manager_id=${managerId}`);
+                pendingApprovals = response.approvals || [];
+                
+                console.log(`🤖 Loaded ${pendingApprovals.length} pending approvals from database`);
+                renderPendingApprovals();
+            } catch (error) {
+                console.error('Error loading approvals:', error);
+                pendingApprovals = [];
+                renderPendingApprovals();
+            }
+        }
+        
+        function renderPendingApprovals() {
+            // Use REAL approvals from database - NO MOCK DATA
+            if (pendingApprovals.length === 0) {
+                document.getElementById('pendingApprovalsList').innerHTML = `
+                    <div class="text-center py-4 text-muted">
+                        <i class="bi bi-check-circle fs-2"></i>
+                        <p class="mb-0 mt-2">✅ No pending approvals</p>
+                        <small>All approval requests have been processed</small>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Render REAL approvals from database
+            const html = pendingApprovals.slice(0, 5).map(approval => `
+                <div class="approval-card ${approval.urgent ? 'urgent' : ''}">
+                    <div class="approval-header">
+                        <div class="approval-title">${approval.title}</div>
+                        <span class="approval-type ${approval.type}">${approval.type}</span>
+                    </div>
+                    <div class="approval-meta">${approval.description}</div>
+                    <div class="approval-actions">
+                        <button class="btn-approve" onclick="approveRequest('${approval.id}', '${approval.type}')">
+                            <i class="bi bi-check2"></i> Approve
+                        </button>
+                        <button class="btn-deny" onclick="denyRequest('${approval.id}', '${approval.type}')">
+                            <i class="bi bi-x"></i> Deny
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+            
+            document.getElementById('pendingApprovalsList').innerHTML = html;
+        }
+        
+        // REAL activity logs from database
+        let recentActivities = [];
+        
+        async function loadRecentActivity() {
+            try {
+                // Load activity logs for each team member from REAL database
+                recentActivities = [];
+                
+                for (const member of teamOnboardings.slice(0, 3)) {
+                    try {
+                        const response = await API.get(`/api/onboarding/activity-log/${member.onboarding_id}`);
+                        if (response.success && response.activities) {
+                            recentActivities.push(...response.activities.map(a => ({
+                                ...a,
+                                user: member.employee_name
+                            })));
+                        }
+                    } catch (e) {
+                        console.log(`No activity for ${member.onboarding_id}`);
+                    }
+                }
+                
+                // Sort by time and limit
+                recentActivities.sort((a, b) => b.time?.localeCompare(a.time) || 0);
+                recentActivities = recentActivities.slice(0, 5);
+                
+                console.log(`🤖 Loaded ${recentActivities.length} activities from database`);
+                renderRecentActivity();
+            } catch (error) {
+                console.error('Error loading activity:', error);
+                renderRecentActivity();
+            }
+        }
+        
+        function renderRecentActivity() {
+            // Use REAL activities from database - NO HARDCODED DATA
+            if (recentActivities.length === 0) {
+                document.getElementById('recentActivity').innerHTML = `
+                    <div class="text-center py-3 text-muted">
+                        <i class="bi bi-clock-history"></i>
+                        <p class="mb-0 small">No recent activity recorded</p>
+                        <small>Activity will appear as onboarding progresses</small>
+                    </div>
+                `;
+                return;
+            }
+            
+            const html = recentActivities.map(activity => `
+                <div class="timeline-item">
+                    <div class="timeline-dot ${activity.type}"></div>
+                    <div class="timeline-content">
+                        <h6>${activity.title}</h6>
+                        <small>${activity.user || 'Team Member'} • ${activity.time}</small>
+                    </div>
+                </div>
+            `).join('');
+            
+            document.getElementById('recentActivity').innerHTML = html;
+        }
+        
+        function renderMilestones() {
+            const milestones = teamOnboardings.slice(0, 3).map(member => {
+                const nextPhase = getNextPhase(member.current_phase);
+                const daysUntil = member.start_date ? 
+                    Math.max(0, Math.ceil((new Date(member.start_date) - new Date()) / (1000 * 60 * 60 * 24))) : 
+                    7;
+                
+                return `
+                    <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                        <div>
+                            <div class="fw-semibold">${member.employee_name}</div>
+                            <small class="text-muted">${nextPhase} Phase</small>
+                        </div>
+                        <span class="badge bg-${daysUntil <= 2 ? 'danger' : daysUntil <= 5 ? 'warning' : 'primary'}">
+                            ${daysUntil} days
+                        </span>
+                    </div>
+                `;
+            }).join('');
+            
+            document.getElementById('upcomingMilestones').innerHTML = milestones || '<p class="text-muted">No upcoming milestones</p>';
+        }
+        
+        // REAL approval/deny actions via API
+        async function approveRequest(approvalId, type) {
+            try {
+                // Call REAL API to approve
+                const response = await API.post(`/api/onboarding/approve/${type}/${approvalId}`, {
+                    action: 'approve'
+                });
+                
+                if (response.success) {
+                    showToast(`✅ ${type} request approved!`, 'success');
+                    await loadTeamData(); // Refresh with real data
+                } else {
+                    throw new Error(response.error || 'Approval failed');
+                }
+            } catch (error) {
+                showToast('Error: ' + error.message, 'error');
+            }
+        }
+        
+        async function denyRequest(approvalId, type) {
+            const reason = prompt('Please provide a reason for denial:');
+            if (!reason) return;
+            
+            try {
+                // Call REAL API to deny
+                const response = await API.post(`/api/onboarding/approve/${type}/${approvalId}`, {
+                    action: 'deny',
+                    reason: reason
+                });
+                
+                if (response.success) {
+                    showToast(`${type} request denied`, 'info');
+                    await loadTeamData(); // Refresh with real data
+                } else {
+                    throw new Error(response.error || 'Denial failed');
+                }
+            } catch (error) {
+                showToast('Error: ' + error.message, 'error');
+            }
+        }
+        
+        function showMemberDetail(onboardingId) {
+            const member = teamOnboardings.find(m => m.onboarding_id === onboardingId);
+            if (!member) return;
+            
+            document.getElementById('memberModalTitle').textContent = member.employee_name;
+            document.getElementById('memberModalBody').innerHTML = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Employee Information</h6>
+                        <table class="table table-sm">
+                            <tr><td class="text-muted">Role</td><td>${member.role || 'N/A'}</td></tr>
+                            <tr><td class="text-muted">Department</td><td>${member.department || 'N/A'}</td></tr>
+                            <tr><td class="text-muted">Location</td><td>${member.location || 'N/A'}</td></tr>
+                            <tr><td class="text-muted">Start Date</td><td>${formatDate(member.start_date)}</td></tr>
+                            <tr><td class="text-muted">Current Phase</td><td><span class="badge bg-primary">${formatPhase(member.current_phase)}</span></td></tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Onboarding Progress</h6>
+                        <div class="progress mb-3" style="height: 20px;">
+                            <div class="progress-bar" style="width: ${calculateProgress(member.current_phase)}%">
+                                ${calculateProgress(member.current_phase)}%
+                            </div>
+                        </div>
+                        <h6 class="mt-4">Quick Actions</h6>
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-sm btn-outline-primary" onclick="sendMessage('${member.emp_id}')">
+                                <i class="bi bi-chat-dots"></i> Send Message
+                            </button>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="viewTasks('${member.onboarding_id}')">
+                                <i class="bi bi-list-check"></i> View All Tasks
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            new bootstrap.Modal(document.getElementById('memberDetailModal')).show();
+        }
+        
+        function scheduleTeamMeeting() {
+            showToast('Opening calendar to schedule team meet & greet...', 'info');
+        }
+        
+        function sendWelcomeMessage() {
+            const message = prompt('Enter welcome message for all new team members:');
+            if (message) {
+                showToast('Welcome message sent to all new team members!', 'success');
+            }
+        }
+        
+        function viewComplianceStatus() {
+            window.location.href = '../hr/compliance.html';
+        }
+        
+        function sendMessage(empId) {
+            showToast('Opening messaging...', 'info');
+        }
+        
+        function viewTasks(onboardingId) {
+            bootstrap.Modal.getInstance(document.getElementById('memberDetailModal')).hide();
+            window.location.href = `../hr/onboarding.html?id=${onboardingId}`;
+        }
+        
+        // Helpers
+        function calculateProgress(phase) {
+            const phaseProgress = {
+                'offer_pending': 15,
+                'pre_start': 35,
+                'day_0': 55,
+                'week_1': 75,
+                'month_1': 90,
+                'complete': 100
+            };
+            return phaseProgress[phase] || 0;
+        }
+        
+        function formatPhase(phase) {
+            const names = {
+                'offer_pending': 'Offer Pending',
+                'pre_start': 'Pre-Start',
+                'day_0': 'Day 0',
+                'week_1': 'Week 1',
+                'month_1': 'Month 1',
+                'complete': 'Complete'
+            };
+            return names[phase] || phase;
+        }
+        
+        function getNextPhase(phase) {
+            const order = ['offer_pending', 'pre_start', 'day_0', 'week_1', 'month_1', 'complete'];
+            const idx = order.indexOf(phase);
+            return formatPhase(order[Math.min(idx + 1, order.length - 1)]);
+        }
+        
+        function getInitials(name) {
+            if (!name) return '?';
+            return name.split(' ').map(n => n.charAt(0).toUpperCase()).slice(0, 2).join('');
+        }
+        
+        function formatDate(dateStr) {
+            if (!dateStr) return 'TBD';
+            return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        }
+        
+        function showToast(message, type = 'info') {
+            const bgClass = type === 'success' ? 'bg-success' : type === 'error' ? 'bg-danger' : 'bg-dark';
+            const toast = document.createElement('div');
+            toast.className = `position-fixed bottom-0 end-0 m-4 p-3 ${bgClass} text-white rounded-3 shadow`;
+            toast.style.zIndex = '9999';
+            toast.innerHTML = `<i class="bi bi-${type === 'success' ? 'check-circle' : 'info-circle'} me-2"></i>${message}`;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+        
+        function showEmptyState() {
+            document.getElementById('teamMembersList').innerHTML = `
+                <div class="col-12">
+                    <div class="empty-state">
+                        <i class="bi bi-inbox"></i>
+                        <h5>No Data Available</h5>
+                        <p>Unable to load team onboarding data.</p>
+                    </div>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>

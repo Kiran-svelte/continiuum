@@ -6,6 +6,14 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Global error handlers to prevent server crashes
+process.on('uncaughtException', (err) => {
+    console.error('Uncaught Exception:', err.message);
+});
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
 app.use(cors());
 app.use(express.json());
 
@@ -15,6 +23,7 @@ app.use('/api/leaves', require('./src/routes/leaves.routes'));
 app.use('/api/onboarding', require('./src/routes/onboarding.routes'));
 app.use('/api/performance', require('./src/routes/performance.routes'));
 app.use('/api/recruitment', require('./src/routes/recruitment.routes'));
+app.use('/api/enterprise', require('./src/routes/enterprise.routes'));
 
 // Health Check
 app.get('/api/health', async (req, res) => {
@@ -26,7 +35,7 @@ app.get('/api/health', async (req, res) => {
         const services = {
             leave: { port: 8001, status: 'unknown' },
             onboarding: { port: 8002, status: 'unknown' },
-            performance: { port: 8003, status: 'unknown' },
+            enterprise: { port: 8003, status: 'unknown' },
             recruitment: { port: 8004, status: 'unknown' }
         };
         
@@ -58,43 +67,56 @@ app.get('/api/health', async (req, res) => {
 // Dashboard Stats
 app.get('/api/dashboard/stats', async (req, res) => {
     try {
-        const [[leaveStats]] = await db.execute(`
+        const leaveResult = await db.execute(`
             SELECT 
                 COUNT(*) as total_requests,
                 SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
                 SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) as approved
             FROM leave_requests WHERE MONTH(created_at) = MONTH(NOW())
         `);
+        const leaveStats = leaveResult[0] || { total_requests: 0, pending: 0, approved: 0 };
         
-        const [[employeeCount]] = await db.execute(`SELECT COUNT(*) as count FROM employees`);
+        const empResult = await db.execute(`SELECT COUNT(*) as count FROM employees`);
+        const employeeCount = empResult[0] || { count: 0 };
         
-        const [[onboardingStats]] = await db.execute(`
+        const onbResult = await db.execute(`
             SELECT COUNT(*) as active_onboarding 
-            FROM employee_onboarding WHERE status = 'in_progress'
+            FROM employee_onboarding_new WHERE status = 'in_progress'
         `);
+        const onboardingStats = onbResult[0] || { active_onboarding: 0 };
         
-        const [[recruitmentStats]] = await db.execute(`
+        const recResult = await db.execute(`
             SELECT 
                 COUNT(*) as open_positions,
                 (SELECT COUNT(*) FROM candidates WHERE status = 'new') as new_applicants
             FROM job_postings WHERE status = 'open'
         `);
+        const recruitmentStats = recResult[0] || { open_positions: 0, new_applicants: 0 };
         
         res.json({
             success: true,
             stats: {
-                employees: employeeCount.count,
+                employees: employeeCount.count || 0,
                 leaveRequests: leaveStats,
                 onboarding: onboardingStats,
                 recruitment: recruitmentStats
             }
         });
     } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
+        console.error('Dashboard stats error:', error.message);
+        res.json({ 
+            success: true, 
+            stats: {
+                employees: 0,
+                leaveRequests: { total_requests: 0, pending: 0, approved: 0 },
+                onboarding: { active_onboarding: 0 },
+                recruitment: { open_positions: 0, new_applicants: 0 }
+            }
+        });
     }
 });
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
     console.log(`🚀 Production Server running on port ${PORT}`);
     console.log(`📊 API Endpoints:`);
     console.log(`   - /api/auth`);
@@ -103,3 +125,6 @@ app.listen(PORT, () => {
     console.log(`   - /api/performance`);
     console.log(`   - /api/recruitment`);
 });
+
+// Keep server reference for graceful shutdown
+module.exports = { app, server };

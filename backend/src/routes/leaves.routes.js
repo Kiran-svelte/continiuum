@@ -74,6 +74,57 @@ router.get('/pending', authenticateToken, async (req, res) => {
     }
 });
 
+// Update leave status (HR approve/reject) - PUT method
+router.put('/:requestId/status', authenticateToken, async (req, res) => {
+    try {
+        const { requestId } = req.params;
+        const { status } = req.body;
+        const approvedBy = req.user?.name || 'HR';
+        
+        if (!['approved', 'rejected', 'Approved', 'Rejected'].includes(status)) {
+            return res.status(400).json({ success: false, error: 'Invalid status' });
+        }
+        
+        const normalizedStatus = status.toLowerCase();
+        
+        // Get request details first
+        const request = await db.query(
+            'SELECT * FROM leave_requests WHERE request_id = ?',
+            [requestId]
+        );
+        
+        if (!request || request.length === 0) {
+            return res.status(404).json({ success: false, error: 'Request not found' });
+        }
+        
+        // Update request status - HR approval (not AI)
+        await db.execute(`
+            UPDATE leave_requests 
+            SET status = ?, approved_by = ?, approval_date = NOW()
+            WHERE request_id = ?
+        `, [normalizedStatus, `HR:${approvedBy}`, requestId]);
+        
+        // If approved, deduct from balance
+        if (normalizedStatus === 'approved') {
+            const leaveData = request[0];
+            try {
+                await db.execute(`
+                    UPDATE leave_balances 
+                    SET used_so_far = used_so_far + ?
+                    WHERE emp_id = ? AND leave_type = ?
+                `, [leaveData.total_days || 1, leaveData.emp_id, leaveData.leave_type?.toLowerCase() || 'vacation']);
+            } catch (balanceError) {
+                console.log('Balance update skipped:', balanceError.message);
+            }
+        }
+        
+        res.json({ success: true, message: `Leave ${normalizedStatus} successfully` });
+    } catch (error) {
+        console.error('Error updating leave status:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 // Approve leave request (HR/Manager)
 router.post('/approve/:requestId', authenticateToken, async (req, res) => {
     try {
@@ -81,10 +132,11 @@ router.post('/approve/:requestId', authenticateToken, async (req, res) => {
         const { approvedBy } = req.body;
         
         // Get request details first
-        const [[request]] = await db.execute(
+        const requestResult = await db.execute(
             'SELECT emp_id, leave_type, total_days FROM leave_requests WHERE request_id = ?',
             [requestId]
         );
+        const request = requestResult[0];
         
         if (!request) {
             return res.status(404).json({ success: false, error: 'Request not found' });
@@ -133,10 +185,11 @@ router.get('/team-status/:teamId', authenticateToken, async (req, res) => {
         const checkDate = req.query.date || new Date().toISOString().split('T')[0];
         
         // Get team info
-        const [[team]] = await db.execute('SELECT * FROM teams WHERE team_id = ?', [teamId]);
+        const teamResult = await db.execute('SELECT * FROM teams WHERE team_id = ?', [teamId]);
+        const team = teamResult[0];
         
         // Get team members
-        const [members] = await db.execute(`
+        const members = await db.execute(`
             SELECT e.emp_id, e.full_name, e.position
             FROM team_members tm
             JOIN employees e ON tm.emp_id = e.emp_id
@@ -144,7 +197,7 @@ router.get('/team-status/:teamId', authenticateToken, async (req, res) => {
         `, [teamId]);
         
         // Get members on leave
-        const [onLeave] = await db.execute(`
+        const onLeave = await db.execute(`
             SELECT e.emp_id, e.full_name, lr.leave_type, lr.start_date, lr.end_date
             FROM leave_requests lr
             JOIN employees e ON lr.emp_id = e.emp_id
@@ -154,17 +207,19 @@ router.get('/team-status/:teamId', authenticateToken, async (req, res) => {
             AND ? BETWEEN lr.start_date AND lr.end_date
         `, [teamId, checkDate]);
         
-        const onLeaveIds = onLeave.map(m => m.emp_id);
-        const present = members.filter(m => !onLeaveIds.includes(m.emp_id));
+        const onLeaveArr = Array.isArray(onLeave) ? onLeave : [];
+        const membersArr = Array.isArray(members) ? members : [];
+        const onLeaveIds = onLeaveArr.map(m => m.emp_id);
+        const present = membersArr.filter(m => !onLeaveIds.includes(m.emp_id));
         
         res.json({
             success: true,
             team: team,
             date: checkDate,
             summary: {
-                total: members.length,
+                total: membersArr.length,
                 present: present.length,
-                onLeave: onLeave.length,
+                onLeave: onLeaveArr.length,
                 coveragePercent: Math.round((present.length / members.length) * 100)
             },
             members: { present, onLeave }
@@ -210,8 +265,8 @@ router.get('/all', authenticateToken, async (req, res) => {
         
         query += ' ORDER BY lr.created_at DESC LIMIT 100';
         
-        const [leaves] = await db.execute(query, params);
-        res.json({ success: true, leaves });
+        const leaves = await db.execute(query, params);
+        res.json({ success: true, leaves: leaves || [] });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }
@@ -220,7 +275,7 @@ router.get('/all', authenticateToken, async (req, res) => {
 // Get leave statistics (for dashboards)
 router.get('/stats', authenticateToken, async (req, res) => {
     try {
-        const [[stats]] = await db.execute(`
+        const statsResult = await db.execute(`
             SELECT 
                 COUNT(*) as total_requests,
                 SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) as approved,
@@ -229,12 +284,14 @@ router.get('/stats', authenticateToken, async (req, res) => {
                 SUM(CASE WHEN DATE(created_at) = CURDATE() THEN 1 ELSE 0 END) as today
             FROM leave_requests
         `);
+        const stats = statsResult[0] || {};
         
-        const [[avgProcessing]] = await db.execute(`
+        const avgResult = await db.execute(`
             SELECT AVG(processing_time_ms) as avg_time
             FROM constraint_decisions_log
             WHERE DATE(created_at) = CURDATE()
         `);
+        const avgProcessing = avgResult[0] || {};
         
         res.json({
             success: true,
