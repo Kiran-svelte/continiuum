@@ -3,9 +3,14 @@ const jwt = require('jsonwebtoken');
 const db = require('../config/db');
 
 const authenticateToken = async (req, res, next) => {
-    // Get token from header
+    // Get token from header OR query parameter (for download links)
     const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
+    let token = authHeader && authHeader.split(' ')[1];
+    
+    // Also check query parameter for download endpoints
+    if (!token && req.query.token) {
+        token = req.query.token;
+    }
 
     // Skip auth for health endpoints
     if (req.path === '/health' || req.path === '/constraints/status') {
