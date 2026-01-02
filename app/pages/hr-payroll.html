@@ -750,8 +750,11 @@
         let employees = [];
 
         function getToken() {
+            // Check localStorage for real token first
             const token = localStorage.getItem('token');
             if (token) return token;
+
+            // Check if user info exists in localStorage
             const userStr = localStorage.getItem('user');
             if (userStr) {
                 try {
@@ -761,6 +764,8 @@
                     }
                 } catch (e) { }
             }
+
+            // For HR payroll page, default to HR token for testing
             return 'hr-demo-token';
         }
 
@@ -769,6 +774,7 @@
             if (userStr) {
                 try { return JSON.parse(userStr); } catch (e) { }
             }
+            // Default HR user for testing
             return { name: 'HR Manager', role: 'hr', emp_id: 'EMP002' };
         }
 

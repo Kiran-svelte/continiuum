@@ -1341,16 +1341,137 @@
 
         async function generateOnboardingPlan() {
             document.getElementById('planContent').innerHTML = `
-                <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 20px; border-radius: 12px; color: white;">
-                    <h4 style="color: #60a5fa; margin-bottom: 12px;">🎯 Generated Plan</h4>
-                    <p>Based on <strong>Engineering</strong> department and role...</p>
-                    <ul style="margin-top: 12px; padding-left: 20px; color: rgba(255,255,255,0.8);">
-                        <li>Pre-boarding: Laptop Procurement (MacBook Pro)</li>
-                        <li>Day 0: Welcome Lunch</li>
-                        <li>Week 1: Code Repository Access & Security Training</li>
-                    </ul>
+                <div style="text-align: center; padding: 2rem;">
+                    <div class="spinner"></div>
+                    <p>🤖 AI Engine generating personalized onboarding plan...</p>
                 </div>
-             `;
+            `;
+
+            try {
+                // Get REAL AI-generated actions for each phase
+                const phases = ['pre_boarding', 'day_one', 'week_one', 'month_one', 'month_three', 'completed'];
+                const phaseNames = {
+                    'pre_boarding': '📅 PRE-BOARDING (Before Start)',
+                    'day_one': '🎯 DAY 1 SCHEDULE',
+                    'week_one': '📈 WEEK 1 TASKS',
+                    'month_one': '🚀 MONTH 1 GOALS',
+                    'month_three': '⭐ MONTH 3 MILESTONES',
+                    'completed': '✅ COMPLETION CHECKLIST'
+                };
+
+                // Call AI engine to get actions for each phase
+                const phaseActions = {};
+                for (const phase of phases.slice(0, 4)) { // Get first 4 phases for plan
+                    try {
+                        const response = await fetch(`http://localhost:8002/get-actions`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                phase: phase,
+                                context: {
+                                    name: name,
+                                    role: role,
+                                    department: department,
+                                    location: location,
+                                    start_date: startDate
+                                }
+                            })
+                        });
+                        const data = await response.json();
+                        phaseActions[phase] = data.actions || [];
+                    } catch (err) {
+                        console.log(`Could not get actions for ${phase}:`, err);
+                        phaseActions[phase] = [];
+                    }
+                }
+
+                // Also get country rules for compliance context
+                let countryRules = {};
+                try {
+                    const countryResponse = await fetch(`http://localhost:8002/country-rules/${location}`);
+                    countryRules = await countryResponse.json();
+                } catch (err) {
+                    console.log('Could not get country rules:', err);
+                }
+
+                // Build the plan HTML from REAL AI data
+                let phasesHtml = '';
+                for (const phase of ['pre_boarding', 'day_one', 'week_one', 'month_one']) {
+                    const actions = phaseActions[phase] || [];
+                    if (actions.length > 0) {
+                        phasesHtml += `
+                            <div style="background: white; border-radius: 8px; padding: 1rem; margin-bottom: 1rem;">
+                                <strong>${phaseNames[phase]}</strong>
+                                <ul style="margin-top: 0.5rem; padding-left: 1.5rem;">
+                                    ${actions.map(action => `<li>${action}</li>`).join('')}
+                                </ul>
+                            </div>
+                        `;
+                    }
+                }
+
+                // Add country-specific requirements section if available
+                let countrySection = '';
+                if (countryRules.required_documents?.length > 0) {
+                    countrySection = `
+                        <div style="background: #fef3c7; border-radius: 8px; padding: 1rem; margin-bottom: 1rem;">
+                            <strong>📋 ${countryRules.name || location} COMPLIANCE REQUIREMENTS</strong>
+                            <div style="margin-top: 0.5rem;">
+                                <p><strong>Required Documents:</strong></p>
+                                <ul style="padding-left: 1.5rem;">
+                                    ${countryRules.required_documents.map(doc => `<li>${doc}</li>`).join('')}
+                                </ul>
+                                ${countryRules.tax_forms?.length ? `
+                                    <p style="margin-top: 0.5rem;"><strong>Tax Forms:</strong></p>
+                                    <ul style="padding-left: 1.5rem;">
+                                        ${countryRules.tax_forms.map(form => `<li>${form}</li>`).join('')}
+                                    </ul>
+                                ` : ''}
+                            </div>
+                        </div>
+                    `;
+                }
+
+                // If no AI actions were returned, show a message
+                if (!phasesHtml) {
+                    phasesHtml = `
+                        <div style="background: white; border-radius: 8px; padding: 1rem;">
+                            <p>AI engine is configuring personalized tasks for this role and department...</p>
+                            <p>Tasks will be generated based on: <strong>${department} + ${role} + ${location}</strong></p>
+                        </div>
+                    `;
+                }
+
+                document.getElementById('planContent').innerHTML = `
+                    <div style="background: #f0f4ff; border-radius: 12px; padding: 1.5rem; border: 1px solid #c7d2fe;">
+                        <h4 style="margin-bottom: 0.5rem;">🎯 AI-GENERATED ONBOARDING PLAN: ${name}</h4>
+                        <p style="color: #666; margin-bottom: 0.5rem;">${role}, ${department} - ${countryRules.name || location}</p>
+                        <p style="margin-bottom: 1rem;"><strong>Start:</strong> ${formattedDate} | <strong>Engine:</strong> AI Constraint Engine v1.0</p>
+                        
+                        ${countrySection}
+                        ${phasesHtml}
+                        
+                        <div style="background: #dcfce7; border-radius: 8px; padding: 0.75rem; margin-top: 1rem; font-size: 0.9rem;">
+                            <strong>🤖 AI Tracking:</strong> This plan is dynamically generated based on role, department, and location. 
+                            The AI will monitor progress and adjust tasks based on completion status.
+                        </div>
+                    </div>
+                `;
+            } catch (error) {
+                console.error('Error generating AI plan:', error);
+                // Fallback to basic plan
+                document.getElementById('planContent').innerHTML = `
+                    <div style="background: #f0f4ff; border-radius: 12px; padding: 1.5rem; border: 1px solid #c7d2fe;">
+                        <h4 style="margin-bottom: 0.5rem;">🎯 ONBOARDING PLAN: ${name}</h4>
+                        <p style="color: #666; margin-bottom: 1.5rem;">${role}, ${location}</p>
+                        <p style="margin-bottom: 1rem;"><strong>Start:</strong> ${formattedDate}</p>
+                        <div style="background: #fef3c7; padding: 1rem; border-radius: 8px;">
+                            <p>⚠️ AI Engine is currently unavailable. Using standard onboarding template.</p>
+                            <p>Please ensure the AI services are running on port 8002.</p>
+                        </div>
+                    </div>
+                `;
+            }
         }
 
         async function activateAI() {

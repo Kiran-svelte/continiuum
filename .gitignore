@@ -43,5 +43,8 @@ backend/dist/
 !package.json
 !package-lock.json
 !tsconfig.json
-!*.md
-!*.sql
+
+# Python cache
+__pycache__/
+*.pyc
+.venv/

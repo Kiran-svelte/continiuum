@@ -1,4 +1,7 @@
-const API_BASE_URL = 'http://localhost:5000/api';
+// ============================================================
+// API Configuration - Uses environment-based URL
+// ============================================================
+const API_BASE_URL = window.API_URL || 'http://localhost:5000/api';
 
 const API = {
     async request(endpoint, method = 'GET', body = null) {
