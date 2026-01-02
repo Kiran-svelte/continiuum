@@ -40,7 +40,7 @@ window.checkLeaveConstraints = async function (requestText) {
         if (data.violations && Array.isArray(data.violations)) {
             violationsList = data.violations;
         } else if (data.constraintResults && data.constraintResults.violations) {
-            violationsList = data.constraintResults.violations.map(v => 
+            violationsList = data.constraintResults.violations.map(v =>
                 `${v.rule_id}: ${v.rule_name}`
             );
         }
@@ -53,7 +53,7 @@ window.checkLeaveConstraints = async function (requestText) {
             violations: violationsList,
             engine: data.engine || 'Constraint Engine v1.0',
             responseTime: data.responseTime || '0ms',
-            constraintsChecked: data.constraintResults ? 
+            constraintsChecked: data.constraintResults ?
                 `${data.constraintResults.passed}/${data.constraintResults.total_rules} passed` : '14+ rules',
             priority: data.approved ? '3.0' : '1.0',
             history: {
@@ -63,7 +63,8 @@ window.checkLeaveConstraints = async function (requestText) {
                 balance: data.leaveBalance ? `${data.leaveBalance.remaining} days remaining` : 'Unknown'
             },
             suggestions: data.suggestions || [],
-            alternativeDates: data.alternativeDates || []
+            alternativeDates: data.alternativeDates || [],
+            securityAudit: data.securityAudit || null
         });
 
     } catch (error) {

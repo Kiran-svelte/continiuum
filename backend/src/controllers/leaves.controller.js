@@ -67,12 +67,27 @@ function parseLeaveRequest(text) {
 exports.analyzeLeaveRequest = async (req, res) => {
     const startTime = Date.now();
     try {
-        const { request, employeeId } = req.body;
-        
-        if (!request || !employeeId) {
+
+        const { request } = req.body;
+        // RLS: User can only request for themselves unless they are HR/Admin
+        let employeeId = req.user.emp_id;
+
+        // Optional: Allow HR/Admin to request on behalf of others
+        if (req.body.employeeId && (req.user.role === 'hr' || req.user.role === 'admin')) {
+            employeeId = req.body.employeeId;
+        }
+
+        if (!request) {
             return res.status(400).json({
                 success: false,
-                error: 'Request text and employeeId are required'
+                error: 'Request text is required'
+            });
+        }
+
+        if (!employeeId) {
+            return res.status(400).json({
+                success: false,
+                error: 'Employee ID could not be determined from token'
             });
         }
 
@@ -96,7 +111,7 @@ exports.analyzeLeaveRequest = async (req, res) => {
             'WFH': 'comp_off',
             'General': 'casual_leave'
         };
-        
+
         const dbLeaveType = leaveTypeMap[leaveDetails.type] || 'casual_leave';
 
         // Call Python Constraint Engine with text-based analysis
@@ -125,7 +140,7 @@ exports.analyzeLeaveRequest = async (req, res) => {
         const constraintResults = engineResponse.constraint_results || {};
         const isApproved = engineResponse.approved === true || engineResponse.status === 'APPROVED';
         const isEscalated = !isApproved;
-        
+
         // Update leaveDetails with parsed data from engine
         if (engineResponse.leave_request) {
             leaveDetails.type = engineResponse.leave_request.type || leaveDetails.type;
@@ -223,7 +238,7 @@ exports.analyzeLeaveRequest = async (req, res) => {
                 if (isApproved) {
                     // Send approval email to employee
                     await googleService.sendLeaveNotification('leave_approved', notificationData);
-                    
+
                     // Create calendar event
                     const calendarResult = await googleService.createLeaveEvent(employeeId, notificationData);
                     if (calendarResult.success) {
@@ -242,7 +257,7 @@ exports.analyzeLeaveRequest = async (req, res) => {
                             await googleService.sendLeaveNotification('leave_escalated', notificationData);
                         }
                     }
-                    
+
                     // Also notify the employee that their request is pending
                     notificationData.toEmail = employeeData.email;
                     await googleService.sendLeaveNotification('leave_submitted', notificationData);
@@ -261,32 +276,32 @@ exports.analyzeLeaveRequest = async (req, res) => {
             message = `⏳ ${leaveDetails.type} Escalated for Review`;
             details = `${constraintResults.violations?.length || 0} constraint violation(s) found. Your request has been sent to HR for manual review.`;
         }
-        
+
         res.json({
             success: true,
             approved: isApproved,
             status: isApproved ? 'approved' : 'pending',
             requestId: requestId,
-            
+
             // UI-friendly fields
             message: message,
             details: details,
             violations: violations.length > 0 ? violations : ['✅ All constraints passed'],
-            
+
             // Employee Info
             employee: employeeId,
             department: 'Engineering',
             team: 'Development',
-            
+
             // Leave Details
             leaveRequest: leaveDetails,
-            
+
             // Balance Info
             leaveBalance: {
                 remaining: engineResponse.balance?.current || 10,
                 afterApproval: engineResponse.balance?.after_approval || ((engineResponse.balance?.current || 10) - leaveDetails.days_requested)
             },
-            
+
             // Constraint Results
             constraintResultsSummary: {
                 total_rules: constraintResults.total_rules || 8,
@@ -294,16 +309,26 @@ exports.analyzeLeaveRequest = async (req, res) => {
                 failed: constraintResults.violations?.length || 0,
                 violations: constraintResults.violations || []
             },
-            
+
             // Decision Info
             decisionReason: engineResponse.decision_reason || 'Constraint analysis complete',
             confidence: 0.95,  // High confidence for constraint-based decisions
             suggestions: engineResponse.suggestions || [],
-            
+
             // Meta
             engine: 'Constraint Engine v2.0.0',
             responseTime: `${processingTime}ms`,
-            processingTimeMs: engineResponse.processing_time_ms || processingTime
+            processingTimeMs: engineResponse.processing_time_ms || processingTime,
+
+            // Security Display
+            securityAudit: {
+                enforced: true,
+                mode: 'RLS (Row Level Security)',
+                userContext: req.user.emp_id,
+                roleEnforced: req.user.role,
+                accessType: 'OWNER_ONLY',
+                timestamp: new Date().toISOString()
+            }
         });
 
     } catch (error) {

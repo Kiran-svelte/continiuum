@@ -27,8 +27,12 @@ router.get('/my-leaves', authenticateToken, async (req, res) => {
     }
 });
 
-// Get my leave requests with explicit empId (legacy support)
+// Get my leave requests with explicit empId (legacy support) - Protected by Ownership Check
 router.get('/my-leaves/:empId', authenticateToken, async (req, res) => {
+    // RLS: Ensure user can only access their own leaves
+    if (req.user.emp_id !== req.params.empId && !['hr', 'admin'].includes(req.user.role)) {
+        return res.status(403).json({ success: false, error: 'Access denied: You can only view your own leaves' });
+    }
     try {
         const leaves = await db.execute(`
             SELECT * FROM leave_requests 
@@ -55,6 +59,10 @@ router.get('/balance/:empId', authenticateToken, async (req, res) => {
 
 // Get pending requests (for HR/Manager panel)
 router.get('/pending', authenticateToken, async (req, res) => {
+    // RLS: Only HR/Admin/Manager can view pending requests
+    if (!['hr', 'admin', 'manager'].includes(req.user.role)) {
+        return res.status(403).json({ success: false, error: 'Access denied: Requires Manager/HR privileges' });
+    }
     try {
         const [pending] = await db.execute(`
             SELECT lr.*, 
@@ -78,36 +86,36 @@ router.get('/pending', authenticateToken, async (req, res) => {
 router.post('/create', authenticateToken, async (req, res) => {
     try {
         const { type, start_date, end_date, reason, half_day } = req.body;
-        
+
         // Get employee ID from token
         const empId = req.user?.emp_id || req.user?.employeeId || 'EMP001';
-        
+
         // Validate required fields
         if (!type || !start_date || !end_date) {
-            return res.status(400).json({ 
-                success: false, 
-                error: 'Missing required fields: type, start_date, end_date' 
+            return res.status(400).json({
+                success: false,
+                error: 'Missing required fields: type, start_date, end_date'
             });
         }
-        
+
         // Calculate days (simple calculation, can be enhanced)
         const startDateObj = new Date(start_date);
         const endDateObj = new Date(end_date);
         let total_days = Math.ceil((endDateObj - startDateObj) / (1000 * 60 * 60 * 24)) + 1;
         if (half_day) total_days = 0.5;
-        
+
         // Generate request ID
         const request_id = 'REQ' + Date.now();
-        
+
         // Insert leave request
         const result = await db.query(`
             INSERT INTO leave_requests 
             (request_id, emp_id, leave_type, start_date, end_date, total_days, reason, status, created_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', NOW())
         `, [request_id, empId, type, start_date, end_date, total_days, reason || 'Personal leave']);
-        
-        res.json({ 
-            success: true, 
+
+        res.json({
+            success: true,
             message: 'Leave request created successfully',
             request_id: request_id,
             request: {
@@ -133,30 +141,30 @@ router.put('/:requestId/status', authenticateToken, async (req, res) => {
         const { requestId } = req.params;
         const { status } = req.body;
         const approvedBy = req.user?.name || 'HR';
-        
+
         if (!['approved', 'rejected', 'Approved', 'Rejected'].includes(status)) {
             return res.status(400).json({ success: false, error: 'Invalid status' });
         }
-        
+
         const normalizedStatus = status.toLowerCase();
-        
+
         // Get request details first
         const request = await db.query(
             'SELECT * FROM leave_requests WHERE request_id = ?',
             [requestId]
         );
-        
+
         if (!request || request.length === 0) {
             return res.status(404).json({ success: false, error: 'Request not found' });
         }
-        
+
         // Update request status - HR approval (not AI)
         await db.execute(`
             UPDATE leave_requests 
             SET status = ?, approved_by = ?, approval_date = NOW()
             WHERE request_id = ?
         `, [normalizedStatus, `HR:${approvedBy}`, requestId]);
-        
+
         // If approved, deduct from balance
         if (normalizedStatus === 'approved') {
             const leaveData = request[0];
@@ -170,7 +178,7 @@ router.put('/:requestId/status', authenticateToken, async (req, res) => {
                 console.log('Balance update skipped:', balanceError.message);
             }
         }
-        
+
         res.json({ success: true, message: `Leave ${normalizedStatus} successfully` });
     } catch (error) {
         console.error('Error updating leave status:', error);
@@ -183,32 +191,32 @@ router.post('/approve/:requestId', authenticateToken, async (req, res) => {
     try {
         const { requestId } = req.params;
         const { approvedBy } = req.body;
-        
+
         // Get request details first
         const requestResult = await db.execute(
             'SELECT emp_id, leave_type, total_days FROM leave_requests WHERE request_id = ?',
             [requestId]
         );
         const request = requestResult[0];
-        
+
         if (!request) {
             return res.status(404).json({ success: false, error: 'Request not found' });
         }
-        
+
         // Update request status
         await db.execute(`
             UPDATE leave_requests 
             SET status = 'approved', approved_by = ?, approval_date = CURDATE()
             WHERE request_id = ?
         `, [approvedBy || 'HR', requestId]);
-        
+
         // Deduct from balance
         await db.execute(`
             UPDATE leave_balances 
             SET used_so_far = used_so_far + ?
             WHERE emp_id = ? AND leave_type = ?
         `, [request.total_days, request.emp_id, request.leave_type]);
-        
+
         res.json({ success: true, message: 'Leave approved successfully' });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
@@ -220,11 +228,11 @@ router.post('/reject/:requestId', authenticateToken, async (req, res) => {
     try {
         const { requestId } = req.params;
         const { reason } = req.body;
-        
+
         await db.execute(`
             UPDATE leave_requests SET status = 'rejected' WHERE request_id = ?
         `, [requestId]);
-        
+
         res.json({ success: true, message: 'Leave rejected' });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
@@ -236,11 +244,11 @@ router.get('/team-status/:teamId', authenticateToken, async (req, res) => {
     try {
         const { teamId } = req.params;
         const checkDate = req.query.date || new Date().toISOString().split('T')[0];
-        
+
         // Get team info
         const teamResult = await db.execute('SELECT * FROM teams WHERE team_id = ?', [teamId]);
         const team = teamResult[0];
-        
+
         // Get team members
         const members = await db.execute(`
             SELECT e.emp_id, e.full_name, e.position
@@ -248,7 +256,7 @@ router.get('/team-status/:teamId', authenticateToken, async (req, res) => {
             JOIN employees e ON tm.emp_id = e.emp_id
             WHERE tm.team_id = ?
         `, [teamId]);
-        
+
         // Get members on leave
         const onLeave = await db.execute(`
             SELECT e.emp_id, e.full_name, lr.leave_type, lr.start_date, lr.end_date
@@ -259,12 +267,12 @@ router.get('/team-status/:teamId', authenticateToken, async (req, res) => {
             AND lr.status = 'approved'
             AND ? BETWEEN lr.start_date AND lr.end_date
         `, [teamId, checkDate]);
-        
+
         const onLeaveArr = Array.isArray(onLeave) ? onLeave : [];
         const membersArr = Array.isArray(members) ? members : [];
         const onLeaveIds = onLeaveArr.map(m => m.emp_id);
         const present = membersArr.filter(m => !onLeaveIds.includes(m.emp_id));
-        
+
         res.json({
             success: true,
             team: team,
@@ -284,6 +292,10 @@ router.get('/team-status/:teamId', authenticateToken, async (req, res) => {
 
 // Get all leaves (for HR dashboard)
 router.get('/all', authenticateToken, async (req, res) => {
+    // RLS: Only HR and Admin can view all leaves
+    if (!['hr', 'admin'].includes(req.user.role)) {
+        return res.status(403).json({ success: false, error: 'Access denied: Requires HR privileges' });
+    }
     try {
         const { status, department, startDate, endDate } = req.query;
         let query = `
@@ -298,7 +310,7 @@ router.get('/all', authenticateToken, async (req, res) => {
             WHERE 1=1
         `;
         const params = [];
-        
+
         if (status) {
             query += ' AND lr.status = ?';
             params.push(status);
@@ -315,9 +327,9 @@ router.get('/all', authenticateToken, async (req, res) => {
             query += ' AND lr.end_date <= ?';
             params.push(endDate);
         }
-        
+
         query += ' ORDER BY lr.created_at DESC LIMIT 100';
-        
+
         const leaves = await db.execute(query, params);
         res.json({ success: true, leaves: leaves || [] });
     } catch (error) {
@@ -338,14 +350,14 @@ router.get('/stats', authenticateToken, async (req, res) => {
             FROM leave_requests
         `);
         const stats = statsResult[0] || {};
-        
+
         const avgResult = await db.execute(`
             SELECT AVG(processing_time_ms) as avg_time
             FROM constraint_decisions_log
             WHERE DATE(created_at) = CURDATE()
         `);
         const avgProcessing = avgResult[0] || {};
-        
+
         res.json({
             success: true,
             stats: {
