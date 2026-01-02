@@ -361,8 +361,15 @@
         }
 
         @keyframes pulse-badge {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.7;
+            }
         }
 
         /* Priority Notification Banner */
@@ -381,8 +388,15 @@
         }
 
         @keyframes slideDown {
-            from { opacity: 0; transform: translateY(-20px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .priority-banner-header {
@@ -501,8 +515,15 @@
         }
 
         @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.1); }
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.1);
+            }
         }
 
         .icon-btn {
@@ -885,7 +906,7 @@
                     </div>
                 </div>
                 <p style="color: rgba(255,255,255,0.6); font-size: 0.9rem; margin: 0;">
-                    <strong>Red badges:</strong> Emergency - will auto-process in 24hrs if not addressed. 
+                    <strong>Red badges:</strong> Emergency - will auto-process in 24hrs if not addressed.
                     <strong>Yellow badges:</strong> Non-urgent priority requests.
                 </p>
             </div>
@@ -910,6 +931,32 @@
         </main>
     </div>
 
+    <!-- Document Review Modal -->
+    <div class="notification-modal" id="documentReviewModal" style="display: none;">
+        <div class="notification-modal-content" style="max-width: 600px;">
+            <div class="notification-modal-header">
+                <h3><i data-lucide="file-check"></i> Document Review Required</h3>
+                <button class="close-btn" onclick="closeDocumentModal()">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <div class="notification-list" id="documentList" style="padding: 20px;">
+                <!-- Documents will be loaded here -->
+                <div class="loading-spinner"></div>
+            </div>
+            <div class="notification-modal-footer" style="display: flex; justify-content: flex-end; gap: 10px;">
+                <button class="btn-secondary" onclick="closeDocumentModal()"
+                    style="background: rgba(255,255,255,0.05);">Cancel</button>
+                <button class="btn-secondary" id="confirmApproveBtn"
+                    style="background: rgba(16, 185, 129, 0.2); color: #34d399; border-color: rgba(16, 185, 129, 0.3);">
+                    <i data-lucide="check"
+                        style="width: 16px; height: 16px; display: inline-block; vertical-align: middle; margin-right: 5px;"></i>
+                    Verify & Approve
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script src="../../assets/js/api.js"></script>
     <script>
         lucide.createIcons();
@@ -918,6 +965,7 @@
         let priorityRequests = [];
         let hrNotifications = [];
         let currentFilter = 'all';
+        let currentReviewId = null;
 
         async function init() {
             const userStr = localStorage.getItem('user');
@@ -942,7 +990,7 @@
                 loadPriorityRequests(),
                 loadHRNotifications()
             ]);
-            
+
             // Set up periodic refresh for priority data
             setInterval(() => {
                 loadPriorityRequests();
@@ -994,10 +1042,10 @@
             const banner = document.getElementById('priorityBanner');
             const redCount = priorityRequests.filter(p => p.priority_level === 'red').length;
             const yellowCount = priorityRequests.filter(p => p.priority_level === 'yellow').length;
-            
+
             document.getElementById('redCount').textContent = redCount;
             document.getElementById('yellowCount').textContent = yellowCount;
-            
+
             if (redCount > 0 || yellowCount > 0) {
                 banner.style.display = 'block';
             } else {
@@ -1008,7 +1056,7 @@
         function updateNotificationCount() {
             const countEl = document.getElementById('notificationCount');
             const unreadCount = hrNotifications.filter(n => !n.is_read).length;
-            
+
             if (unreadCount > 0) {
                 countEl.textContent = unreadCount > 99 ? '99+' : unreadCount;
                 countEl.style.display = 'flex';
@@ -1031,17 +1079,17 @@
 
         function getTimeLeftForEscalation(priority) {
             if (priority.priority_level !== 'red') return 'Non-urgent priority request';
-            
+
             const setAt = new Date(priority.set_at);
             const escalationTime = new Date(setAt.getTime() + (24 * 60 * 60 * 1000)); // 24 hours
             const now = new Date();
             const diff = escalationTime - now;
-            
+
             if (diff <= 0) return 'Escalation pending';
-            
+
             const hours = Math.floor(diff / (1000 * 60 * 60));
             const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-            
+
             return `Auto-escalation in ${hours}h ${minutes}m`;
         }
 
@@ -1060,7 +1108,7 @@
             }
 
             if (filtered.length === 0) {
-                const message = currentFilter === 'priority' 
+                const message = currentFilter === 'priority'
                     ? 'No priority requests at this time'
                     : `No ${currentFilter} requests found`;
                 container.innerHTML = `
@@ -1077,20 +1125,20 @@
             // Sort: priority requests first, then by date
             const priorityIds = new Set(priorityRequests.map(p => p.request_id));
             const redIds = new Set(priorityRequests.filter(p => p.priority_level === 'red').map(p => p.request_id));
-            
+
             filtered.sort((a, b) => {
                 // Red priority first
                 const aIsRed = redIds.has(a.request_id);
                 const bIsRed = redIds.has(b.request_id);
                 if (aIsRed && !bIsRed) return -1;
                 if (!aIsRed && bIsRed) return 1;
-                
+
                 // Yellow priority second
                 const aHasPriority = priorityIds.has(a.request_id);
                 const bHasPriority = priorityIds.has(b.request_id);
                 if (aHasPriority && !bHasPriority) return -1;
                 if (!aHasPriority && bHasPriority) return 1;
-                
+
                 // Then by date (newest first)
                 return new Date(b.created_at || b.start_date) - new Date(a.created_at || a.start_date);
             });
@@ -1101,11 +1149,11 @@
                 const dateStr = start === end ? start : `${start} - ${end}`;
                 const userName = leave.employee_name || leave.user_name || 'Employee';
                 const isPending = leave.status.toLowerCase() === 'pending';
-                
+
                 // Get priority badge if exists
                 const priorityBadgeHtml = getPriorityBadge(leave.request_id);
                 const hasPriority = priorityBadgeHtml !== '';
-                
+
                 // Determine display status - AI approved vs HR approved
                 let displayStatus = leave.status;
                 let statusClass = leave.status.toLowerCase();
@@ -1137,7 +1185,7 @@
                         <span class="status-badge ${statusClass}">${displayStatus}</span>
                         ${isPending ? `
                             <div class="leave-actions">
-                                <button class="action-btn approve ripple" onclick="event.stopPropagation(); handleLeaveAction('${leave.request_id}', 'Approved')" title="Approve">
+                                <button class="action-btn approve ripple" onclick="event.stopPropagation(); reviewDocuments('${leave.request_id}')" title="Review & Approve">
                                     <i data-lucide="check"></i>
                                 </button>
                                 <button class="action-btn reject ripple" onclick="event.stopPropagation(); handleLeaveAction('${leave.request_id}', 'Rejected')" title="Reject">
@@ -1178,7 +1226,7 @@
                 UI.showToast('No notifications', 'info');
                 return;
             }
-            
+
             const modal = document.createElement('div');
             modal.className = 'notification-modal';
             modal.innerHTML = `
@@ -1193,9 +1241,9 @@
                         ${hrNotifications.map(n => `
                             <div class="notification-item ${n.is_read ? 'read' : 'unread'} ${n.notification_type}">
                                 <div class="notification-icon">
-                                    ${n.notification_type === 'priority_escalation' ? '🔴' : 
-                                      n.notification_type === 'new_leave_request' ? '📋' : 
-                                      n.notification_type === 'reminder' ? '⏰' : '📢'}
+                                    ${n.notification_type === 'priority_escalation' ? '🔴' :
+                    n.notification_type === 'new_leave_request' ? '📋' :
+                        n.notification_type === 'reminder' ? '⏰' : '📢'}
                                 </div>
                                 <div class="notification-content">
                                     <div class="notification-title">${n.title}</div>
@@ -1219,11 +1267,11 @@
             const date = new Date(dateStr);
             const now = new Date();
             const diff = now - date;
-            
+
             const minutes = Math.floor(diff / 60000);
             const hours = Math.floor(diff / 3600000);
             const days = Math.floor(diff / 86400000);
-            
+
             if (minutes < 1) return 'Just now';
             if (minutes < 60) return `${minutes}m ago`;
             if (hours < 24) return `${hours}h ago`;
@@ -1258,11 +1306,76 @@
             }
         }
 
+        // New function to open document review modal
+        function reviewDocuments(requestId) {
+            currentReviewId = requestId;
+            const modal = document.getElementById('documentReviewModal');
+            const list = document.getElementById('documentList');
+            const approveBtn = document.getElementById('confirmApproveBtn');
+
+            modal.style.display = 'flex';
+            list.innerHTML = '<div class="loading-spinner"></div>';
+
+            approveBtn.onclick = () => handleLeaveAction(requestId, 'Approved');
+
+            // Allow animation
+            setTimeout(() => {
+                modal.classList.add('show');
+            }, 10);
+
+            // Simulate fetching documents (in a real app, you would fetch from API)
+            // Here we show standard documents based on leave type
+            const leave = allLeaves.find(l => l.request_id === requestId);
+
+            setTimeout(() => {
+                let docs = [];
+
+                // ALWAYS simulated docs for demo purposes
+                docs.push(
+                    { name: 'Employment Contract.pdf', type: 'Contract', date: '2024-01-15' },
+                    { name: 'Leave Policy Acknowledgement.pdf', type: 'Policy', date: '2024-01-15' }
+                );
+
+                if (leave && (leave.leave_type === 'Sick Leave' || leave.leave_type === 'sick_leave')) {
+                    docs.push({ name: 'Medical_Certificate_Jan2026.jpg', type: 'Medical', date: '2026-01-01' });
+                }
+
+                if (docs.length === 0) {
+                    list.innerHTML = `
+                        <div class="empty-state" style="opacity: 1; padding: 20px;">
+                            <p style="color: rgba(255,255,255,0.5);">No specific documents attached to this request.</p>
+                            <p style="color: rgba(255,255,255,0.3); font-size: 0.8rem;">Standard employment records are on file.</p>
+                        </div>
+                     `;
+                } else {
+                    list.innerHTML = docs.map(doc => `
+                        <div class="notification-item" style="align-items: center; cursor: pointer; background: rgba(255,255,255,0.05);">
+                            <div class="notification-icon">📄</div>
+                            <div class="notification-content">
+                                <div class="notification-title">${doc.name}</div>
+                                <div class="notification-message">${doc.type} • Uploaded ${doc.date}</div>
+                            </div>
+                            <button class="btn-secondary" style="padding: 4px 12px; font-size: 0.8rem;" onclick="UI.showToast('Opening document...', 'info')">View</button>
+                        </div>
+                    `).join('');
+                }
+            }, 800);
+        }
+
+        function closeDocumentModal() {
+            const modal = document.getElementById('documentReviewModal');
+            modal.style.display = 'none';
+            currentReviewId = null;
+        }
+
         window.handleLeaveAction = async function (leaveId, status) {
             try {
+                // If approving via modal, close it
+                if (status === 'Approved') closeDocumentModal();
+
                 await API.put(`/leaves/${leaveId}/status`, { status });
                 UI.showToast(`Leave request ${status.toLowerCase()} successfully!`, 'success');
-                
+
                 // Reload all data
                 await Promise.all([
                     loadLeaves(),
