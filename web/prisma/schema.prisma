@@ -5,6 +5,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // Enums
@@ -100,6 +101,10 @@ model Employee {
   leave_requests      LeaveRequest[]
   leave_balances      LeaveBalance[]
   approval_hierarchy  ApprovalHierarchy?
+  
+  // Organization/Company Link
+  org_id              String?
+  company             Company? @relation(fields: [org_id], references: [id])
 
   @@map("employees")
 }
@@ -176,4 +181,34 @@ model LeaveBalance {
 
   @@unique([emp_id, leave_type, year])
   @@map("leave_balances_v2")
+}
+
+// 8. Multi-Tenancy (New)
+model Company {
+  id            String    @id @default(uuid())
+  name          String
+  code          String    @unique // Unique Company Code for sign-up
+  industry      String?
+  admin_id      String?   // Link to Employee who is admin
+  created_at    DateTime  @default(now())
+  
+  employees     Employee[]
+  policies      ConstraintPolicy[]
+
+  @@map("companies")
+}
+
+// 9. Dynamic Constraint Engine (New)
+model ConstraintPolicy {
+  id            String    @id @default(uuid())
+  org_id        String
+  name          String    @default("Default Policy")
+  rules         Json      // Stores the business rules (14 items)
+  is_active     Boolean   @default(true)
+  created_at    DateTime  @default(now())
+  updated_at    DateTime  @updatedAt
+
+  organization  Company @relation(fields: [org_id], references: [id])
+
+  @@map("constraint_policies")
 }
