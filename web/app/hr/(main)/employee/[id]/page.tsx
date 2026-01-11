@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
-import { ShieldCheck, Calendar, Activity, TrendingUp, AlertCircle } from "lucide-react";
+import { ShieldCheck, Calendar, Activity, TrendingUp, AlertCircle, CheckCircle, Sparkles, ArrowRight } from "lucide-react";
 
 export default async function EmployeeDeepDivePage({ params }: { params: { id: string } }) {
     // 1. Fetch Data
@@ -105,12 +105,12 @@ export default async function EmployeeDeepDivePage({ params }: { params: { id: s
                                 {employee.leave_requests.map(req => (
                                     <tr key={req.request_id} className="hover:bg-white/5 transition-colors">
                                         <td className="p-4 text-white capitalize">{req.leave_type}</td>
-                                        <td className="p-4 font-mono text-xs">{(req.start_date as Date).toLocaleDateString()} -> {(req.end_date as Date).toLocaleDateString()}</td>
+                                        <td className="p-4 font-mono text-xs">{(req.start_date as Date).toLocaleDateString()} &rarr; {(req.end_date as Date).toLocaleDateString()}</td>
                                         <td className="p-4">{Number(req.total_days)}</td>
                                         <td className="p-4">
                                             <span className={`px-2 py-1 rounded text-[10px] uppercase font-bold ${req.status === 'approved' ? 'bg-emerald-500/20 text-emerald-400' :
-                                                    req.status === 'pending' ? 'bg-orange-500/20 text-orange-400' :
-                                                        'bg-red-500/20 text-red-400'
+                                                req.status === 'pending' ? 'bg-orange-500/20 text-orange-400' :
+                                                    'bg-red-500/20 text-red-400'
                                                 }`}>
                                                 {req.status}
                                             </span>
@@ -140,7 +140,7 @@ export default async function EmployeeDeepDivePage({ params }: { params: { id: s
                         <ul className="space-y-4 text-sm text-slate-300">
                             <li className="flex gap-3 items-start">
                                 <CheckCircle size={16} className="text-green-400 mt-0.5 shrink-0" />
-                                <span>Consistently requests leaves >14 days in advance. Low risk of operational disruption.</span>
+                                <span>Consistently requests leaves &gt;14 days in advance. Low risk of operational disruption.</span>
                             </li>
                             <li className="flex gap-3 items-start">
                                 <TrendingUp size={16} className="text-purple-400 mt-0.5 shrink-0" />
