@@ -4,7 +4,7 @@ services:
     env: python
     region: ohio
     plan: free
-    rootDirectory: web/backend
+    rootDir: web/backend
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn constraint_engine:app
     envVars:
