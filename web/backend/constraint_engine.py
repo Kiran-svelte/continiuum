@@ -1246,4 +1246,6 @@ if __name__ == '__main__':
     # Check Database Connection on Startup
     test_db_connection()
     
-    app.run(host='0.0.0.0', port=8001, debug=False)
+    # Get port from environment or default to 8001
+    port = int(os.environ.get("PORT", 8001))
+    app.run(host='0.0.0.0', port=port, debug=False)

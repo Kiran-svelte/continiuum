@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: constraint-engine
+    env: python
+    region: ohio
+    plan: free
+    rootDirectory: web/backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn constraint_engine:app
+    envVars:
+      - key: PORT
+        value: 8001
+      - key: PYTHON_VERSION
+        value: 3.9.0
