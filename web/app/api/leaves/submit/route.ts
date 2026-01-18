@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { sendLeaveApprovalEmail } from "@/lib/email-service";
+import { sendLeaveApprovalEmail, sendPriorityLeaveNotification } from "@/lib/email-service";
 
 /**
  * Leave Request Submission API
@@ -194,6 +194,48 @@ export async function POST(req: NextRequest) {
                     reason: decisionReason
                 }
             ).catch(err => console.error('Email notification failed:', err));
+        } else {
+            // Send priority notification to HR for escalated requests
+            // Determine priority based on leave type and urgency
+            const isUrgent = leaveType.toLowerCase().includes('emergency') || 
+                             leaveType.toLowerCase().includes('sick') ||
+                             new Date(startDate) <= new Date(Date.now() + 2 * 24 * 60 * 60 * 1000); // Within 2 days
+            
+            const isCritical = leaveType.toLowerCase().includes('emergency') && 
+                               new Date(startDate) <= new Date(Date.now() + 24 * 60 * 60 * 1000); // Within 1 day
+
+            const priority = isCritical ? 'CRITICAL' : isUrgent ? 'URGENT' : 'HIGH';
+
+            // Get HR users to notify
+            const hrUsers = await prisma.employee.findMany({
+                where: {
+                    OR: [
+                        { role: 'hr' },
+                        { role: 'admin' }
+                    ]
+                },
+                select: { email: true }
+            });
+
+            // Send notification to all HR users
+            for (const hr of hrUsers) {
+                sendPriorityLeaveNotification(
+                    hr.email,
+                    {
+                        employeeName: employee.full_name,
+                        leaveType,
+                        startDate: new Date(startDate).toLocaleDateString('en-US', { 
+                            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+                        }),
+                        endDate: new Date(endDate).toLocaleDateString('en-US', { 
+                            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+                        }),
+                        days,
+                        reason: reason || 'No reason provided',
+                        priority
+                    }
+                ).catch(err => console.error('HR notification failed:', err));
+            }
         }
 
         // Revalidate paths to update UI

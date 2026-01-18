@@ -14,6 +14,8 @@ const isPublicRoute = createRouteMatcher([
     '/hr/sign-up(.*)',
     '/api/webhook(.*)',
     '/api/holidays(.*)',
+    '/api/test-gmail(.*)',
+    '/api/enterprise(.*)',
 ]);
 
 const isOnboardingRoute = createRouteMatcher(['/onboarding(.*)']);

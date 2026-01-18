@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import crypto from "crypto";
+import { sendSecurityAlertEmail } from "@/lib/email-service";
 
 export interface AuditLogParams {
     actor_type?: "user" | "system" | "ai";
@@ -20,6 +21,9 @@ export interface AuditLogParams {
     ip_address?: string;
     user_agent?: string;
     target_org: string;
+    /** Flag suspicious activity to trigger security alerts */
+    isSuspicious?: boolean;
+    suspiciousSeverity?: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 }
 
 /**
@@ -60,7 +64,9 @@ export async function createAuditLog(params: AuditLogParams) {
         rules_evaluated,
         ip_address,
         user_agent,
-        target_org
+        target_org,
+        isSuspicious = false,
+        suspiciousSeverity = 'MEDIUM'
     } = params;
 
     try {
@@ -115,6 +121,46 @@ export async function createAuditLog(params: AuditLogParams) {
                 created_at: timestamp
             }
         });
+
+        // Send security alert if suspicious activity detected
+        if (isSuspicious || actor_type === 'system' && action.includes('FAILED') || actor_id === 'anonymous') {
+            // Get admin/HR emails to notify
+            const admins = await prisma.employee.findMany({
+                where: {
+                    OR: [
+                        { role: 'admin' },
+                        { role: 'hr' }
+                    ]
+                },
+                select: { email: true }
+            });
+
+            // Determine alert type based on action
+            let alertType: 'SUSPICIOUS_LOGIN' | 'FAILED_ATTEMPTS' | 'UNUSUAL_ACTIVITY' | 'DATA_ACCESS' | 'ANONYMOUS_ACTION' | 'PERMISSION_CHANGE' = 'UNUSUAL_ACTIVITY';
+            
+            if (action.includes('LOGIN') || action.includes('AUTH')) {
+                alertType = action.includes('FAILED') ? 'FAILED_ATTEMPTS' : 'SUSPICIOUS_LOGIN';
+            } else if (actor_id === 'anonymous' || actor_id === 'unknown') {
+                alertType = 'ANONYMOUS_ACTION';
+            } else if (action.includes('PERMISSION') || action.includes('ROLE')) {
+                alertType = 'PERMISSION_CHANGE';
+            } else if (action.includes('EXPORT') || action.includes('DOWNLOAD') || action.includes('ACCESS')) {
+                alertType = 'DATA_ACCESS';
+            }
+
+            // Send alerts to all admins
+            for (const admin of admins) {
+                sendSecurityAlertEmail(admin.email, {
+                    alertType,
+                    severity: suspiciousSeverity,
+                    details: `${action} on ${entity_type} (ID: ${entity_id}). ${decision_reason || ''}`,
+                    ipAddress: ip_address,
+                    userAgent: user_agent,
+                    timestamp: timestamp.toISOString(),
+                    affectedUser: actor_id !== 'anonymous' ? actor_id : undefined
+                }).catch(err => console.error('Security alert email failed:', err));
+            }
+        }
 
         return {
             success: true,

@@ -4,6 +4,7 @@ import { currentUser } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { sendWelcomeEmail } from "@/lib/email-service";
 
 /* =========================================================================
    1. IDENTITY SYNC
@@ -143,12 +144,27 @@ export async function joinCompany(code: string) {
             return { success: false, error: "Invalid Company Code" };
         }
 
-        await prisma.employee.update({
+        // Get current employee details for welcome email
+        const employee = await prisma.employee.update({
             where: { clerk_id: user.id },
             data: {
                 org_id: company.id,
             },
         });
+
+        // Send welcome email to new employee
+        const welcomeParams = {
+            employeeName: employee.full_name || 'Team Member',
+            email: employee.email,
+            position: employee.position || 'Employee',
+            department: employee.department || 'General',
+            startDate: new Date().toLocaleDateString('en-US', { 
+                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+            }),
+        };
+
+        sendWelcomeEmail(employee.email, welcomeParams)
+            .catch(err => console.error('Welcome email failed:', err));
 
         revalidatePath("/");
         return { success: true, company };
