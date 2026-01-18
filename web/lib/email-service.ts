@@ -1,25 +1,29 @@
 /**
  * Gmail OAuth Email Service
- * Uses OAuth 2.0 for secure email sending
+ * Uses OAuth 2.0 for secure email sending via Backend API
  * 
  * OAuth Credentials:
  * Client ID: 354227009682-eq7k9c4raa91gotpsrco06tph22uaeca.apps.googleusercontent.com
  * Client Secret: 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
- * Sender Email: continuum1105@gmail.com
+ * Sender Email: traderlighter11@gmail.com
  * 
- * To get refresh token, run: node scripts/get-gmail-refresh-token.js
+ * The backend has stored OAuth tokens for verified emails.
+ * This service calls the backend API to send emails.
  */
 
 import nodemailer from 'nodemailer';
 import { google } from 'googleapis';
 
-// Gmail OAuth Configuration - Company email
+// Gmail OAuth Configuration
 const GMAIL_OAUTH = {
     clientId: process.env.GMAIL_CLIENT_ID || '354227009682-eq7k9c4raa91gotpsrco06tph22uaeca.apps.googleusercontent.com',
     clientSecret: process.env.GMAIL_CLIENT_SECRET || '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',
     refreshToken: process.env.GMAIL_REFRESH_TOKEN || '',
-    email: process.env.GMAIL_USER || 'continuum1105@gmail.com' // Main company email
+    email: process.env.GMAIL_USER || 'traderlighter11@gmail.com'
 };
+
+// Backend URL for email API
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:5000';
 
 // Create OAuth2 client
 const oauth2Client = new google.auth.OAuth2(
@@ -28,11 +32,35 @@ const oauth2Client = new google.auth.OAuth2(
     'https://developers.google.com/oauthplayground'
 );
 
-// Set refresh token
+// Set refresh token if available
 if (GMAIL_OAUTH.refreshToken) {
     oauth2Client.setCredentials({
         refresh_token: GMAIL_OAUTH.refreshToken
     });
+}
+
+/**
+ * Send email via Backend API (uses stored OAuth tokens)
+ */
+async function sendViaBackend(to: string, subject: string, html: string): Promise<{ success: boolean; error?: string }> {
+    try {
+        const response = await fetch(`${BACKEND_URL}/api/auth/google/test-email`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                emp_id: 'SYSTEM',
+                to_email: to,
+                subject: subject,
+                message: html
+            })
+        });
+        
+        const data = await response.json();
+        return { success: data.success, error: data.error };
+    } catch (error) {
+        console.warn('Backend email failed:', error);
+        return { success: false, error: error instanceof Error ? error.message : 'Backend unavailable' };
+    }
 }
 
 /**
@@ -625,6 +653,16 @@ export async function sendEmail(
     subject: string,
     html: string
 ): Promise<{ success: boolean; error?: string; explanation?: string }> {
+    // Try Backend API first (has stored OAuth tokens)
+    const backendResult = await sendViaBackend(to, subject, html);
+    if (backendResult.success) {
+        return { 
+            success: true, 
+            explanation: `Email sent successfully to ${to} via Backend OAuth`
+        };
+    }
+    
+    // Fallback to direct sending
     try {
         const transporter = await getEmailTransporter();
         
@@ -644,8 +682,8 @@ export async function sendEmail(
         console.error(`Failed to send email to ${to}:`, error);
         return { 
             success: false, 
-            error: errorMessage,
-            explanation: `Email failed: ${errorMessage}. Will retry on next trigger.`
+            error: `Backend: ${backendResult.error}, Direct: ${errorMessage}`,
+            explanation: `Email failed via both methods. Backend: ${backendResult.error}. Direct: ${errorMessage}`
         };
     }
 }

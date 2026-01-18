@@ -40,10 +40,13 @@ class GoogleService {
      * Get authenticated client for a user
      */
     async getAuthenticatedClient(empId) {
-        const rows = await db.query(
+        const result = await db.query(
             'SELECT google_access_token, google_refresh_token FROM employees WHERE emp_id = ?',
             [empId]
         );
+        
+        // db.query returns [rows, fields] for compatibility
+        const rows = Array.isArray(result) ? result[0] : result;
         
         if (!rows || rows.length === 0 || !rows[0].google_refresh_token) {
             throw new Error('User not connected to Google');
@@ -198,13 +201,16 @@ class GoogleService {
     async sendEmailAsSystem(to, subject, htmlBody) {
         // Find an employee with Google connected to send as
         const placeholders = googleConfig.verifiedEmails.map(() => '?').join(',');
-        const rows = await db.query(
+        const result = await db.query(
             `SELECT emp_id FROM employees 
              WHERE google_refresh_token IS NOT NULL 
              AND email IN (${placeholders})
              LIMIT 1`,
             googleConfig.verifiedEmails
         );
+
+        // db.query returns [rows, fields] for compatibility
+        const rows = Array.isArray(result) ? result[0] : result;
 
         if (!rows || rows.length === 0) {
             console.error('[Gmail] No verified sender available');

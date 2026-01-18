@@ -13,7 +13,7 @@ const env = require('./environment');
 // Parse database URL if provided, otherwise construct config
 const dbConfig = env.database.url ? {
     connectionString: env.database.url,
-    ssl: env.database.url.includes('sslmode=require') ? { rejectUnauthorized: false } : false
+    ssl: { rejectUnauthorized: false } // Required for Supabase
 } : {
     host: env.database.host || 'localhost',
     user: env.database.user || 'root',

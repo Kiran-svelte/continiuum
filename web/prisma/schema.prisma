@@ -114,9 +114,11 @@ model Employee {
   is_active       Boolean   @default(true)
 
   // Auth & Integrations
-  clerk_id      String? @unique
-  google_id     String?
-  slack_user_id String?
+  clerk_id             String? @unique
+  google_id            String?
+  google_access_token  String?
+  google_refresh_token String?
+  slack_user_id        String?
 
   // Relations
   manager            Employee?          @relation("Manager", fields: [manager_id], references: [emp_id])

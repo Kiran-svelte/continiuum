@@ -140,6 +140,7 @@ const config = {
 
     // Database
     database: {
+        url: get('DATABASE_URL', ''),
         host: get('DB_HOST', 'localhost'),
         port: getInt('DB_PORT', 3306),
         user: get('DB_USER', 'root'),
