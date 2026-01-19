@@ -39,7 +39,7 @@ dist/
 # Application specific
 app/dist/
 backend/dist/
-*.json
+# *.json
 !package.json
 !package-lock.json
 !tsconfig.json

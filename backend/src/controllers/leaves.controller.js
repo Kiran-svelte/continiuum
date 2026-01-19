@@ -295,6 +295,13 @@ exports.analyzeLeaveRequest = async (req, res) => {
 
             // Leave Details
             leaveRequest: leaveDetails,
+            extracted_info: {
+                leave_type: leaveDetails.type,
+                start_date: leaveDetails.start_date,
+                end_date: leaveDetails.end_date,
+                days: leaveDetails.days_requested,
+                is_half_day: engineResponse.leave_request?.is_half_day || false
+            },
 
             // Balance Info
             leaveBalance: {

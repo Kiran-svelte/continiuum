@@ -1,231 +1,138 @@
 /**
- * Database Configuration Module
+ * Database Configuration Module (PostgreSQL Adapter)
  * 
- * Provides a secure, configurable database connection pool
- * with automatic reconnection, health checks, and query logging.
+ * Provides a secure, configurable database connection pool for PostgreSQL
+ * seamlessly adapting MySQL-style queries (?) to Postgres syntax ($n).
  * 
  * @module config/db
  */
 
-const mysql = require('mysql2');
-
+const { Pool } = require('pg');
 const env = require('./environment');
 
-const dbConfig = {
-    host: env.database.host,
-    user: env.database.user,
-    password: env.database.password,
-    database: env.database.name,
-    waitForConnections: true,
-    connectionLimit: env.database.connectionLimit,
-    queueLimit: env.database.queueLimit,
-    enableKeepAlive: true,
-    keepAliveInitialDelay: 10000,
-    // Timezone configuration
-    timezone: '+00:00',
-    // Character set
-    charset: 'utf8mb4',
+// Parse database URL if provided, otherwise construct config
+const dbConfig = env.database.url ? {
+    connectionString: env.database.url,
+    ssl: { rejectUnauthorized: false } // Required for Supabase
+} : {
+    host: env.database.host || 'localhost',
+    user: env.database.user || 'root',
+    password: env.database.password || '',
+    database: env.database.name || 'company',
+    port: 5432,
+    ssl: env.database.ssl?.enabled ? { rejectUnauthorized: false } : false
 };
 
-// Add SSL configuration for production
-if (env.database.ssl.enabled) {
-    const fs = require('fs');
-    dbConfig.ssl = {
-        rejectUnauthorized: env.database.ssl.rejectUnauthorized,
-    };
-    if (env.database.ssl.caPath) {
-        dbConfig.ssl.ca = fs.readFileSync(env.database.ssl.caPath);
-    }
-}
-
-// Create connection pool
-const pool = mysql.createPool(dbConfig);
-
-// Promise-based pool
-const promisePool = pool.promise();
-
-// Connection state tracking
-let isConnected = false;
-let lastHealthCheck = null;
-let connectionRetries = 0;
-const MAX_RETRIES = 5;
-const RETRY_DELAY = 5000;
+// Create a new pool
+const pool = new Pool({
+    ...dbConfig,
+    max: 20, // max connections
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 2000,
+});
 
 /**
- * Test database connection
- * @returns {Promise<boolean>} Connection status
+ * Helper to convert MySQL '?' placeholders to Postgres '$n' syntax
+ * @param {string} sql 
+ * @returns {string} converted sql
  */
-async function testConnection() {
+function convertQuery(sql) {
+    let i = 1;
+    return sql.replace(/\?/g, () => `$${i++}`);
+}
+
+/**
+ * Clean up query result to match mysql2 format [rows, fields]
+ * Postgres returns { rows: [], fields: [] }
+ * Mysql2 execute returns [rows, fields]
+ */
+function normalizeResult(result) {
+    // If it's a SELECT, return rows
+    if (result.command === 'SELECT') {
+        return [result.rows, result.fields];
+    }
+    // If INSERT/UPDATE/DELETE, return compatibility object
+    // Mysql2 returns { insertId, affectedRows, ... }
+    return [{
+        affectedRows: result.rowCount,
+        insertId: result.rows[0]?.id || 0, // Assuming 'RETURNING id' is used or we can't get it easily without it
+        ...result
+    }, result.fields];
+}
+
+/**
+ * Execute a query (mimicking mysql2 pool.execute/query)
+ * @param {string} sql 
+ * @param {Array} params 
+ */
+async function query(sql, params = []) {
+    const client = await pool.connect();
     try {
-        await promisePool.query('SELECT 1');
-        isConnected = true;
-        lastHealthCheck = new Date();
-        connectionRetries = 0;
-        return true;
-    } catch (error) {
-        isConnected = false;
-        console.error('Database connection test failed:', error.message);
-        return false;
-    }
-}
+        const pgSql = convertQuery(sql);
+        const result = await client.query(pgSql, params);
 
-/**
- * Attempt to reconnect to database
- * @returns {Promise<boolean>} Reconnection status
- */
-async function reconnect() {
-    if (connectionRetries >= MAX_RETRIES) {
-        console.error(`Database reconnection failed after ${MAX_RETRIES} attempts`);
-        return false;
-    }
-
-    connectionRetries++;
-    console.log(`Attempting database reconnection (${connectionRetries}/${MAX_RETRIES})...`);
-
-    await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
-    return testConnection();
-}
-
-/**
- * Execute a query with automatic reconnection
- * @param {string} sql - SQL query string
- * @param {Array} params - Query parameters
- * @returns {Promise<Array>} Query results
- */
-async function query(sql, params) {
-    try {
-        const [results] = await promisePool.query(sql, params);
-        return results;
-    } catch (error) {
-        if (error.code === 'ECONNREFUSED' || error.code === 'PROTOCOL_CONNECTION_LOST') {
-            const reconnected = await reconnect();
-            if (reconnected) {
-                const [results] = await promisePool.query(sql, params);
-                return results;
-            }
+        // Return structure compatible with mysql2 destructuring: const [rows] = await db.query...
+        if (result.command === 'SELECT') {
+            // Attach array-like properties if needed, but usually just returning array of rows is enough for [rows] destructuring?
+            // No, [rows] destructuring expects the FIRST element to be the rows array.
+            return [result.rows, result.fields];
+        } else {
+            // For Insert/Update
+            const info = {
+                affectedRows: result.rowCount,
+                insertId: 0 // Warning: Postgres doesn't return ID unless RETURNING id is used
+            };
+            return [info, result.fields];
         }
-        throw error;
+    } finally {
+        client.release();
     }
 }
 
+// Alias execute to query for compatibility
+const execute = query;
+
 /**
- * Get a single result from a query
- * @param {string} sql - SQL query string
- * @param {Array} params - Query parameters
- * @returns {Promise<Object|null>} Single result or null
+ * Get a single result
  */
 async function getOne(sql, params) {
-    const results = await query(sql, params);
-    return results[0] || null;
+    const [rows] = await query(sql, params);
+    return rows[0] || null;
 }
 
 /**
- * Execute a prepared statement
- * @param {string} sql - SQL query string
- * @param {Array} params - Query parameters
- * @returns {Promise<Object>} Execution result with affectedRows, insertId, etc.
- */
-async function execute(sql, params) {
-    try {
-        const [result] = await promisePool.execute(sql, params);
-        return result;
-    } catch (error) {
-        if (error.code === 'ECONNREFUSED' || error.code === 'PROTOCOL_CONNECTION_LOST') {
-            const reconnected = await reconnect();
-            if (reconnected) {
-                const [result] = await promisePool.execute(sql, params);
-                return result;
-            }
-        }
-        throw error;
-    }
-}
-
-/**
- * Execute multiple queries in a transaction
- * @param {Function} callback - Async function receiving connection
- * @returns {Promise<any>} Transaction result
- */
-async function transaction(callback) {
-    const connection = await promisePool.getConnection();
-    try {
-        await connection.beginTransaction();
-        const result = await callback(connection);
-        await connection.commit();
-        return result;
-    } catch (error) {
-        await connection.rollback();
-        throw error;
-    } finally {
-        connection.release();
-    }
-}
-
-/**
- * Get database health status
- * @returns {Promise<Object>} Health status object
+ * Health Check
  */
 async function getHealth() {
-    const status = {
-        connected: false,
-        lastCheck: lastHealthCheck,
-        responseTime: null,
-        poolInfo: {
-            active: pool._allConnections?.length || 0,
-            idle: pool._freeConnections?.length || 0,
-            waiting: pool._connectionQueue?.length || 0,
-        },
-    };
-
-    const startTime = Date.now();
     try {
-        await promisePool.query('SELECT 1');
-        status.connected = true;
-        status.responseTime = Date.now() - startTime;
-        lastHealthCheck = new Date();
-    } catch (error) {
-        status.error = error.message;
+        const start = Date.now();
+        await pool.query('SELECT 1');
+        return {
+            connected: true,
+            responseTime: Date.now() - start,
+            poolInfo: {
+                total: pool.totalCount,
+                idle: pool.idleCount,
+                waiting: pool.waitingCount
+            }
+        };
+    } catch (e) {
+        return { connected: false, error: e.message };
     }
-
-    return status;
 }
 
-/**
- * Close all database connections
- * @returns {Promise<void>}
- */
-async function close() {
-    return new Promise((resolve, reject) => {
-        pool.end(err => {
-            if (err) reject(err);
-            else resolve();
-        });
-    });
-}
-
-// Initial connection test
-testConnection().then(connected => {
-    if (connected) {
-        console.log('✅ Database connected successfully');
-    } else {
-        console.error('❌ Database connection failed - check configuration');
-    }
-});
-
-// Handle pool errors
+// Initialize
 pool.on('error', (err) => {
-    console.error('Database pool error:', err.message);
-    isConnected = false;
+    console.error('Unexpected error on idle client', err);
 });
+
+console.log('🔌 Database Adapter: PostgreSQL (Neon Ready)');
 
 module.exports = {
-    query,
-    getOne,
-    execute,
-    transaction,
-    getHealth,
-    testConnection,
-    close,
     pool,
-    promisePool,
+    query,
+    execute,
+    getOne,
+    getHealth,
+    close: () => pool.end()
 };

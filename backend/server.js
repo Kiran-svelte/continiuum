@@ -38,6 +38,7 @@ app.use('/api/performance', require('./src/routes/performance.routes'));
 app.use('/api/recruitment', require('./src/routes/recruitment.routes'));
 app.use('/api/payroll', require('./src/routes/payroll.routes')); // Payroll Management
 app.use('/api/ai-system', require('./src/routes/ai-system.routes')); // AI System Monitoring
+app.use('/api/companies', require('./src/routes/companies.routes')); // Multi-Tenant System
 
 // Enterprise routes with fallback
 try {
@@ -189,7 +190,7 @@ const server = app.listen(PORT, () => {
     console.log(`   - /api/recruitment`);
     console.log(`   - /api/payroll (Payroll Management)`);
     console.log(`🔗 Integrations: Calendar, Slack, Teams, Email, Payroll`);
-    
+
     // Initialize Leave Scheduler for time-based operations
     // Temporarily disabled for debugging
     // try {

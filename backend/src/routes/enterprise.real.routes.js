@@ -43,7 +43,7 @@ let gmailTransporter = null;
 async function initGmailTransporter(refreshToken) {
     oauth2Client.setCredentials({ refresh_token: refreshToken });
     const accessToken = await oauth2Client.getAccessToken();
-    
+
     gmailTransporter = nodemailer.createTransport({
         service: 'gmail',
         auth: {
@@ -64,14 +64,14 @@ class NotificationService {
     static async sendPusherNotification(channel, event, data) {
         try {
             await pusher.trigger(channel, event, data);
-            
+
             // Log notification
             await db.execute(`
                 INSERT INTO notification_log 
                 (notification_type, channel, event_name, message, payload, status, sent_at, related_entity_type, related_entity_id)
                 VALUES ('pusher', ?, ?, ?, ?, 'sent', NOW(), ?, ?)
             `, [channel, event, data.message || '', JSON.stringify(data), data.entity_type || null, data.entity_id || null]);
-            
+
             console.log(`[PUSHER] Sent to ${channel}: ${event}`);
             return true;
         } catch (error) {
@@ -316,14 +316,15 @@ class AuditService {
     static async log(entityType, entityId, action, actor, oldValues, newValues, changeSummary) {
         await db.execute(`
             INSERT INTO audit_trail 
-            (entity_type, entity_id, action, actor_emp_id, actor_role, old_values, new_values, change_summary)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            (entity_type, entity_id, action, actor_emp_id, actor_role, org_id, old_values, new_values, change_summary)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [
             entityType,
             entityId,
             action,
-            actor.emp_id || null,
-            actor.role || null,
+            actor?.emp_id || null,
+            actor?.role || null,
+            actor?.org_id || null,
             oldValues ? JSON.stringify(oldValues) : null,
             newValues ? JSON.stringify(newValues) : null,
             changeSummary
@@ -353,7 +354,7 @@ router.get('/auth/google', (req, res) => {
 
 router.get('/auth/google/callback', async (req, res) => {
     const { code } = req.query;
-    
+
     try {
         const { tokens } = await oauth2Client.getToken(code);
         oauth2Client.setCredentials(tokens);
@@ -428,7 +429,7 @@ router.post('/leave/submit', async (req, res) => {
 
         // Get approval hierarchy
         const level1Approver = emp.manager_id || null;
-        
+
         // Determine approval levels needed
         let level2Required = totalDays >= 5;
         let level3Required = totalDays >= 10;
@@ -460,8 +461,8 @@ router.post('/leave/submit', async (req, res) => {
         await NotificationService.notifyLeaveRequest(requestId, 'submitted');
 
         // Audit log
-        await AuditService.log('leave_request', requestId, 'create', { emp_id }, null, 
-            { leave_type, start_date, end_date, total_days: totalDays }, 
+        await AuditService.log('leave_request', requestId, 'create', { emp_id }, null,
+            { leave_type, start_date, end_date, total_days: totalDays },
             `Leave request submitted for ${totalDays} days`);
 
         res.json({
@@ -497,7 +498,7 @@ router.put('/leave/:requestId/action', async (req, res) => {
 
         if (action === 'approve') {
             const currentLevel = request.current_level;
-            
+
             // Update current level approval
             await db.query(`
                 UPDATE leave_requests_enterprise 
@@ -529,9 +530,9 @@ router.put('/leave/:requestId/action', async (req, res) => {
                     message: 'New leave request awaiting your approval',
                     level: nextLevel
                 });
-                
-                res.json({ 
-                    success: true, 
+
+                res.json({
+                    success: true,
                     message: `Leave approved at level ${currentLevel}, moved to level ${nextLevel}`,
                     new_status: 'pending_next_level'
                 });
@@ -558,9 +559,9 @@ router.put('/leave/:requestId/action', async (req, res) => {
                 }
 
                 await NotificationService.notifyLeaveRequest(requestId, 'approved');
-                
-                res.json({ 
-                    success: true, 
+
+                res.json({
+                    success: true,
                     message: 'Leave request fully approved',
                     new_status: 'approved'
                 });
@@ -577,9 +578,9 @@ router.put('/leave/:requestId/action', async (req, res) => {
             `, [comments, requestId]);
 
             await NotificationService.notifyLeaveRequest(requestId, 'rejected');
-            
-            res.json({ 
-                success: true, 
+
+            res.json({
+                success: true,
                 message: 'Leave request rejected',
                 new_status: 'rejected'
             });
@@ -965,13 +966,13 @@ router.get('/hierarchy/:empId', async (req, res) => {
         const approvers = [];
         let currentManagerId = emp[0].manager_id;
         let level = 0;
-        
+
         while (currentManagerId && level < 5) {
             const manager = await db.query(`
                 SELECT emp_id, full_name, position, email, department, manager_id
                 FROM employees WHERE emp_id = ?
             `, [currentManagerId]);
-            
+
             if (manager && manager.length > 0) {
                 approvers.push({
                     emp_id: manager[0].emp_id,
@@ -1019,7 +1020,7 @@ router.get('/hierarchy/:empId', async (req, res) => {
 // ============================================================
 const runSLAEscalation = async () => {
     console.log('[CRON] Running SLA escalation check...');
-    
+
     try {
         // Find breached SLAs - db.execute returns array directly, not wrapped
         const breached = await db.execute(`
@@ -1098,11 +1099,11 @@ cron.schedule('*/15 * * * *', runSLAEscalation);
 const runLeaveAccrual = async () => {
     const today = new Date();
     const isFirstOfMonth = today.getDate() === 1;
-    
+
     if (!isFirstOfMonth) return;
-    
+
     console.log('[CRON] Running monthly leave accrual...');
-    
+
     try {
         // Get monthly accrual policies
         const policiesResult = await db.execute(`
