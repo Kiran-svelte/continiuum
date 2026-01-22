@@ -4,7 +4,7 @@ services:
   # ============================================
   - type: web
     name: continuum-constraint-engine
-    env: python
+    runtime: python
     region: oregon
     plan: free
     rootDir: web/backend
@@ -12,12 +12,8 @@ services:
     startCommand: gunicorn -b 0.0.0.0:$PORT constraint_engine:app
     healthCheckPath: /health
     envVars:
-      - key: PYTHON_VERSION
-        value: "3.11.4"
       - key: DATABASE_URL
-        fromDatabase:
-          name: continuum-db
-          property: connectionString
+        sync: false
       - key: FLASK_ENV
         value: production
 
