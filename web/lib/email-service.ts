@@ -440,7 +440,7 @@ export const EmailTemplates = {
                     </p>
                 </div>
                 <div style="padding: 15px; background: #0f172a; text-align: center;">
-                    <p style="color: #64748b; margin: 0; font-size: 12px;">TetraDeck HR Management System</p>
+                    <p style="color: #64748b; margin: 0; font-size: 12px;">Continuum HR Management System</p>
                 </div>
             </div>
         `
@@ -512,7 +512,7 @@ export const EmailTemplates = {
                     </p>
                 </div>
                 <div style="padding: 15px; background: #0f172a; text-align: center;">
-                    <p style="color: #64748b; margin: 0; font-size: 12px;">TetraDeck HR Management System</p>
+                    <p style="color: #64748b; margin: 0; font-size: 12px;">Continuum HR Management System</p>
                 </div>
             </div>
         `
@@ -568,7 +568,7 @@ export const EmailTemplates = {
                     </p>
                 </div>
                 <div style="padding: 15px; background: #0f172a; text-align: center;">
-                    <p style="color: #64748b; margin: 0; font-size: 12px;">TetraDeck HR Management System</p>
+                    <p style="color: #64748b; margin: 0; font-size: 12px;">Continuum HR Management System</p>
                 </div>
             </div>
         `
@@ -595,7 +595,7 @@ export const EmailTemplates = {
                     <p>Please review and take appropriate action through the <a href="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/hr/attendance" style="color: #0ea5e9;">HR Portal</a>.</p>
                 </div>
                 <div style="padding: 15px; background: #0f172a; text-align: center;">
-                    <p style="color: #64748b; margin: 0; font-size: 12px;">TetraDeck HR Management System</p>
+                    <p style="color: #64748b; margin: 0; font-size: 12px;">Continuum HR Management System</p>
                 </div>
             </div>
         `
@@ -654,7 +654,7 @@ export const EmailTemplates = {
                     </div>
                 </div>
                 <div style="padding: 15px; background: #0f172a; text-align: center;">
-                    <p style="color: #64748b; margin: 0; font-size: 12px;">TetraDeck HR Management System</p>
+                    <p style="color: #64748b; margin: 0; font-size: 12px;">Continuum HR Management System</p>
                 </div>
             </div>
         `
@@ -738,7 +738,7 @@ export const EmailTemplates = {
                         </div>
                     </div>
                     <div style="padding: 15px; background: #0f172a; text-align: center;">
-                        <p style="color: #64748b; margin: 0; font-size: 12px;">TetraDeck HR Management System - Security Team</p>
+                        <p style="color: #64748b; margin: 0; font-size: 12px;">Continuum HR Management System - Security Team</p>
                     </div>
                 </div>
             `
@@ -801,7 +801,7 @@ export const EmailTemplates = {
                     </div>
                 </div>
                 <div style="padding: 15px; background: #0f172a; text-align: center;">
-                    <p style="color: #64748b; margin: 0; font-size: 12px;">TetraDeck HR Management System</p>
+                    <p style="color: #64748b; margin: 0; font-size: 12px;">Continuum HR Management System</p>
                 </div>
             </div>
         `
@@ -846,7 +846,7 @@ export const EmailTemplates = {
                         </div>
                     </div>
                     <div style="padding: 15px; background: #0f172a; text-align: center;">
-                        <p style="color: #64748b; margin: 0; font-size: 12px;">TetraDeck HR Management System</p>
+                        <p style="color: #64748b; margin: 0; font-size: 12px;">Continuum HR Management System</p>
                     </div>
                 </div>
             `
@@ -876,7 +876,7 @@ export async function sendEmail(
         const transporter = await getEmailTransporter();
         
         await transporter.sendMail({
-            from: process.env.SMTP_FROM || `"TetraDeck HR" <${GMAIL_OAUTH.email}>`,
+            from: process.env.SMTP_FROM || `"Continuum HR" <${GMAIL_OAUTH.email}>`,
             to,
             subject,
             html
