@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { currentUser } from "@clerk/nextjs/server";
 import { analyzeLeaveRequest, AIAnalysisResult } from "./leave-constraints";
 import { revalidatePath } from "next/cache";
-import { sendHRNewLeaveRequestEmail, sendLeaveApprovalEmail } from "@/lib/email-service";
+import { sendHRNewLeaveRequestEmail, sendLeaveApprovalEmail, sendLeaveSubmissionEmail } from "@/lib/email-service";
 
 export async function submitLeaveRequest(formData: {
     leaveType: string;
@@ -133,6 +133,23 @@ export async function submitLeaveRequest(formData: {
 
             return newRequest;
         });
+
+        // ALWAYS send submission confirmation to employee
+        sendLeaveSubmissionEmail(
+            { email: employee.email, full_name: employee.full_name || 'Employee' },
+            {
+                requestId: result.request_id,
+                leaveType: formData.leaveType,
+                startDate: new Date(formData.startDate).toLocaleDateString('en-US', { 
+                    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+                }),
+                endDate: new Date(formData.endDate).toLocaleDateString('en-US', { 
+                    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+                }),
+                totalDays: formData.days,
+                reason: formData.reason
+            }
+        ).catch(err => console.error('Leave submission email failed:', err));
 
         // Notify HR about new leave request (if escalated/pending)
         if (requestStatus === 'escalated') {
