@@ -49,6 +49,7 @@ const isPublicRoute = createRouteMatcher([
     '/api/health(.*)',
     '/api/debug/backend-check(.*)',
     '/api/cron(.*)',
+    '/api/security(.*)',
     '/api/enterprise(.*)',
     '/api/waitlist(.*)',
     '/status(.*)',
