@@ -702,6 +702,7 @@ export async function checkFeatureAccess() {
                 org_id: true,
                 welcome_shown: true,
                 tutorial_completed: true,
+                terms_accepted_at: true,
             }
         });
 
@@ -709,8 +710,16 @@ export async function checkFeatureAccess() {
             return { hasAccess: false, reason: "no_profile" };
         }
 
-        // HR/Admin always has access
+        // HR/Admin - but MUST have org_id (completed company registration)
         if (["hr", "admin"].includes(employee.role || "")) {
+            // HR without company registration must complete onboarding
+            if (!employee.org_id) {
+                return { 
+                    hasAccess: false, 
+                    reason: "incomplete_onboarding",
+                    message: "Please complete company registration first."
+                };
+            }
             return { 
                 hasAccess: true, 
                 role: employee.role,
@@ -719,12 +728,31 @@ export async function checkFeatureAccess() {
             };
         }
 
-        // Employee needs approval
+        // Employee - MUST have org_id (joined a company)
+        if (!employee.org_id) {
+            return { 
+                hasAccess: false, 
+                reason: "no_company",
+                message: "Please join a company using your company code."
+            };
+        }
+
+        // Employee needs HR approval to access features
         if (employee.approval_status !== "approved") {
             return { 
                 hasAccess: false, 
                 reason: "pending_approval",
                 status: employee.approval_status,
+                message: "Your account is awaiting HR approval."
+            };
+        }
+
+        // Must have completed onboarding
+        if (!employee.onboarding_completed && employee.onboarding_status !== "completed" && employee.onboarding_status !== "approved") {
+            return { 
+                hasAccess: false, 
+                reason: "incomplete_onboarding",
+                message: "Please complete the onboarding process."
             };
         }
 

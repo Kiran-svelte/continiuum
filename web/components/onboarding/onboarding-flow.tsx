@@ -23,22 +23,42 @@ export function OnboardingFlow({ user, intent, savedData }: { user: any; intent:
 
     // Determine initial step based on user's saved progress
     const determineInitialStep = (): "legal" | "choice" | "details" | "create" | "constraints" | "join" | "pending_approval" => {
-        // If already pending approval, show pending screen
-        if (user?.onboarding_status === "pending_approval") {
+        // If already pending approval AND has org_id, show pending screen
+        if (user?.onboarding_status === "pending_approval" && user?.org_id) {
             return "pending_approval" as any;
         }
+
+        // If user already has org_id but not pending, they're done - this shouldn't happen but handle it
+        if (user?.org_id && user?.onboarding_completed) {
+            return "pending_approval" as any; // Will be redirected by server
+        }
         
-        // Resume from saved step if available
-        if (user?.onboarding_step) {
+        // Resume from saved step if available (but not if they have pending status without org)
+        if (user?.onboarding_step && user?.terms_accepted_at) {
             const savedStep = user.onboarding_step;
-            if (["legal", "choice", "details", "create", "constraints", "join"].includes(savedStep)) {
+            // For employees: Only allow resuming to join or earlier if they don't have org_id yet
+            if (safeIntent === 'employee') {
+                if (savedStep === "pending_approval" && !user?.org_id) {
+                    // They were on pending but no org - restart from details
+                    return "details";
+                }
+                if (["legal", "details", "join"].includes(savedStep)) {
+                    return savedStep as any;
+                }
+                // Default for employee with terms accepted but unclear step
+                return user?.org_id ? "pending_approval" as any : "details";
+            }
+            // For HR
+            if (["legal", "create", "constraints"].includes(savedStep)) {
                 return savedStep as any;
             }
         }
 
         // Otherwise, determine based on terms acceptance
         if (user?.terms_accepted_at) {
-            return safeIntent === 'hr' ? 'create' : safeIntent === 'employee' ? 'details' : 'choice';
+            if (safeIntent === 'hr') return 'create';
+            if (safeIntent === 'employee') return 'details';
+            return 'choice';
         }
         return "legal";
     };

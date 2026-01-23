@@ -5,7 +5,7 @@ import { PendingApprovalStatus } from "@/components/onboarding/pending-approval"
 
 export default async function EmployeePendingPage() {
     const user = await currentUser();
-    if (!user) return redirect("/employee/sign-in");
+    if (!user) return redirect("/sign-in");
 
     // Get employee data
     const employee = await prisma.employee.findUnique({
@@ -14,6 +14,11 @@ export default async function EmployeePendingPage() {
     });
 
     if (!employee) {
+        return redirect("/onboarding?intent=employee");
+    }
+
+    // CRITICAL: If no org_id, they haven't joined a company yet - redirect to onboarding
+    if (!employee.org_id || !employee.company) {
         return redirect("/onboarding?intent=employee");
     }
 

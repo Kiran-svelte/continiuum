@@ -61,13 +61,14 @@ export default async function OnboardingPage(props: { searchParams: Promise<{ in
 
     const employee = syncRes.employee;
 
-    // If employee is pending HR approval, redirect to pending page
-    if ((employee as any).onboarding_status === "pending_approval") {
+    // If employee is pending HR approval AND has org_id, redirect to pending page
+    // Don't redirect to pending if they haven't joined a company yet
+    if ((employee as any).onboarding_status === "pending_approval" && employee.org_id) {
         return redirect("/employee/pending");
     }
 
     // If fully onboarded and approved, check for welcome/tutorial
-    if (employee.terms_accepted_at && employee.org_id && (employee as any).approval_status === "approved") {
+    if (employee.terms_accepted_at && employee.org_id && (employee as any).approval_status === "approved" && (employee as any).onboarding_completed) {
         // Check if we need to show welcome animation
         if (!(employee as any).welcome_shown) {
             if ((employee as any).role === "hr" || employee.position?.includes("HR") || employee.position?.includes("Admin")) {
@@ -83,8 +84,8 @@ export default async function OnboardingPage(props: { searchParams: Promise<{ in
         return redirect("/employee/dashboard");
     }
 
-    // For HR who just registered, they're auto-approved
-    if (employee.terms_accepted_at && employee.org_id && (employee as any).role === "hr") {
+    // For HR who just registered, they're auto-approved (HR doesn't need approval_status)
+    if (employee.terms_accepted_at && employee.org_id && (employee as any).role === "hr" && (employee as any).onboarding_completed) {
         if (!(employee as any).welcome_shown) {
             return redirect("/hr/welcome");
         }

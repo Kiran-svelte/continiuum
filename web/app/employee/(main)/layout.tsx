@@ -40,10 +40,10 @@ export default async function DashboardLayout({
         return redirect("/hr/dashboard");
     }
 
-    // Check if pending approval - redirect to pending page
-    if (employee.onboarding_status === "pending_approval" || 
-        employee.approval_status === "pending") {
-        return redirect("/employee/pending");
+    // CRITICAL: Employee MUST have joined a company (org_id)
+    // This catches users who signed up but never entered a company code
+    if (!employee.org_id || !employee.company) {
+        return redirect("/onboarding?intent=employee");
     }
 
     // Check if rejected
@@ -51,22 +51,23 @@ export default async function DashboardLayout({
         return redirect("/employee/rejected");
     }
 
-    // Check if onboarding is complete (for employees, need HR approval)
-    // Note: HR sets onboarding_status to "approved" when approving employees
+    // Check if pending approval - redirect to pending page
+    // This MUST come after org_id check
+    if (employee.onboarding_status === "pending_approval" || 
+        employee.approval_status === "pending" ||
+        employee.approval_status !== "approved") {
+        return redirect("/employee/pending");
+    }
+
+    // Final check: Must have completed onboarding AND be approved
     const isOnboardingComplete = 
         (employee.onboarding_status === "completed" || employee.onboarding_status === "approved") &&
         employee.onboarding_completed === true &&
-        employee.approval_status === "approved" &&
-        employee.org_id !== null &&
-        employee.company !== null;
+        employee.approval_status === "approved";
 
     if (!isOnboardingComplete) {
-        // If not approved yet but terms accepted and has org, they're pending
-        if (employee.terms_accepted_at && employee.org_id) {
-            return redirect("/employee/pending");
-        }
-        // Otherwise redirect to onboarding to complete the flow
-        return redirect("/onboarding?intent=employee");
+        // Has org but not fully approved - they're pending
+        return redirect("/employee/pending");
     }
 
     return (

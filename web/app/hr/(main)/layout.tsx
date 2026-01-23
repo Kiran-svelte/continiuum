@@ -34,22 +34,26 @@ export default async function DashboardLayout({
         return redirect("/onboarding?intent=hr");
     }
 
+    // FIRST: Check if user has HR role - redirect non-HR users BEFORE other checks
+    if (employee.role !== "hr" && employee.role !== "admin") {
+        // Not an HR user - redirect to employee dashboard (will be handled there)
+        return redirect("/employee/dashboard");
+    }
+
+    // CRITICAL: HR MUST have registered a company (org_id)
+    // This catches HR users who signed up but never completed company registration
+    if (!employee.org_id || !employee.company) {
+        return redirect("/onboarding?intent=hr");
+    }
+
     // Check if onboarding is complete
     const isOnboardingComplete = 
         employee.onboarding_status === "completed" &&
-        employee.onboarding_completed === true &&
-        employee.org_id !== null &&
-        employee.company !== null;
+        employee.onboarding_completed === true;
 
     if (!isOnboardingComplete) {
         // Redirect to onboarding to complete the flow
         return redirect("/onboarding?intent=hr");
-    }
-
-    // Check if user has HR role
-    if (employee.role !== "hr" && employee.role !== "admin") {
-        // Not an HR user - redirect to employee dashboard
-        return redirect("/employee/dashboard");
     }
 
     return (
