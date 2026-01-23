@@ -245,7 +245,7 @@ model LeaveBalance {
 // 8. Multi-Tenancy
 model Company {
   id         String   @id @default(uuid())
-  company_id String   @unique @default(uuid())
+  company_id String?  @unique @default(uuid())
   name       String
   code       String   @unique
   industry   String?
