@@ -40,24 +40,48 @@ export async function syncUser() {
 
         const name = `${user.firstName || ""} ${user.lastName || ""}`.trim() || "Unknown";
 
-        const employee = await prisma.employee.upsert({
+        // First, check if an employee with this clerk_id exists
+        let employee = await prisma.employee.findUnique({
             where: { clerk_id: user.id },
-            update: {
-                email: email,
-            },
-            create: {
-                emp_id: `EMP-${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
-                clerk_id: user.id,
-                email: email,
-                full_name: name,
-                is_active: true,
-                onboarding_status: "in_progress",
-                onboarding_step: "legal",
-            },
-            include: {
-                company: true,
-            },
+            include: { company: true }
         });
+
+        if (employee) {
+            // Update existing employee
+            employee = await prisma.employee.update({
+                where: { clerk_id: user.id },
+                data: { email: email },
+                include: { company: true }
+            });
+        } else {
+            // Check if email already exists (different clerk account)
+            const existingByEmail = await prisma.employee.findUnique({
+                where: { email: email }
+            });
+
+            if (existingByEmail) {
+                // Link this clerk_id to the existing employee record
+                employee = await prisma.employee.update({
+                    where: { email: email },
+                    data: { clerk_id: user.id },
+                    include: { company: true }
+                });
+            } else {
+                // Create new employee
+                employee = await prisma.employee.create({
+                    data: {
+                        emp_id: `EMP-${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
+                        clerk_id: user.id,
+                        email: email,
+                        full_name: name,
+                        is_active: true,
+                        onboarding_status: "in_progress",
+                        onboarding_step: "legal",
+                    },
+                    include: { company: true }
+                });
+            }
+        }
 
         return { 
             success: true, 
@@ -68,16 +92,21 @@ export async function syncUser() {
         };
     } catch (error: any) {
         console.error("[syncUser] Database error:", error?.message || error);
+        console.error("[syncUser] Full error:", JSON.stringify(error, null, 2));
         
         // Provide more specific error messages
         if (error?.code === 'P2002') {
-            return { success: false, error: "A duplicate record exists. Please contact support.", employee: null };
+            const field = error?.meta?.target?.[0] || 'unknown';
+            return { success: false, error: `A duplicate ${field} exists. Please try signing out and in again.`, employee: null };
         }
         if (error?.code === 'P1001' || error?.code === 'P1002') {
             return { success: false, error: "Database connection issue. Please try again in a moment.", employee: null };
         }
+        if (error?.code === 'P2025') {
+            return { success: false, error: "Record not found. Please refresh the page.", employee: null };
+        }
         
-        return { success: false, error: "Failed to load your profile. Please try again.", employee: null };
+        return { success: false, error: `Failed to load your profile: ${error?.message || 'Unknown error'}`, employee: null };
     }
 }
 
