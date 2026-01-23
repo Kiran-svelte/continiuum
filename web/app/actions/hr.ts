@@ -354,17 +354,28 @@ export async function updateLeaveRequestStatus(
 
         // 3. Perform Transaction: Update Request + Update Balance
         await prisma.$transaction(async (tx) => {
-            // A. Update Status with reason stored in reason field (since hr_notes doesn't exist in schema)
+            // A. Update Status - safely handle JSON field
+            // Parse existing JSON safely, avoiding malformed data
+            let existingAnalysis: Record<string, any> = {};
+            try {
+                if (request.ai_analysis_json && typeof request.ai_analysis_json === 'object') {
+                    existingAnalysis = JSON.parse(JSON.stringify(request.ai_analysis_json));
+                }
+            } catch (e) {
+                console.warn('[updateLeaveRequestStatus] Could not parse existing ai_analysis_json');
+            }
+
             await tx.leaveRequest.update({
                 where: { request_id: requestId },
                 data: {
                     status: status,
                     current_approver: status === 'approved' ? 'Resolved' : null,
-                    // Store decision reason in ai_analysis_json for reference
+                    // Store decision in a clean JSON object
                     ai_analysis_json: {
-                        ...(request.ai_analysis_json as object || {}),
                         hr_decision: decisionReason,
-                        decided_at: new Date().toISOString()
+                        decided_at: new Date().toISOString(),
+                        decided_by: hrEmployee?.full_name || 'HR System',
+                        previous_status: request.status
                     }
                 }
             });

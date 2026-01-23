@@ -201,6 +201,7 @@ export async function analyzeLeaveRequest(text: string) {
         console.log('[AI] Calling AI service at:', aiUrl);
 
         // Call the AI constraint engine directly
+        // Let the backend parse natural language - don't override with hardcoded values
         const aiResponse = await fetch(`${aiUrl}/analyze`, {
             method: 'POST',
             headers: {
@@ -209,11 +210,7 @@ export async function analyzeLeaveRequest(text: string) {
             body: JSON.stringify({
                 employee_id: employee.emp_id,
                 text: text,
-                extracted_info: {
-                    type: "casual", // Parse from text ideally
-                    dates: [],
-                    duration: 1
-                },
+                // Let backend extract all info from text
                 team_state: {
                     team: {
                         teamSize: 10,

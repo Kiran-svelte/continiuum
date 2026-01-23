@@ -334,13 +334,18 @@ def extract_leave_info(text: str) -> Dict:
     elif "a month" in text_lower or "one month" in text_lower or "1 month" in text_lower:
         days_requested = 22  # ~22 business days in a month
     
-    # Detect leave type - check for sick/unwell indicators first
-    leave_type = "Annual Leave"
-    if any(kw in text_lower for kw in ["sick", "ill", "fever", "cold", "flu", "doctor", "medical", "hospital", "health", "unwell", "not feeling well", "feeling unwell", "not well"]):
+    # Detect leave type - check for specific event types first, then general categories
+    leave_type = "Annual Leave"  # Default
+    
+    # Personal events (wedding, family events) - Casual/Annual Leave
+    if any(kw in text_lower for kw in ["wedding", "marriage", "attend", "ceremony", "function", "celebration", "party", "event"]):
+        leave_type = "Annual Leave"
+    # Sick leave indicators
+    elif any(kw in text_lower for kw in ["sick", "ill", "fever", "cold", "flu", "doctor", "medical", "hospital", "health", "unwell", "not feeling well", "feeling unwell", "not well"]):
         leave_type = "Sick Leave"
     elif any(kw in text_lower for kw in ["emergency", "urgent", "crisis", "family emergency"]):
         leave_type = "Emergency Leave"
-    elif any(kw in text_lower for kw in ["vacation", "holiday", "trip", "travel", "casual", "leave"]):
+    elif any(kw in text_lower for kw in ["vacation", "holiday", "trip", "travel", "casual"]):
         leave_type = "Annual Leave"
     elif any(kw in text_lower for kw in ["personal", "private"]):
         leave_type = "Personal Leave"
