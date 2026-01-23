@@ -20,6 +20,8 @@ import {
     Sparkles
 } from 'lucide-react';
 import { getPendingEmployeeApprovals, approveEmployee, rejectEmployee, getRegistrationStats } from '@/app/actions/onboarding';
+import { toast } from "sonner";
+import { useConfirm } from "@/components/ui/confirm-provider";
 
 interface PendingEmployee {
     emp_id: string;
@@ -48,6 +50,7 @@ export default function EmployeeApprovalsPage() {
     const [rejectingId, setRejectingId] = useState<string | null>(null);
     const [rejectReason, setRejectReason] = useState('');
     const [actionLoading, setActionLoading] = useState<string | null>(null);
+    const { confirmAction, confirmDanger } = useConfirm();
 
     const fetchPending = async () => {
         setLoading(true);
@@ -68,20 +71,27 @@ export default function EmployeeApprovalsPage() {
         fetchPending();
     }, []);
 
-    const handleApprove = async (empId: string) => {
-        setActionLoading(empId);
-        const result = await approveEmployee(empId);
-        if (result.success) {
-            setEmployees(prev => prev.filter(e => e.emp_id !== empId));
-        } else {
-            alert(result.error || 'Failed to approve');
-        }
-        setActionLoading(null);
+    const handleApprove = async (empId: string, empName: string) => {
+        confirmAction(
+            'Approve Employee',
+            `Are you sure you want to approve ${empName}? They will gain access to the system immediately.`,
+            async () => {
+                setActionLoading(empId);
+                const result = await approveEmployee(empId);
+                if (result.success) {
+                    setEmployees(prev => prev.filter(e => e.emp_id !== empId));
+                    toast.success('Employee approved successfully!');
+                } else {
+                    toast.error(result.error || 'Failed to approve');
+                }
+                setActionLoading(null);
+            }
+        );
     };
 
     const handleReject = async (empId: string) => {
         if (!rejectReason.trim()) {
-            alert('Please provide a reason for rejection');
+            toast.warning('Please provide a reason for rejection');
             return;
         }
         setActionLoading(empId);
@@ -90,8 +100,9 @@ export default function EmployeeApprovalsPage() {
             setEmployees(prev => prev.filter(e => e.emp_id !== empId));
             setRejectingId(null);
             setRejectReason('');
+            toast.success('Employee rejection processed');
         } else {
-            alert(result.error || 'Failed to reject');
+            toast.error(result.error || 'Failed to reject');
         }
         setActionLoading(null);
     };
@@ -351,7 +362,7 @@ export default function EmployeeApprovalsPage() {
                                                         ) : (
                                                             <>
                                                                 <button
-                                                                    onClick={() => handleApprove(employee.emp_id)}
+                                                                    onClick={() => handleApprove(employee.emp_id, employee.full_name || 'this employee')}
                                                                     disabled={actionLoading === employee.emp_id}
                                                                     className="flex-1 py-3 px-6 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold rounded-xl transition-colors flex items-center justify-center gap-2"
                                                                 >

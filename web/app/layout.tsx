@@ -4,6 +4,8 @@ import { ClerkProvider } from "@clerk/nextjs";
 import { Toaster } from "sonner";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { ConfirmProvider } from "@/components/ui/confirm-provider";
+import { GlobalErrorBoundary } from "@/components/ui/error-boundary";
 import "./globals.css";
 
 import { Inter } from "next/font/google";
@@ -42,12 +44,18 @@ export default async function RootLayout({
     <ClerkProvider>
       <html lang="en">
         <body className={`${inter.variable} antialiased bg-black text-white selection:bg-[#00f2ff] selection:text-black`}>
-          {children}
+          <GlobalErrorBoundary>
+            <ConfirmProvider>
+              {children}
+            </ConfirmProvider>
+          </GlobalErrorBoundary>
           <Analytics />
           <SpeedInsights />
           <Toaster 
             theme="dark" 
             position="top-right"
+            richColors
+            closeButton
             toastOptions={{
               style: {
                 background: '#1a1a2e',

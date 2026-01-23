@@ -39,10 +39,16 @@ if (GMAIL_OAUTH.refreshToken) {
     });
 }
 
+// Email timeout (15 seconds)
+const EMAIL_TIMEOUT = 15000;
+
 /**
  * Send email via Backend API (uses stored OAuth tokens)
  */
 async function sendViaBackend(to: string, subject: string, html: string): Promise<{ success: boolean; error?: string }> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), EMAIL_TIMEOUT);
+    
     try {
         const response = await fetch(`${BACKEND_URL}/api/auth/google/test-email`, {
             method: 'POST',
@@ -52,12 +58,19 @@ async function sendViaBackend(to: string, subject: string, html: string): Promis
                 to_email: to,
                 subject: subject,
                 message: html
-            })
+            }),
+            signal: controller.signal
         });
         
+        clearTimeout(timeoutId);
         const data = await response.json();
         return { success: data.success, error: data.error };
-    } catch (error) {
+    } catch (error: any) {
+        clearTimeout(timeoutId);
+        if (error.name === 'AbortError') {
+            console.warn('Backend email timed out');
+            return { success: false, error: 'Email service timed out. Email may still be sent.' };
+        }
         console.warn('Backend email failed:', error);
         return { success: false, error: error instanceof Error ? error.message : 'Backend unavailable' };
     }

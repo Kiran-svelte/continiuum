@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { ArrowRight, X, FileText, Plus, Minus } from "lucide-react";
+import { toast } from "sonner";
+import { useConfirm } from "@/components/ui/confirm-provider";
 
 interface LeaveBalance {
     leave_type: string;
@@ -24,36 +26,42 @@ export function EmployeeQuickActions({ employeeId, employeeName, leaveBalances }
     const [adjustmentAmount, setAdjustmentAmount] = useState(1);
     const [adjustmentReason, setAdjustmentReason] = useState("");
     const [isSaving, setIsSaving] = useState(false);
+    const { confirmAction } = useConfirm();
 
     const handleAdjustBalance = async () => {
         if (!selectedLeaveType || !adjustmentReason) return;
         
-        setIsSaving(true);
-        try {
-            const response = await fetch("/api/hr/adjust-balance", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    employeeId,
-                    leaveType: selectedLeaveType,
-                    adjustment: adjustmentType === "add" ? adjustmentAmount : -adjustmentAmount,
-                    reason: adjustmentReason
-                })
-            });
-            
-            if (response.ok) {
-                setShowBalanceModal(false);
-                // Refresh the page to show updated balance
-                window.location.reload();
-            } else {
-                alert("Failed to adjust balance. Please try again.");
+        const actionText = adjustmentType === "add" ? "add" : "deduct";
+        const message = `Are you sure you want to ${actionText} ${adjustmentAmount} day(s) of ${selectedLeaveType} leave for ${employeeName}?\n\nReason: ${adjustmentReason}`;
+        
+        confirmAction('Confirm Balance Adjustment', message, async () => {
+            setIsSaving(true);
+            try {
+                const response = await fetch("/api/hr/adjust-balance", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        employeeId,
+                        leaveType: selectedLeaveType,
+                        adjustment: adjustmentType === "add" ? adjustmentAmount : -adjustmentAmount,
+                        reason: adjustmentReason
+                    })
+                });
+                
+                if (response.ok) {
+                    setShowBalanceModal(false);
+                    toast.success("Leave balance updated successfully");
+                    window.location.reload();
+                } else {
+                    toast.error("Failed to adjust balance. Please try again.");
+                }
+            } catch (error) {
+                console.error("Error adjusting balance:", error);
+                toast.error("An error occurred. Please try again.");
+            } finally {
+                setIsSaving(false);
             }
-        } catch (error) {
-            console.error("Error adjusting balance:", error);
-            alert("An error occurred. Please try again.");
-        } finally {
-            setIsSaving(false);
-        }
+        });
     };
 
     // Sample documents for demo - in real app, fetch from database

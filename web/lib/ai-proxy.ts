@@ -1,4 +1,4 @@
-
+import { fetchWithTimeout, ApiTimeoutError } from './safe-fetch';
 
 export type LeaveRequestInput = {
     leave_type: string;
@@ -24,6 +24,9 @@ export type EvaluationResult = {
 };
 
 const PYTHON_ENGINE_URL = process.env.CONSTRAINT_ENGINE_URL || "http://localhost:8001";
+
+// Timeout for constraint engine (30 seconds for AI processing)
+const CONSTRAINT_ENGINE_TIMEOUT = 30000;
 
 export async function checkConstraints(
     empId: string,
@@ -52,17 +55,21 @@ export async function checkConstraints(
     }
 
     try {
-        const response = await fetch(`${PYTHON_ENGINE_URL}/evaluate`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
+        const response = await fetchWithTimeout(
+            `${PYTHON_ENGINE_URL}/evaluate`,
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    emp_id: empId,
+                    leave_info: leaveInfo,
+                    rules: customRules,
+                }),
             },
-            body: JSON.stringify({
-                emp_id: empId,
-                leave_info: leaveInfo,
-                rules: customRules,
-            }),
-        });
+            CONSTRAINT_ENGINE_TIMEOUT
+        );
 
         if (!response.ok) {
             throw new Error(`Constraint Engine Error: ${response.statusText}`);
@@ -71,7 +78,20 @@ export async function checkConstraints(
         return await response.json();
     } catch (error) {
         console.error("AI Proxy Error:", error);
-        // Fallback or rethrow
+        
+        // Return a fallback result if the engine is unavailable
+        if (error instanceof ApiTimeoutError) {
+            console.warn("Constraint Engine timed out, returning fallback approval");
+            return {
+                approved: true,
+                status: "auto_approved_timeout",
+                violations: [],
+                processing_time_ms: 0,
+                message: "Request auto-approved due to system timeout. Manual review recommended."
+            } as EvaluationResult;
+        }
+        
+        // For other errors, throw to let the caller handle
         throw error;
     }
 }

@@ -390,39 +390,64 @@ export async function refreshHolidays(year: number, countryCode: string = 'IN') 
     if (!authResult.success) return authResult;
     
     try {
-        // Delete existing cached holidays for this year/country
-        await prisma.publicHoliday.deleteMany({
-            where: {
-                year,
-                country_code: countryCode
-            }
-        });
+        // Create AbortController for timeout (10 second timeout)
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
         
-        // Fetch fresh data from Nager.Date API
-        const response = await fetch(`https://date.nager.at/api/v3/PublicHolidays/${year}/${countryCode}`);
+        // Fetch fresh data from Nager.Date API FIRST (before deleting)
+        let response;
+        try {
+            response = await fetch(`https://date.nager.at/api/v3/PublicHolidays/${year}/${countryCode}`, {
+                signal: controller.signal
+            });
+            clearTimeout(timeoutId);
+        } catch (fetchError: any) {
+            clearTimeout(timeoutId);
+            if (fetchError.name === 'AbortError') {
+                return { success: false, error: 'Holiday API timed out. Your existing holidays are preserved. Please try again.' };
+            }
+            throw fetchError;
+        }
         
         if (!response.ok) {
-            return { success: false, error: `Failed to fetch holidays: API returned ${response.status}` };
+            return { success: false, error: `Failed to fetch holidays: API returned ${response.status}. Your existing holidays are preserved.` };
         }
         
         const holidays = await response.json();
         
-        // Cache in database
-        const cached = await Promise.all(
-            holidays.map(async (h: any) => {
-                return prisma.publicHoliday.create({
-                    data: {
-                        date: new Date(h.date),
-                        name: h.name,
-                        local_name: h.localName,
-                        country_code: countryCode,
-                        year,
-                        is_global: h.global,
-                        types: h.types
-                    }
-                });
-            })
-        );
+        if (!holidays || !Array.isArray(holidays) || holidays.length === 0) {
+            return { success: false, error: 'No holidays returned from API. Your existing holidays are preserved.' };
+        }
+        
+        // Only NOW delete existing cached holidays and insert new ones (transactionally)
+        const cached = await prisma.$transaction(async (tx) => {
+            // Delete existing cached holidays for this year/country
+            await tx.publicHoliday.deleteMany({
+                where: {
+                    year,
+                    country_code: countryCode
+                }
+            });
+            
+            // Cache new holidays in database
+            const results = await Promise.all(
+                holidays.map(async (h: any) => {
+                    return tx.publicHoliday.create({
+                        data: {
+                            date: new Date(h.date),
+                            name: h.name,
+                            local_name: h.localName,
+                            country_code: countryCode,
+                            year,
+                            is_global: h.global,
+                            types: h.types
+                        }
+                    });
+                })
+            );
+            
+            return results;
+        });
         
         revalidatePath('/hr/holiday-settings');
         
@@ -434,7 +459,7 @@ export async function refreshHolidays(year: number, countryCode: string = 'IN') 
         
     } catch (error) {
         console.error("Refresh Holidays Error:", error);
-        return { success: false, error: "Failed to refresh holidays" };
+        return { success: false, error: "Failed to refresh holidays. Your existing holidays are preserved." };
     }
 }
 

@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@clerk/nextjs';
 import { getLeaveRequests, updateLeaveRequestStatus } from "@/app/actions/hr";
+import { toast } from "sonner";
+import { useConfirm } from "@/components/ui/confirm-provider";
 
 export default function LeaveRequestsPage() {
     const { getToken } = useAuth();
@@ -10,6 +12,7 @@ export default function LeaveRequestsPage() {
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState<'all' | 'pending'>('pending');
     const [processingId, setProcessingId] = useState<string | null>(null);
+    const { confirmAction, confirmDanger } = useConfirm();
 
     const fetchRequests = async () => {
         setLoading(true);
@@ -29,23 +32,31 @@ export default function LeaveRequestsPage() {
         fetchRequests();
     }, [filter]);
 
-    const handleAction = async (requestId: string, action: 'approved' | 'rejected') => {
-        setProcessingId(requestId);
-        try {
-            const res = await updateLeaveRequestStatus(requestId, action);
-            if (res.success) {
-                // Remove from local list or update status
-                setRequests(prev => prev.filter(r => r.request_id !== requestId));
-                alert(`Request ${action} successfully`);
-            } else {
-                alert('Error: ' + res.error);
+    const handleAction = async (requestId: string, action: 'approved' | 'rejected', employeeName?: string) => {
+        const isReject = action === 'rejected';
+        const confirmFn = isReject ? confirmDanger : confirmAction;
+        const title = isReject ? 'Reject Leave Request' : 'Approve Leave Request';
+        const message = isReject 
+            ? `Are you sure you want to reject this leave request from ${employeeName || 'this employee'}?`
+            : `Are you sure you want to approve this leave request from ${employeeName || 'this employee'}?`;
+        
+        confirmFn(title, message, async () => {
+            setProcessingId(requestId);
+            try {
+                const res = await updateLeaveRequestStatus(requestId, action);
+                if (res.success) {
+                    setRequests(prev => prev.filter(r => r.request_id !== requestId));
+                    toast.success(`Request ${action} successfully`);
+                } else {
+                    toast.error('Error: ' + res.error);
+                }
+            } catch (error) {
+                console.error('Action error:', error);
+                toast.error('Failed to process request');
+            } finally {
+                setProcessingId(null);
             }
-        } catch (error) {
-            console.error('Action error:', error);
-            alert('Failed to process request');
-        } finally {
-            setProcessingId(null);
-        }
+        });
     };
 
     return (
@@ -141,14 +152,14 @@ export default function LeaveRequestsPage() {
                                         <div className="flex gap-2 mt-4 pt-4 border-t border-slate-700/50 justify-end">
                                             <button
                                                 disabled={processingId === req.request_id}
-                                                onClick={() => handleAction(req.request_id, 'approved')}
+                                                onClick={() => handleAction(req.request_id, 'approved', req.employee_name)}
                                                 className="px-4 py-2 bg-emerald-600/20 text-emerald-400 border border-emerald-600/30 rounded-lg hover:bg-emerald-600 hover:text-white transition-all text-sm font-bold disabled:opacity-50"
                                             >
                                                 {processingId === req.request_id ? 'Wait...' : 'Approve Request'}
                                             </button>
                                             <button
                                                 disabled={processingId === req.request_id}
-                                                onClick={() => handleAction(req.request_id, 'rejected')}
+                                                onClick={() => handleAction(req.request_id, 'rejected', req.employee_name)}
                                                 className="px-4 py-2 bg-rose-600/20 text-rose-400 border border-rose-600/30 rounded-lg hover:bg-rose-600 hover:text-white transition-all text-sm font-bold disabled:opacity-50"
                                             >
                                                 Reject

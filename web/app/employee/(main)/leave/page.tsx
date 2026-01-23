@@ -6,6 +6,7 @@ import { Send, Loader2, CheckCircle, AlertTriangle, FileText, Sparkles, ArrowRig
 import { analyzeLeaveRequest } from '@/app/actions/leave-constraints';
 import { submitLeaveRequest } from '@/app/actions/leave-transaction';
 import { useRouter } from 'next/navigation';
+import { toast } from "sonner";
 
 export default function LeavePage() {
     const [input, setInput] = useState('');
@@ -71,7 +72,7 @@ export default function LeavePage() {
                 };
                 setResult(enrichedResult);
             } else {
-                alert("AI Analysis couldn't process this request. " + (res.error || ""));
+                toast.error("AI Analysis couldn't process this request. " + (res.error || ""));
             }
         });
     };
@@ -91,10 +92,10 @@ export default function LeavePage() {
 
             if (res.success) {
                 // Success styling or redirect
+                toast.success("Leave request submitted successfully!");
                 router.push('/dashboard');
-                // In production, show a toast here.
             } else {
-                alert("Submission Failed: " + res.error);
+                toast.error("Submission Failed: " + res.error);
             }
         });
     };

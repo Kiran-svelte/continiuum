@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { RefreshCw, AlertTriangle, Settings, Edit2, X, Save } from "lucide-react";
+import { toast } from "sonner";
+import { useConfirm } from "@/components/ui/confirm-provider";
 
 interface PolicyRule {
     id: string;
@@ -20,6 +22,7 @@ export default function LeavePolicyPage() {
     const [editingPolicy, setEditingPolicy] = useState<PolicyRule | null>(null);
     const [editValue, setEditValue] = useState("");
     const [isSaving, setIsSaving] = useState(false);
+    const { confirmAction } = useConfirm();
 
     async function fetchPolicies() {
         try {
@@ -57,29 +60,36 @@ export default function LeavePolicyPage() {
     const handleSavePolicy = async () => {
         if (!editingPolicy) return;
         
-        setIsSaving(true);
-        try {
-            const response = await fetch('/api/policies', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    policyId: editingPolicy.id,
-                    value: editValue
-                })
-            });
-            
-            if (response.ok) {
-                setEditingPolicy(null);
-                await fetchPolicies(); // Refresh the list
-            } else {
-                alert('Failed to update policy. Please try again.');
+        confirmAction(
+            'Update Policy',
+            `Are you sure you want to update "${editingPolicy.name}" from "${editingPolicy.value}" to "${editValue}"? This will affect all employees.`,
+            async () => {
+                setIsSaving(true);
+                try {
+                    const response = await fetch('/api/policies', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            policyId: editingPolicy.id,
+                            value: editValue
+                        })
+                    });
+                    
+                    if (response.ok) {
+                        setEditingPolicy(null);
+                        toast.success("Policy updated successfully");
+                        await fetchPolicies();
+                    } else {
+                        toast.error('Failed to update policy. Please try again.');
+                    }
+                } catch (err) {
+                    console.error('Error updating policy:', err);
+                    toast.error('An error occurred. Please try again.');
+                } finally {
+                    setIsSaving(false);
+                }
             }
-        } catch (err) {
-            console.error('Error updating policy:', err);
-            alert('An error occurred. Please try again.');
-        } finally {
-            setIsSaving(false);
-        }
+        );
     };
 
     if (loading) {

@@ -4,6 +4,8 @@ import React, { useEffect, useState } from 'react';
 import { useUser, useAuth } from '@clerk/nextjs';
 import DashboardLayout from '@/components/hr/DashboardLayout';
 import { Check, X, Clock, User, Calendar } from 'lucide-react';
+import { toast } from "sonner";
+import { useConfirm } from "@/components/ui/confirm-provider";
 
 export default function ApprovalsPage() {
     const [requests, setRequests] = useState<any[]>([]);
@@ -17,6 +19,7 @@ export default function ApprovalsPage() {
 
     const { user } = useUser();
     const { getToken } = useAuth();
+    const { confirmAction, confirmDanger } = useConfirm();
 
     const fetchRequests = async () => {
         try {
@@ -37,33 +40,42 @@ export default function ApprovalsPage() {
         }
     };
 
-    const handleAction = async (requestId: string, action: 'approve' | 'reject') => {
-        try {
-            const token = await getToken();
-            const endpoint = action === 'approve'
-                ? `http://localhost:5000/api/leaves/approve/${requestId}`
-                : `http://localhost:5000/api/leaves/reject/${requestId}`;
+    const handleAction = async (requestId: string, action: 'approve' | 'reject', employeeName?: string) => {
+        const isReject = action === 'reject';
+        const confirmFn = isReject ? confirmDanger : confirmAction;
+        const title = isReject ? 'Reject Leave Request' : 'Approve Leave Request';
+        const message = isReject 
+            ? `Are you sure you want to reject this leave request from ${employeeName || 'this employee'}?`
+            : `Are you sure you want to approve this leave request from ${employeeName || 'this employee'}?`;
+        
+        confirmFn(title, message, async () => {
+            try {
+                const token = await getToken();
+                const endpoint = action === 'approve'
+                    ? `http://localhost:5000/api/leaves/approve/${requestId}`
+                    : `http://localhost:5000/api/leaves/reject/${requestId}`;
 
-            const res = await fetch(endpoint, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    approvedBy: user?.fullName || 'HR User'
-                })
-            });
-            if (res.ok) {
-                // Optimistic update
-                setRequests(prev => prev.filter(r => r.request_id !== requestId));
-            } else {
-                alert('Action failed');
+                const res = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        approvedBy: user?.fullName || 'HR User'
+                    })
+                });
+                if (res.ok) {
+                    setRequests(prev => prev.filter(r => r.request_id !== requestId));
+                    toast.success(`Request ${action === 'approve' ? 'approved' : 'rejected'} successfully`);
+                } else {
+                    toast.error('Action failed. Please try again.');
+                }
+            } catch (error) {
+                console.error(error);
+                toast.error('Error performing action. Please try again.');
             }
-        } catch (error) {
-            console.error(error);
-            alert('Error performing action');
-        }
+        });
     };
 
 
@@ -123,14 +135,14 @@ export default function ApprovalsPage() {
 
                                 <div className="flex gap-2 min-w-[140px]">
                                     <button
-                                        onClick={() => handleAction(req.request_id, 'approve')}
+                                        onClick={() => handleAction(req.request_id, 'approve', req.employee_name)}
                                         className="p-3 rounded-lg bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 transition-colors tooltip"
                                         title="Approve"
                                     >
                                         <Check size={20} />
                                     </button>
                                     <button
-                                        onClick={() => handleAction(req.request_id, 'reject')}
+                                        onClick={() => handleAction(req.request_id, 'reject', req.employee_name)}
                                         className="p-3 rounded-lg bg-rose-500/20 text-rose-400 hover:bg-rose-500/30 transition-colors tooltip"
                                         title="Reject"
                                     >
