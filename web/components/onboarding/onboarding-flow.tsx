@@ -123,14 +123,27 @@ export function OnboardingFlow({ user, intent, savedData }: { user: any; intent:
             return;
         }
         setLoading(true);
-        const res = await registerCompany(companyName, industry, size, location, website);
-        if (res.success) {
-            // HR is auto-approved - redirect to welcome screen
-            router.push("/hr/welcome");
-        } else {
-            setError(res.error || "Failed");
+        setError(""); // Clear previous errors
+        
+        try {
+            console.log("[Onboarding] Creating company:", companyName, industry);
+            const res = await registerCompany(companyName, industry, size, location, website);
+            console.log("[Onboarding] registerCompany result:", res);
+            
+            if (res.success) {
+                // HR is auto-approved - redirect to welcome screen
+                console.log("[Onboarding] Success! Redirecting to /hr/welcome");
+                router.push("/hr/welcome");
+            } else {
+                console.error("[Onboarding] Company creation failed:", res.error);
+                setError(res.error || "Failed to create company. Please try again.");
+            }
+        } catch (err: any) {
+            console.error("[Onboarding] Exception during company creation:", err);
+            setError(err?.message || "An unexpected error occurred. Please try again.");
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
     };
 
     const handleJoinCompany = async () => {
@@ -434,15 +447,23 @@ export function OnboardingFlow({ user, intent, savedData }: { user: any; intent:
                             ))}
                         </div>
 
-                        <div className="pt-4 border-t border-white/10 flex justify-end gap-4">
-                            <button onClick={() => setStep("create")} className="text-slate-400 hover:text-white text-sm">Back</button>
-                            <button
-                                onClick={handleCreateCompany}
-                                disabled={loading}
-                                className="px-8 py-3 rounded-lg bg-green-600 text-white font-bold hover:bg-green-500 transition-all shadow-[0_0_20px_rgba(34,197,94,0.3)] flex items-center gap-2"
-                            >
-                                {loading ? "Initializing..." : "Confirm & Launch Workspace"} <CheckCircle className="w-4 h-4" />
-                            </button>
+                        <div className="pt-4 border-t border-white/10 flex flex-col gap-3">
+                            {error && (
+                                <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg flex items-center gap-2">
+                                    <AlertCircle className="w-4 h-4 text-red-400" />
+                                    <p className="text-red-400 text-sm">{error}</p>
+                                </div>
+                            )}
+                            <div className="flex justify-end gap-4">
+                                <button onClick={() => setStep("create")} className="text-slate-400 hover:text-white text-sm">Back</button>
+                                <button
+                                    onClick={handleCreateCompany}
+                                    disabled={loading}
+                                    className="px-8 py-3 rounded-lg bg-green-600 text-white font-bold hover:bg-green-500 transition-all shadow-[0_0_20px_rgba(34,197,94,0.3)] flex items-center gap-2"
+                                >
+                                    {loading ? "Initializing..." : "Confirm & Launch Workspace"} <CheckCircle className="w-4 h-4" />
+                                </button>
+                            </div>
                         </div>
 
                     </motion.div>

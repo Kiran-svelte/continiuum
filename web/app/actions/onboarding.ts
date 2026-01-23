@@ -137,59 +137,75 @@ export async function registerCompany(companyName: string, industry: string, siz
     const code = Math.random().toString(36).substring(2, 10).toUpperCase();
 
     try {
-        // 1. Create Company
-        const newCompany = await prisma.company.create({
-            data: {
-                name: companyName,
-                code: code,
-                industry: industry,
-                size: size,
-                location: location,
-                website: website,
-                admin_id: user.id,
-                legal_agreed_at: new Date(),
-            },
-        });
+        // Use a transaction to ensure atomic operation
+        const result = await prisma.$transaction(async (tx) => {
+            // 1. Check employee exists first
+            const existingEmployee = await tx.employee.findUnique({
+                where: { clerk_id: user.id },
+            });
 
-        // 2. Link Employee to this Company (Admin role) - Auto-approved for HR
-        await prisma.employee.update({
-            where: { clerk_id: user.id },
-            data: {
-                org_id: newCompany.id,
-                position: "HR Admin",
-                level_code: "L5",
-                role: "hr",
-                // HR is auto-approved and completes onboarding
-                onboarding_status: "completed",
-                onboarding_step: "complete",
-                approval_status: "approved",
-                approved_at: new Date(),
-                onboarding_completed: true,
-                onboarding_data: { companyName, industry, size, location, website },
-            },
-        });
-
-        // 3. Seed Default Policies
-        const defaultRules = {
-            noticePeriod: 14,
-            maxConsecutive: 10,
-            blackoutDates: [],
-        };
-
-        await prisma.constraintPolicy.create({
-            data: {
-                org_id: newCompany.id,
-                name: "Default Enterprise Policy",
-                rules: defaultRules,
-                is_active: true,
+            if (!existingEmployee) {
+                throw new Error("Employee record not found. Please refresh and try again.");
             }
+
+            // 2. Create Company
+            const newCompany = await tx.company.create({
+                data: {
+                    name: companyName,
+                    code: code,
+                    industry: industry,
+                    size: size,
+                    location: location,
+                    website: website,
+                    admin_id: user.id,
+                    legal_agreed_at: new Date(),
+                },
+            });
+
+            // 3. Link Employee to this Company (Admin role) - Auto-approved for HR
+            const updatedEmployee = await tx.employee.update({
+                where: { clerk_id: user.id },
+                data: {
+                    org_id: newCompany.id,
+                    position: "HR Admin",
+                    level_code: "L5",
+                    role: "hr",
+                    // HR is auto-approved and completes onboarding
+                    onboarding_status: "completed",
+                    onboarding_step: "complete",
+                    approval_status: "approved",
+                    approved_at: new Date(),
+                    onboarding_completed: true,
+                    onboarding_data: { companyName, industry, size, location, website },
+                },
+            });
+
+            // 4. Seed Default Policies
+            const defaultRules = {
+                noticePeriod: 14,
+                maxConsecutive: 10,
+                blackoutDates: [],
+            };
+
+            await tx.constraintPolicy.create({
+                data: {
+                    org_id: newCompany.id,
+                    name: "Default Enterprise Policy",
+                    rules: defaultRules,
+                    is_active: true,
+                }
+            });
+
+            return { company: newCompany, employee: updatedEmployee };
         });
 
+        console.log("[registerCompany] Success - Company:", result.company.id, "Employee:", result.employee.emp_id);
         revalidatePath("/");
-        return { success: true, company: newCompany };
+        return { success: true, company: result.company };
     } catch (error) {
-        console.error("Register Company Error:", error);
-        return { success: false, error: "Failed to create company." };
+        console.error("[registerCompany] Error:", error);
+        const errorMessage = error instanceof Error ? error.message : "Failed to create company.";
+        return { success: false, error: errorMessage };
     }
 }
 

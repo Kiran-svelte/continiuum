@@ -1,10 +1,57 @@
 import Sidebar from "@/components/Sidebar";
+import { currentUser } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
+import { prisma } from "@/lib/prisma";
 
-export default function DashboardLayout({
+export default async function DashboardLayout({
     children,
 }: {
     children: React.ReactNode;
 }) {
+    // Server-side guard: Check auth and onboarding status
+    const user = await currentUser();
+    if (!user) {
+        return redirect("/sign-in");
+    }
+
+    // Check employee exists and has completed onboarding
+    const employee = await prisma.employee.findUnique({
+        where: { clerk_id: user.id },
+        select: {
+            org_id: true,
+            role: true,
+            onboarding_status: true,
+            onboarding_completed: true,
+            terms_accepted_at: true,
+            company: {
+                select: { id: true, name: true }
+            }
+        }
+    });
+
+    // No employee record - redirect to onboarding
+    if (!employee) {
+        return redirect("/onboarding?intent=hr");
+    }
+
+    // Check if onboarding is complete
+    const isOnboardingComplete = 
+        employee.onboarding_status === "completed" &&
+        employee.onboarding_completed === true &&
+        employee.org_id !== null &&
+        employee.company !== null;
+
+    if (!isOnboardingComplete) {
+        // Redirect to onboarding to complete the flow
+        return redirect("/onboarding?intent=hr");
+    }
+
+    // Check if user has HR role
+    if (employee.role !== "hr" && employee.role !== "admin") {
+        // Not an HR user - redirect to employee dashboard
+        return redirect("/employee/dashboard");
+    }
+
     return (
         <div className="flex min-h-screen bg-[#0f172a]">
             <Sidebar />

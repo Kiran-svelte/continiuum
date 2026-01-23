@@ -10,12 +10,32 @@ export default async function HRDashboard() {
     const res = await getHRDashboardStats();
 
     if (!res.success || !res.data) {
-        // Handle error state gracefully
+        // Handle error state gracefully with better recovery options
         return (
-            <div className="p-8 text-white">
-                <h1 className="text-2xl font-bold mb-4">Dashboard Unavailable</h1>
-                <p className="text-slate-400 mb-4">{res.error || "Failed to load system data."}</p>
-                <Link href="/hr/auth" className="text-cyan-400 hover:underline">Re-authenticate</Link>
+            <div className="p-8 text-white flex flex-col items-center justify-center min-h-[60vh]">
+                <div className="max-w-md text-center">
+                    <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-amber-500/20 flex items-center justify-center">
+                        <svg className="w-10 h-10 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                    </div>
+                    <h1 className="text-2xl font-bold mb-4">Setup Required</h1>
+                    <p className="text-slate-400 mb-6">{res.error || "Your account needs to be connected to an organization. Please complete the onboarding process."}</p>
+                    <div className="flex flex-col gap-3">
+                        <Link 
+                            href="/onboarding?intent=hr" 
+                            className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-500 transition-colors font-medium"
+                        >
+                            Complete Onboarding
+                        </Link>
+                        <Link 
+                            href="/sign-in" 
+                            className="text-sm text-slate-500 hover:text-slate-300"
+                        >
+                            Sign in with a different account
+                        </Link>
+                    </div>
+                </div>
             </div>
         );
     }
