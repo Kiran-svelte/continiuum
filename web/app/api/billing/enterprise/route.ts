@@ -10,6 +10,7 @@ import {
     createEnterpriseRequest,
     getEnterpriseFeatures,
 } from '@/lib/billing/enterprise';
+import { sendEmail, EmailTemplates } from '@/lib/email-service';
 
 // GET - Get enterprise pricing and features
 export async function GET() {
@@ -84,8 +85,74 @@ export async function POST(request: NextRequest) {
             billingCycle,
         });
 
-        // TODO: Send email notification to sales team
-        // TODO: Send confirmation email to customer
+        // Send confirmation email to customer
+        try {
+            await sendEmail({
+                to: contactEmail,
+                subject: 'Continuum Enterprise - Quote Request Received',
+                template: EmailTemplates.GENERIC,
+                data: {
+                    preheader: 'Your enterprise quote request has been received',
+                    title: 'Thank You for Your Interest!',
+                    message: `Dear ${contactName},
+
+Thank you for requesting an enterprise quote for ${companyName}. Our team has received your request and will contact you within 24 hours with a customized quote.
+
+Your request details:
+• Company: ${companyName}
+• Expected employees: ${expectedEmployees || 500}
+• Billing cycle: ${billingCycle}
+
+If you have any urgent questions, please reply to this email.
+
+Best regards,
+The Continuum Team`,
+                    ctaText: 'View Enterprise Features',
+                    ctaUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://continiuum.vercel.app'}/pricing`,
+                }
+            });
+        } catch (emailError) {
+            console.error('Failed to send enterprise confirmation email:', emailError);
+            // Don't fail the request if email fails
+        }
+
+        // Send notification to sales team
+        const salesEmail = process.env.SALES_EMAIL || process.env.GMAIL_USER;
+        if (salesEmail) {
+            try {
+                await sendEmail({
+                    to: salesEmail,
+                    subject: `🏢 New Enterprise Lead: ${companyName}`,
+                    template: EmailTemplates.GENERIC,
+                    data: {
+                        preheader: `Enterprise request from ${companyName}`,
+                        title: 'New Enterprise Quote Request',
+                        message: `A new enterprise quote has been requested:
+
+**Company Details:**
+• Company: ${companyName}
+• Size: ${companySize || 'Not specified'}
+• Industry: ${industry || 'Not specified'}
+
+**Contact:**
+• Name: ${contactName}
+• Email: ${contactEmail}
+• Phone: ${contactPhone || 'Not provided'}
+
+**Requirements:**
+• Expected Employees: ${expectedEmployees || 500}
+• Billing Cycle: ${billingCycle}
+• Notes: ${requirements || 'None'}
+
+**Quote ID:** ${result.id}`,
+                        ctaText: 'View in Dashboard',
+                        ctaUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://continiuum.vercel.app'}/admin/enterprise`,
+                    }
+                });
+            } catch (salesEmailError) {
+                console.error('Failed to send sales notification email:', salesEmailError);
+            }
+        }
 
         return NextResponse.json({
             success: true,

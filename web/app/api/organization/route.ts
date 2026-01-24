@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
-import { PrismaClient } from "@prisma/client";
+import { auth, currentUser } from "@clerk/nextjs/server";
+import { prisma } from "@/lib/prisma";
 import { nanoid } from "nanoid";
-
-const prisma = new PrismaClient();
 
 export async function POST(req: NextRequest) {
     try {
@@ -14,34 +12,84 @@ export async function POST(req: NextRequest) {
 
         const { companyName, industry } = await req.json();
 
+        if (!companyName || typeof companyName !== 'string') {
+            return NextResponse.json({ error: "Company name is required" }, { status: 400 });
+        }
+
+        // Get user details from Clerk
+        const user = await currentUser();
+        if (!user) {
+            return NextResponse.json({ error: "Unable to get user details" }, { status: 401 });
+        }
+
+        const email = user.emailAddresses[0]?.emailAddress;
+        const fullName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || email?.split('@')[0] || 'Admin';
+
         // Generate unique company code (e.g., COMP-1234)
-        // Simple 4 char suffix
         const suffix = nanoid(4).toUpperCase();
         const code = `${companyName.substring(0, 3).toUpperCase()}-${suffix}`;
 
-        // Create Company
-        const company = await prisma.company.create({
-            data: {
-                name: companyName,
-                industry: industry,
-                code: code,
-                admin_id: userId,
-            },
+        // Create Company and Admin Employee in a transaction
+        const result = await prisma.$transaction(async (tx) => {
+            // Create the company
+            const company = await tx.company.create({
+                data: {
+                    name: companyName,
+                    industry: industry || null,
+                    code: code,
+                    admin_id: userId,
+                },
+            });
+
+            // Check if employee record exists
+            const existingEmployee = await tx.employee.findUnique({
+                where: { clerk_id: userId }
+            });
+
+            let employee;
+            if (existingEmployee) {
+                // Update existing employee - link to company as admin
+                employee = await tx.employee.update({
+                    where: { clerk_id: userId },
+                    data: {
+                        org_id: company.id,
+                        role: 'hr', // Company creator is HR/Admin
+                        onboarding_status: 'completed',
+                        approval_status: 'approved',
+                        onboarding_completed: true,
+                    }
+                });
+            } else {
+                // Create new employee record for admin
+                const emp_id = `ADM-${Date.now()}-${nanoid(4).toUpperCase()}`;
+                
+                employee = await tx.employee.create({
+                    data: {
+                        emp_id,
+                        clerk_id: userId,
+                        full_name: fullName,
+                        email: email || '',
+                        org_id: company.id,
+                        role: 'hr', // Company creator is HR/Admin
+                        position: 'Administrator',
+                        department: 'Management',
+                        onboarding_status: 'completed',
+                        approval_status: 'approved',
+                        onboarding_completed: true,
+                    }
+                });
+            }
+
+            return { company, employee };
         });
 
-        // Create/Update Employee record for the Admin
-        // We assume the user exists in Clerk, but maybe not in Employee table yet?
-        // Or we update existing. Let's assume we create/update.
-
-        // Check if employee exists by clerk_id
-        /* 
-           Note: The current schema uses `emp_id` as primary key (String). 
-           We might need to generate an emp_id if it doesn't exist.
-        */
-
-        return NextResponse.json({ company });
+        return NextResponse.json({ 
+            success: true,
+            company: result.company,
+            message: "Organization created successfully"
+        });
     } catch (error: any) {
         console.error("Create Org Error:", error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        return NextResponse.json({ error: error.message || "Failed to create organization" }, { status: 500 });
     }
 }

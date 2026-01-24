@@ -97,11 +97,24 @@ export async function getEmployeeProfile(): Promise<{ success: boolean; profile?
         const balanceMap = new Map(balances.map(b => [b.leave_type.toUpperCase(), b]));
 
         // 4. Combine leave types with balances
-        const leaveTypesWithBalance = leaveTypes.map(lt => {
+        const leaveTypesWithBalance: Array<{
+            code: string;
+            name: string;
+            color: string;
+            annual_quota: number;
+            max_consecutive: number;
+            min_notice_days: number;
+            half_day_allowed: boolean;
+            is_paid: boolean;
+            balance: number;
+            used: number;
+            pending: number;
+        }> = leaveTypes.map(lt => {
             const balance = balanceMap.get(lt.code.toUpperCase());
+            const annualQuota = Number(lt.annual_quota);
             const quota = balance 
                 ? Number(balance.annual_entitlement) + Number(balance.carried_forward)
-                : lt.annual_quota;
+                : annualQuota;
             const used = balance ? Number(balance.used_days) : 0;
             const pending = balance ? Number(balance.pending_days) : 0;
 
@@ -109,7 +122,7 @@ export async function getEmployeeProfile(): Promise<{ success: boolean; profile?
                 code: lt.code,
                 name: lt.name,
                 color: lt.color,
-                annual_quota: lt.annual_quota,
+                annual_quota: annualQuota,
                 max_consecutive: lt.max_consecutive,
                 min_notice_days: lt.min_notice_days,
                 half_day_allowed: lt.half_day_allowed,
@@ -148,7 +161,7 @@ export async function getEmployeeProfile(): Promise<{ success: boolean; profile?
             profile: {
                 employee: {
                     emp_id: employee.emp_id,
-                    name: employee.name,
+                    name: employee.full_name,
                     email: employee.email,
                     department: employee.department,
                     position: employee.position,
@@ -201,6 +214,7 @@ export async function getAvailableLeaveTypes() {
                 is_active: true 
             },
             select: {
+                id: true,
                 code: true,
                 name: true,
                 color: true,
@@ -228,14 +242,23 @@ export async function getAvailableLeaveTypes() {
 
         const typesWithBalance = leaveTypes.map(lt => {
             const balance = balanceMap.get(lt.code.toUpperCase());
+            const annualQuota = Number(lt.annual_quota);
             const quota = balance 
                 ? Number(balance.annual_entitlement) + Number(balance.carried_forward)
-                : lt.annual_quota;
+                : annualQuota;
             const used = balance ? Number(balance.used_days) : 0;
             const pending = balance ? Number(balance.pending_days) : 0;
 
             return {
-                ...lt,
+                id: lt.id,
+                code: lt.code,
+                name: lt.name,
+                color: lt.color,
+                annual_quota: annualQuota,
+                max_consecutive: lt.max_consecutive,
+                min_notice_days: lt.min_notice_days,
+                half_day_allowed: lt.half_day_allowed,
+                is_paid: lt.is_paid,
                 balance: quota - used - pending,
                 used,
                 pending,

@@ -3,8 +3,14 @@ import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 
 // Holiday API (holidayapi.com) - Supports India properly
-const HOLIDAY_API_KEY = process.env.HOLIDAY_API_KEY || "8186ce7f-a734-47fa-968f-e2553a4638c3";
+// IMPORTANT: Set HOLIDAY_API_KEY in environment variables
+const HOLIDAY_API_KEY = process.env.HOLIDAY_API_KEY;
 const HOLIDAY_API_BASE = "https://holidayapi.com/v1";
+
+// Check if API key is configured
+function isHolidayAPIConfigured(): boolean {
+    return !!HOLIDAY_API_KEY && HOLIDAY_API_KEY.length > 10;
+}
 
 interface HolidayAPIHoliday {
     name: string;
@@ -38,6 +44,12 @@ interface CachedHoliday {
 // For future years (free tier limitation), fetch previous year's holidays and adjust dates
 async function fetchAndCacheHolidays(year: number, countryCode: string = "IN"): Promise<CachedHoliday[]> {
     try {
+        // Check if API key is configured
+        if (!isHolidayAPIConfigured()) {
+            console.warn("HOLIDAY_API_KEY not configured - returning default holidays");
+            return getDefaultIndianHolidays(year);
+        }
+
         // Check if we already have cached holidays for this year
         const cachedCount = await (prisma as any).publicHoliday?.count?.({
             where: {
@@ -68,13 +80,15 @@ async function fetchAndCacheHolidays(year: number, countryCode: string = "IN"): 
         );
         
         if (!response.ok) {
-            throw new Error(`Holiday API returned ${response.status}`);
+            console.warn(`Holiday API returned ${response.status} - using default holidays`);
+            return getDefaultIndianHolidays(year);
         }
 
         const data = await response.json();
         
         if (data.status !== 200 || !data.holidays) {
-            throw new Error(data.error || "No holidays data returned");
+            console.warn(data.error || "No holidays data returned - using defaults");
+            return getDefaultIndianHolidays(year);
         }
 
         const holidays: HolidayAPIHoliday[] = data.holidays;
@@ -136,8 +150,42 @@ async function fetchAndCacheHolidays(year: number, countryCode: string = "IN"): 
         }
     } catch (error) {
         console.error("Error fetching holidays:", error);
-        throw error;
+        // Return default holidays on error
+        return getDefaultIndianHolidays(year);
     }
+}
+
+// Default Indian holidays when API is not available
+function getDefaultIndianHolidays(year: number): CachedHoliday[] {
+    const defaults = [
+        { month: 1, day: 1, name: "New Year's Day" },
+        { month: 1, day: 26, name: "Republic Day" },
+        { month: 3, day: 8, name: "Maha Shivaratri" },
+        { month: 3, day: 25, name: "Holi" },
+        { month: 4, day: 14, name: "Dr. Ambedkar Jayanti" },
+        { month: 4, day: 17, name: "Ram Navami" },
+        { month: 5, day: 1, name: "May Day" },
+        { month: 5, day: 23, name: "Buddha Purnima" },
+        { month: 8, day: 15, name: "Independence Day" },
+        { month: 8, day: 26, name: "Janmashtami" },
+        { month: 10, day: 2, name: "Gandhi Jayanti" },
+        { month: 10, day: 12, name: "Dussehra" },
+        { month: 10, day: 31, name: "Diwali" },
+        { month: 11, day: 1, name: "Diwali Holiday" },
+        { month: 11, day: 15, name: "Guru Nanak Jayanti" },
+        { month: 12, day: 25, name: "Christmas" },
+    ];
+
+    return defaults.map((h, idx) => ({
+        id: `default-${year}-${idx}`,
+        date: new Date(year, h.month - 1, h.day),
+        name: h.name,
+        local_name: h.name,
+        country_code: "IN",
+        year,
+        is_global: true,
+        types: ["public"]
+    }));
 }
 
 // Check if a specific date is a public holiday using Holiday API

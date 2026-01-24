@@ -4,11 +4,14 @@
  * Test email sending with OAuth tokens.
  * GET /api/test-email - Check email config
  * POST /api/test-email - Send test email
+ * 
+ * ⚠️ DEVELOPMENT ONLY - Protected in production
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
 import { google } from 'googleapis';
+import { auth } from "@clerk/nextjs/server";
 
 const GMAIL_CONFIG = {
     clientId: process.env.GMAIL_CLIENT_ID || '',
@@ -17,8 +20,21 @@ const GMAIL_CONFIG = {
     user: process.env.GMAIL_USER || 'traderlighter11@gmail.com'
 };
 
+// Development check - disable in production
+function isDevelopment(): boolean {
+    return process.env.NODE_ENV === 'development' || process.env.ALLOW_TEST_ENDPOINTS === 'true';
+}
+
 // GET - Check email configuration status
 export async function GET() {
+    // Security: Only allow in development or with explicit flag
+    if (!isDevelopment()) {
+        const { userId } = await auth();
+        if (!userId) {
+            return NextResponse.json({ error: "This endpoint is disabled in production" }, { status: 403 });
+        }
+    }
+
     const config = {
         hasClientId: !!GMAIL_CONFIG.clientId,
         hasClientSecret: !!GMAIL_CONFIG.clientSecret,
@@ -64,6 +80,14 @@ export async function GET() {
 
 // POST - Send test email
 export async function POST(request: NextRequest) {
+    // Security: Only allow in development or with explicit flag
+    if (!isDevelopment()) {
+        const { userId } = await auth();
+        if (!userId) {
+            return NextResponse.json({ error: "This endpoint is disabled in production" }, { status: 403 });
+        }
+    }
+
     try {
         const body = await request.json();
         const toEmail = body.to || GMAIL_CONFIG.user; // Default to self

@@ -1,20 +1,40 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@clerk/nextjs/server";
 
 /**
- * Backend connectivity check - No auth required
+ * Backend connectivity check
  * Tests: Database, AI Service, Environment
+ * 
+ * ⚠️ Requires authentication in production
  */
+
+// Development check - disable sensitive info in production
+function isDevelopment(): boolean {
+    return process.env.NODE_ENV === 'development' || process.env.ALLOW_DEBUG_ENDPOINTS === 'true';
+}
+
 export async function GET(request: NextRequest) {
+    // In production, require authentication
+    if (!isDevelopment()) {
+        const { userId } = await auth();
+        if (!userId) {
+            return NextResponse.json({ 
+                error: "Unauthorized - Debug endpoints require authentication in production",
+                hint: "Set ALLOW_DEBUG_ENDPOINTS=true to bypass"
+            }, { status: 403 });
+        }
+    }
+
     const checks: Record<string, any> = {};
     
-    // 1. Environment Variables
+    // 1. Environment Variables (sanitized in production)
     checks.env = {
         DATABASE_URL: process.env.DATABASE_URL ? "✅ SET" : "❌ MISSING",
         DIRECT_URL: process.env.DIRECT_URL ? "✅ SET" : "⚠️ MISSING",
         CLERK_SECRET_KEY: process.env.CLERK_SECRET_KEY ? "✅ SET" : "❌ MISSING",
-        AI_SERVICE_URL: process.env.AI_SERVICE_URL || "❌ MISSING",
-        CONSTRAINT_ENGINE_URL: process.env.CONSTRAINT_ENGINE_URL || "❌ MISSING",
+        AI_SERVICE_URL: process.env.AI_SERVICE_URL ? "✅ SET" : "❌ MISSING",
+        CONSTRAINT_ENGINE_URL: process.env.CONSTRAINT_ENGINE_URL ? "✅ SET" : "❌ MISSING",
     };
     
     // 2. Database Connection

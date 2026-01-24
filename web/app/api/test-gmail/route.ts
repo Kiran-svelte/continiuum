@@ -8,10 +8,13 @@
  *   recipientEmail?: string (defaults to test email)
  *   cleanup?: boolean (remove test data after)
  * }
+ * 
+ * ⚠️ DEVELOPMENT ONLY - Protected in production
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { auth } from "@clerk/nextjs/server";
 import {
     sendEmail,
     sendCheckInReminderEmail,
@@ -21,6 +24,11 @@ import {
     sendLeaveSubmissionEmail,
     EmailTemplates
 } from '@/lib/email-service';
+
+// Development check - disable in production
+function isDevelopment(): boolean {
+    return process.env.NODE_ENV === 'development' || process.env.ALLOW_TEST_ENDPOINTS === 'true';
+}
 
 // Test configuration
 const TEST_CONFIG = {
@@ -377,6 +385,14 @@ async function cleanupTestData() {
 }
 
 export async function POST(request: NextRequest) {
+    // Security: Only allow in development or with explicit flag
+    if (!isDevelopment()) {
+        const { userId } = await auth();
+        if (!userId) {
+            return NextResponse.json({ error: "This endpoint is disabled in production" }, { status: 403 });
+        }
+    }
+
     try {
         const body = await request.json();
         const {
