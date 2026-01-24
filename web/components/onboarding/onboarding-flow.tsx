@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ShieldCheck, Building2, UserPlus, CheckCircle, ArrowRight, User, AlertCircle, Clock, Save } from "lucide-react";
+import { ShieldCheck, Building2, UserPlus, CheckCircle, ArrowRight, User, AlertCircle, Clock, Save, Settings2 } from "lucide-react";
 import { acceptTerms, registerCompany, joinCompany, updateEmployeeDetails, saveOnboardingProgress } from "@/app/actions/onboarding";
 import { useRouter } from "next/navigation";
+import { CompanySettings } from "./company-settings";
 
 interface OnboardingData {
     department?: string;
@@ -68,6 +69,9 @@ export function OnboardingFlow({ user, intent, savedData }: { user: any; intent:
     const [error, setError] = useState("");
     const [autoSaveStatus, setAutoSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
     const router = useRouter();
+
+    // Created company ID (for settings step)
+    const [createdCompanyId, setCreatedCompanyId] = useState<string | null>(null);
 
     // Form States - Initialize from saved data
     const [companyName, setCompanyName] = useState(savedData?.companyName || "");
@@ -150,10 +154,10 @@ export function OnboardingFlow({ user, intent, savedData }: { user: any; intent:
             const res = await registerCompany(companyName, industry, size, location, website);
             console.log("[Onboarding] registerCompany result:", res);
             
-            if (res.success) {
-                // HR is auto-approved - redirect to welcome screen
-                console.log("[Onboarding] Success! Redirecting to /hr/welcome");
-                router.push("/hr/welcome");
+            if (res.success && res.companyId) {
+                // Store company ID and move to settings step
+                setCreatedCompanyId(res.companyId);
+                setStep("constraints");
             } else {
                 console.error("[Onboarding] Company creation failed:", res.error);
                 setError(res.error || "Failed to create company. Please try again.");
@@ -164,6 +168,11 @@ export function OnboardingFlow({ user, intent, savedData }: { user: any; intent:
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleCompanySettingsComplete = () => {
+        // Redirect to HR welcome screen after settings are saved
+        router.push("/hr/welcome");
     };
 
     const handleJoinCompany = async () => {
@@ -412,10 +421,21 @@ export function OnboardingFlow({ user, intent, savedData }: { user: any; intent:
                             {error && <p className="text-red-400 text-sm">{error}</p>}
 
                             <button
-                                onClick={() => setStep("constraints")} // Go to constraints check first
-                                className="w-full py-3 rounded-lg bg-purple-600 text-white font-bold hover:bg-purple-500 transition-all mt-4"
+                                onClick={handleCreateCompany}
+                                disabled={loading}
+                                className="w-full py-3 rounded-lg bg-purple-600 text-white font-bold hover:bg-purple-500 transition-all mt-4 flex items-center justify-center gap-2"
                             >
-                                Continue to Configuration
+                                {loading ? (
+                                    <>
+                                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                        Creating Company...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Settings2 className="w-4 h-4" />
+                                        Create & Configure Settings
+                                    </>
+                                )}
                             </button>
 
                             <button onClick={() => setStep("choice")} className="w-full text-center text-slate-500 text-sm mt-4 hover:text-white">Back</button>
@@ -428,64 +448,34 @@ export function OnboardingFlow({ user, intent, savedData }: { user: any; intent:
                         key="constraints"
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        className="z-10 w-full max-w-4xl bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8 shadow-2xl overflow-hidden flex flex-col h-[80vh]"
+                        className="z-10 w-full max-w-5xl bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
                     >
-                        <div className="flex items-center justify-between mb-6">
-                            <div>
-                                <h2 className="text-2xl font-bold text-white">System Configuration</h2>
-                                <p className="text-slate-400 text-sm">These are the default operational constraints. You can customize them after setup.</p>
+                        {createdCompanyId ? (
+                            <div className="flex-1 overflow-y-auto">
+                                <CompanySettings
+                                    companyId={createdCompanyId}
+                                    onComplete={handleCompanySettingsComplete}
+                                    onBack={() => {
+                                        // Note: Can't really go back since company is created
+                                        // Just proceed to dashboard
+                                        handleCompanySettingsComplete();
+                                    }}
+                                />
                             </div>
-                            <div className="px-3 py-1 bg-[#00f2ff]/10 text-[#00f2ff] text-xs font-mono rounded border border-[#00f2ff]/20">
-                                DEFAULT POLICIES
-                            </div>
-                        </div>
-
-                        <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-                            {/* Default Policy Constraints - Can be customized after setup */}
-                            {[
-                                { name: "Max Consecutive Leaves", val: "10 Days", desc: "Hard cap on single request duration." },
-                                { name: "Notice Period", val: "14 Days", desc: "Minimum lead time for non-emergency leaves." },
-                                { name: "Probation Block", val: "90 Days", desc: "No paid leaves during probation period." },
-                                { name: "SLA Escalation", val: "48 Hours", desc: "Auto-escalate pending requests to Admin." },
-                                { name: "Min Team Staffing", val: "30%", desc: "Prevent depletion of department resources." },
-                                { name: "Carry Forward Cap", val: "12 Days", desc: "Max unused leaves transfer to next year." },
-                                { name: "Sick Leave Proof", val: ">3 Days", desc: "Medical certificate required for extended sick leave." },
-                                { name: "Maternity Leave", val: "26 Weeks", desc: "Standard paid maternity entitlement." },
-                                { name: "Paternity Leave", val: "2 Weeks", desc: "Standard paid paternity entitlement." },
-                                { name: "Approval Chain", val: "Manager -> HR", desc: "Two-step verification for >5 day requests." },
-                                { name: "Leave Types", val: "5 Types", desc: "Sick, Casual, Earned, Unpaid, Remote." },
-                                { name: "Blackout Dates", val: "Q4 Peak", desc: "Restricted leave during critical business periods." },
-                                { name: "Sandwich Rule", val: "Active", desc: "Weekends between leaves count as leave." },
-                                { name: "Emergency Bypass", val: "Enabled", desc: "Allow bypass of notice period for emergencies." },
-
-                            ].map((c, i) => (
-                                <div key={i} className="p-4 bg-black/40 border border-white/5 rounded-xl hover:border-purple-500/50 transition-colors">
-                                    <h4 className="text-[#00f2ff] font-mono text-xs mb-2 uppercase">{c.name}</h4>
-                                    <div className="text-xl font-bold text-white mb-1">{c.val}</div>
-                                    <p className="text-slate-500 text-xs">{c.desc}</p>
-                                </div>
-                            ))}
-                        </div>
-
-                        <div className="pt-4 border-t border-white/10 flex flex-col gap-3">
-                            {error && (
-                                <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg flex items-center gap-2">
-                                    <AlertCircle className="w-4 h-4 text-red-400" />
-                                    <p className="text-red-400 text-sm">{error}</p>
-                                </div>
-                            )}
-                            <div className="flex justify-end gap-4">
-                                <button onClick={() => setStep("create")} className="text-slate-400 hover:text-white text-sm">Back</button>
+                        ) : (
+                            // Fallback if no company ID (shouldn't happen)
+                            <div className="text-center py-12">
+                                <AlertCircle className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
+                                <h3 className="text-xl font-bold text-white mb-2">Something went wrong</h3>
+                                <p className="text-slate-400 mb-6">Unable to load company settings. Please try again.</p>
                                 <button
-                                    onClick={handleCreateCompany}
-                                    disabled={loading}
-                                    className="px-8 py-3 rounded-lg bg-green-600 text-white font-bold hover:bg-green-500 transition-all shadow-[0_0_20px_rgba(34,197,94,0.3)] flex items-center gap-2"
+                                    onClick={() => setStep("create")}
+                                    className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-500"
                                 >
-                                    {loading ? "Initializing..." : "Confirm & Launch Workspace"} <CheckCircle className="w-4 h-4" />
+                                    Go Back
                                 </button>
                             </div>
-                        </div>
-
+                        )}
                     </motion.div>
                 )}
 

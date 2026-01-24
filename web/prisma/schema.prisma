@@ -269,6 +269,8 @@ model Company {
   usage_records UsageRecord[]
   api_keys      ApiKey[]
   payments      Payment[]
+  leave_types   LeaveType[]
+  leave_rules   LeaveRule[]
 
   // Metadata
   size     String?
@@ -277,6 +279,24 @@ model Company {
   
   // Subscription Tier (cached for quick access)
   subscription_tier String @default("FREE")
+
+  // Work Schedule Settings
+  work_start_time    String   @default("09:00") // HH:mm format
+  work_end_time      String   @default("18:00") // HH:mm format
+  grace_period_mins  Int      @default(15)      // Grace period for late check-in
+  half_day_hours     Decimal  @default(4) @db.Decimal(3, 1) // Hours for half day
+  full_day_hours     Decimal  @default(8) @db.Decimal(3, 1) // Hours for full day
+  work_days          Json     @default("[1,2,3,4,5]") // Mon=1 to Sun=7
+  timezone           String   @default("Asia/Kolkata")
+  
+  // Leave Settings
+  leave_year_start   String   @default("01-01") // MM-DD format for leave year
+  carry_forward_max  Int      @default(5)       // Max days to carry forward
+  probation_leave    Boolean  @default(false)   // Allow leave during probation
+  negative_balance   Boolean  @default(false)   // Allow negative leave balance
+  
+  // Onboarding Settings
+  onboarding_completed Boolean @default(false)
 
   // Billing
   stripe_customer_id   String?
@@ -289,6 +309,82 @@ model Company {
   legal_agreed_at DateTime?
 
   @@map("companies")
+}
+
+// 8b. Leave Types (Dynamic per company)
+model LeaveType {
+  id              String   @id @default(uuid())
+  company_id      String
+  code            String   // e.g., "CL", "SL", "PL", "ML"
+  name            String   // e.g., "Casual Leave", "Sick Leave"
+  description     String?
+  color           String   @default("#6366f1") // For UI display
+  
+  // Entitlement
+  annual_quota    Decimal  @db.Decimal(5, 2) @default(0)
+  max_consecutive Int      @default(5)        // Max consecutive days allowed
+  min_notice_days Int      @default(1)        // Advance notice required
+  
+  // Restrictions
+  requires_document Boolean @default(false)   // e.g., medical certificate
+  requires_approval Boolean @default(true)
+  half_day_allowed  Boolean @default(true)
+  gender_specific   Gender? // null = all, M/F/O for specific
+  
+  // Carry Forward
+  carry_forward     Boolean @default(false)
+  max_carry_forward Int     @default(0)
+  
+  // Status
+  is_active       Boolean  @default(true)
+  is_paid         Boolean  @default(true)
+  sort_order      Int      @default(0)
+  
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  company Company @relation(fields: [company_id], references: [id], onDelete: Cascade)
+
+  @@unique([company_id, code])
+  @@map("leave_types")
+}
+
+// 8c. Leave Rules (Dynamic policies per company)
+model LeaveRule {
+  id              String   @id @default(uuid())
+  company_id      String
+  name            String   // e.g., "No leave on Mondays", "Max 2 people per day"
+  description     String?
+  
+  // Rule Type
+  rule_type       String   // "blackout", "max_concurrent", "min_gap", "department_limit", "custom"
+  
+  // Rule Configuration (JSON for flexibility)
+  config          Json     // Stores rule-specific settings
+  // Examples:
+  // blackout: { "dates": ["2024-12-25"], "days_of_week": [1] }
+  // max_concurrent: { "max_employees": 2, "department": "Engineering" }
+  // min_gap: { "days": 7, "leave_types": ["CL", "PL"] }
+  
+  // Enforcement
+  is_blocking     Boolean  @default(true)    // If false, show warning only
+  priority        Int      @default(0)        // Higher = checked first
+  
+  // Scope
+  applies_to_all  Boolean  @default(true)
+  departments     Json?    // ["Engineering", "HR"] if not applies_to_all
+  
+  // Status
+  is_active       Boolean  @default(true)
+  effective_from  DateTime @default(now())
+  effective_to    DateTime?
+  
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  company Company @relation(fields: [company_id], references: [id], onDelete: Cascade)
+
+  @@map("leave_rules")
 }
 
 // 9. Policies

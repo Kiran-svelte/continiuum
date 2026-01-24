@@ -257,7 +257,7 @@ export async function registerCompany(companyName: string, industry: string, siz
 
         console.log("[registerCompany] Success - Company:", result.company.id, "Employee:", result.employee.emp_id);
         revalidatePath("/");
-        return { success: true, company: result.company };
+        return { success: true, company: result.company, companyId: result.company.id };
     } catch (error) {
         console.error("[registerCompany] Error:", error);
         const errorMessage = error instanceof Error ? error.message : "Failed to create company.";

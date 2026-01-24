@@ -14,6 +14,177 @@ export type AIAnalysisResult = {
 };
 
 /**
+ * Get Company-Specific Settings for an Employee
+ * This ensures each company has isolated settings
+ */
+async function getCompanySettings(orgId: string) {
+    // Fetch company settings including work schedule
+    const company = await prisma.company.findUnique({
+        where: { id: orgId },
+        select: {
+            id: true,
+            name: true,
+            work_start_time: true,
+            work_end_time: true,
+            grace_period_mins: true,
+            half_day_hours: true,
+            full_day_hours: true,
+            work_days: true,
+            timezone: true,
+            leave_year_start: true,
+            carry_forward_max: true,
+            probation_leave: true,
+            negative_balance: true,
+        }
+    });
+
+    // Fetch company-specific leave types
+    const leaveTypes = await prisma.leaveType.findMany({
+        where: { company_id: orgId, is_active: true },
+        orderBy: { sort_order: 'asc' }
+    });
+
+    // Fetch company-specific leave rules
+    const leaveRules = await prisma.leaveRule.findMany({
+        where: { company_id: orgId, is_active: true },
+        orderBy: { priority: 'desc' }
+    });
+
+    // Also fetch legacy ConstraintPolicy for backwards compatibility
+    const legacyPolicy = await prisma.constraintPolicy.findFirst({
+        where: { org_id: orgId, is_active: true }
+    });
+
+    return {
+        company,
+        leaveTypes,
+        leaveRules,
+        legacyPolicy,
+    };
+}
+
+/**
+ * Get leave type configuration for a specific type in a company
+ */
+function getLeaveTypeConfig(leaveTypes: any[], typeCode: string) {
+    // Try to find by code first, then by name
+    const found = leaveTypes.find(lt => 
+        lt.code.toUpperCase() === typeCode.toUpperCase() ||
+        lt.name.toLowerCase().includes(typeCode.toLowerCase())
+    );
+    
+    if (found) {
+        return {
+            code: found.code,
+            name: found.name,
+            annual_quota: found.annual_quota,
+            max_consecutive: found.max_consecutive,
+            min_notice_days: found.min_notice_days,
+            requires_document: found.requires_document,
+            requires_approval: found.requires_approval,
+            half_day_allowed: found.half_day_allowed,
+            gender_specific: found.gender_specific,
+            carry_forward: found.carry_forward,
+            max_carry_forward: found.max_carry_forward,
+            is_paid: found.is_paid,
+        };
+    }
+    
+    // Return defaults if not found
+    return {
+        code: typeCode.toUpperCase(),
+        name: typeCode,
+        annual_quota: 12,
+        max_consecutive: 5,
+        min_notice_days: 1,
+        requires_document: false,
+        requires_approval: true,
+        half_day_allowed: true,
+        gender_specific: null,
+        carry_forward: false,
+        max_carry_forward: 0,
+        is_paid: true,
+    };
+}
+
+/**
+ * Check company-specific leave rules
+ */
+function evaluateLeaveRules(
+    leaveRules: any[],
+    leaveDetails: { startDate: string; endDate: string; days: number },
+    teamState: { alreadyOnLeave: number; teamSize: number },
+    department?: string
+): { violations: string[]; suggestions: string[]; blocking: boolean } {
+    const violations: string[] = [];
+    const suggestions: string[] = [];
+    let hasBlockingViolation = false;
+
+    for (const rule of leaveRules) {
+        // Check if rule applies to this department
+        if (!rule.applies_to_all && rule.departments?.length > 0) {
+            if (department && !rule.departments.includes(department)) {
+                continue; // Skip rule - doesn't apply to this department
+            }
+        }
+
+        const config = rule.config as Record<string, any>;
+
+        switch (rule.rule_type) {
+            case 'blackout':
+                // Check blackout dates
+                if (config.dates?.length > 0) {
+                    const startDate = new Date(leaveDetails.startDate);
+                    const endDate = new Date(leaveDetails.endDate);
+                    
+                    for (const blackoutDate of config.dates) {
+                        const blackout = new Date(blackoutDate);
+                        if (blackout >= startDate && blackout <= endDate) {
+                            violations.push(`${rule.name}: ${blackoutDate} is a blackout date`);
+                            suggestions.push("Choose dates outside the blackout period");
+                            if (rule.is_blocking) hasBlockingViolation = true;
+                        }
+                    }
+                }
+                // Check blackout days of week
+                if (config.days_of_week?.length > 0) {
+                    // Warning for weekend-only leaves
+                    violations.push(`${rule.name}: Leave includes restricted days`);
+                    if (rule.is_blocking) hasBlockingViolation = true;
+                }
+                break;
+
+            case 'max_concurrent':
+                // Check concurrent leave limit
+                const maxConcurrent = config.max_count || Math.ceil(teamState.teamSize * (config.max_percentage || 10) / 100);
+                if (teamState.alreadyOnLeave >= maxConcurrent) {
+                    violations.push(`${rule.name}: ${teamState.alreadyOnLeave} colleagues already on leave (max: ${maxConcurrent})`);
+                    suggestions.push("Try different dates when fewer team members are on leave");
+                    if (rule.is_blocking) hasBlockingViolation = true;
+                }
+                break;
+
+            case 'min_gap':
+                // Would need to check previous leaves - simplified for now
+                const minGap = config.days || 7;
+                suggestions.push(`Note: ${rule.name} requires ${minGap} days gap between leaves`);
+                break;
+
+            case 'department_limit':
+                // Department-specific limits
+                const deptLimit = config.max_per_department || 2;
+                if (teamState.alreadyOnLeave >= deptLimit) {
+                    violations.push(`${rule.name}: Department leave limit reached (${deptLimit})`);
+                    if (rule.is_blocking) hasBlockingViolation = true;
+                }
+                break;
+        }
+    }
+
+    return { violations, suggestions, blocking: hasBlockingViolation };
+}
+
+/**
  * Analyze Leave Request with Explainable AI
  * 
  * All decisions include:
@@ -21,6 +192,8 @@ export type AIAnalysisResult = {
  * - Specific constraint violations if any
  * - Helpful suggestions for resolution
  * - Graceful fallback if AI engine unavailable
+ * 
+ * MULTI-TENANT: Each company's settings are isolated
  */
 export async function analyzeLeaveRequest(
     leaveDetails: {
@@ -39,13 +212,11 @@ export async function analyzeLeaveRequest(
     };
 
     try {
-        // 1. Fetch Context (Employee, Company, Policy, Team Stats)
+        // 1. Fetch Employee with Company
         const employee = await prisma.employee.findUnique({
             where: { clerk_id: user.id },
             include: {
-                company: {
-                    include: { policies: true }
-                }
+                company: true
             }
         });
 
@@ -56,18 +227,54 @@ export async function analyzeLeaveRequest(
             };
         }
 
-        // 2. Fetch REAL Team Stats - count employees in same department and currently on leave
+        // 2. Fetch COMPANY-SPECIFIC settings (multi-tenant isolation)
+        const companySettings = await getCompanySettings(employee.org_id!);
+        const { company, leaveTypes, leaveRules, legacyPolicy } = companySettings;
+
+        // 3. Get leave type configuration for this company
+        const leaveTypeConfig = getLeaveTypeConfig(leaveTypes, leaveDetails.type);
+
+        // 4. Validate against company-specific leave type rules
+        const violations: string[] = [];
+        const suggestions: string[] = [];
+
+        // Check if half-day is allowed for this leave type
+        if (leaveDetails.isHalfDay && !leaveTypeConfig.half_day_allowed) {
+            violations.push(`Half-day not allowed for ${leaveTypeConfig.name}`);
+            suggestions.push("Request a full day instead");
+        }
+
+        // Check max consecutive days
+        if (leaveDetails.days > leaveTypeConfig.max_consecutive) {
+            violations.push(`Exceeds maximum consecutive days (${leaveTypeConfig.max_consecutive}) for ${leaveTypeConfig.name}`);
+            suggestions.push(`Split your leave into periods of ${leaveTypeConfig.max_consecutive} days or less`);
+        }
+
+        // Check minimum notice period
+        const daysUntilStart = Math.ceil((new Date(leaveDetails.startDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+        if (daysUntilStart < leaveTypeConfig.min_notice_days) {
+            violations.push(`Insufficient notice: ${leaveTypeConfig.name} requires ${leaveTypeConfig.min_notice_days} days advance notice`);
+            suggestions.push(`Submit requests at least ${leaveTypeConfig.min_notice_days} days in advance`);
+        }
+
+        // Check gender-specific leave
+        if (leaveTypeConfig.gender_specific) {
+            const employeeGender = (employee as any).gender;
+            if (employeeGender && employeeGender !== leaveTypeConfig.gender_specific) {
+                violations.push(`${leaveTypeConfig.name} is only available for ${leaveTypeConfig.gender_specific === 'F' ? 'female' : 'male'} employees`);
+            }
+        }
+
+        // 5. Fetch REAL Team Stats for this company
         const department = employee.department || 'General';
         
         const [teamCount, onLeaveCount] = await Promise.all([
-            // Count team members in same department
             prisma.employee.count({
                 where: {
                     org_id: employee.org_id,
                     department: department
                 }
             }),
-            // Count who's on leave during the requested period
             prisma.leaveRequest.count({
                 where: {
                     status: 'approved',
@@ -88,20 +295,14 @@ export async function analyzeLeaveRequest(
         const teamState = {
             teamSize: teamCount || 1,
             alreadyOnLeave: onLeaveCount,
-            min_coverage: 3,
-            max_concurrent_leave: 5,
-            blackoutDates: []
         };
 
-        // 3. Get Rules from Policy
-        const activePolicy = employee.company.policies.find(p => p.is_active) || { rules: {} };
-        const rules = activePolicy.rules as any;
+        // 6. Evaluate COMPANY-SPECIFIC leave rules
+        const ruleResults = evaluateLeaveRules(leaveRules, leaveDetails, teamState, department);
+        violations.push(...ruleResults.violations);
+        suggestions.push(...ruleResults.suggestions);
 
-        // Merge policy rules into team state if needed
-        if (rules.min_coverage) teamState.min_coverage = rules.min_coverage;
-        if (rules.max_concurrent) teamState.max_concurrent_leave = rules.max_concurrent;
-
-        // 4. Fetch REAL leave balance
+        // 7. Fetch REAL leave balance for this employee in this company
         const currentYear = new Date().getFullYear();
         const balance = await prisma.leaveBalance.findUnique({
             where: {
@@ -113,16 +314,45 @@ export async function analyzeLeaveRequest(
             }
         });
 
+        // Use company-specific quota or balance record
         const totalEntitlement = balance 
             ? Number(balance.annual_entitlement) + Number(balance.carried_forward)
-            : 12; // Default if no balance record
+            : leaveTypeConfig.annual_quota;
         const usedDays = balance ? Number(balance.used_days) + Number(balance.pending_days) : 0;
         const remainingBalance = totalEntitlement - usedDays;
 
-        // 5. Construct Payload with REAL data
+        // Check balance
+        if (remainingBalance < leaveDetails.days) {
+            if (!company?.negative_balance) {
+                violations.push(`Insufficient ${leaveTypeConfig.name} balance: ${remainingBalance} days available, ${leaveDetails.days} requested`);
+                suggestions.push("Request fewer days or apply for Leave Without Pay");
+            } else {
+                suggestions.push(`Note: This will result in negative balance (company allows negative balance)`);
+            }
+        }
+
+        // 8. Check probation restriction
+        if (!company?.probation_leave && employee.onboarding_status !== 'completed') {
+            const hireDate = (employee as any).hire_date;
+            if (hireDate) {
+                const probationEnd = new Date(hireDate);
+                probationEnd.setDate(probationEnd.getDate() + 90); // 90 day probation
+                if (new Date() < probationEnd) {
+                    violations.push("Leave not available during probation period");
+                    suggestions.push("Contact HR for special circumstances");
+                }
+            }
+        }
+
+        // 9. Prepare legacy policy rules for AI engine
+        const legacyRules = legacyPolicy?.rules as any || {};
+
+        // 10. Construct Payload with COMPANY-SPECIFIC data
         const payload = {
             text: leaveDetails.reason,
             employee_id: employee.emp_id,
+            org_id: employee.org_id,
+            company_name: employee.company.name,
             extracted_info: {
                 type: leaveDetails.type,
                 dates: [leaveDetails.startDate],
@@ -130,16 +360,33 @@ export async function analyzeLeaveRequest(
                 is_half_day: leaveDetails.isHalfDay || false
             },
             team_state: {
-                team: teamState,
-                blackoutDates: rules.blackoutDates || []
+                team: {
+                    teamSize: teamState.teamSize,
+                    alreadyOnLeave: teamState.alreadyOnLeave,
+                    min_coverage: legacyRules.min_coverage || 3,
+                    max_concurrent_leave: legacyRules.max_concurrent || 5
+                },
+                blackoutDates: legacyRules.blackoutDates || []
             },
             leave_balance: {
-                remaining: remainingBalance
+                remaining: remainingBalance,
+                total: totalEntitlement,
+                used: usedDays
             },
+            leave_type_config: leaveTypeConfig,
+            company_settings: {
+                work_start: company?.work_start_time || "09:00",
+                work_end: company?.work_end_time || "18:00",
+                half_day_hours: Number(company?.half_day_hours) || 4,
+                full_day_hours: Number(company?.full_day_hours) || 8,
+                work_days: company?.work_days || [1,2,3,4,5],
+            },
+            pre_violations: violations,
+            pre_suggestions: suggestions,
             is_half_day: leaveDetails.isHalfDay || false
         };
 
-        // 6. Call Python Constraint Engine
+        // 11. Call Python Constraint Engine
         const agentUrl = (process.env.CONSTRAINT_ENGINE_URL || "http://127.0.0.1:8001") + "/analyze";
 
         let analysis: AIAnalysisResult;
@@ -158,62 +405,62 @@ export async function analyzeLeaveRequest(
 
             analysis = await response.json();
             
+            // Merge pre-evaluated violations
+            if (violations.length > 0) {
+                analysis.violations = [...violations, ...(analysis.violations || [])];
+                analysis.suggestions = [...suggestions, ...(analysis.suggestions || [])];
+                if (ruleResults.blocking) {
+                    analysis.approved = false;
+                }
+            }
+            
             // Ensure response has explanation
             if (!analysis.explanation) {
                 analysis.explanation = analysis.approved 
-                    ? `✅ All constraints satisfied. Your ${leaveDetails.type} request for ${leaveDetails.days} days has been auto-approved.`
-                    : `⚠️ Request escalated to HR. ${analysis.violations?.length || 0} constraint(s) require manual review.`;
+                    ? `✅ All constraints satisfied for ${employee.company.name}. Your ${leaveTypeConfig.name} request for ${leaveDetails.days} days has been auto-approved.`
+                    : `⚠️ Request escalated to HR at ${employee.company.name}. ${analysis.violations?.length || 0} constraint(s) require manual review.`;
             }
             
         } catch (agentError) {
             console.error("AI Agent Unreachable:", agentError);
             
-            // Graceful Fallback - Do local validation
-            const fallbackViolations: string[] = [];
-            const fallbackSuggestions: string[] = [];
-            
-            // Basic validations without AI engine
-            if (remainingBalance < leaveDetails.days) {
-                fallbackViolations.push(`Insufficient balance: ${remainingBalance} days available, ${leaveDetails.days} requested`);
-                fallbackSuggestions.push("Try requesting fewer days");
-            }
-            
-            if (leaveDetails.isHalfDay) {
-                fallbackViolations.push("Half-day requests require HR approval");
-            }
-            
-            if (onLeaveCount >= teamState.max_concurrent_leave) {
-                fallbackViolations.push(`Team coverage: ${onLeaveCount} colleagues already on leave`);
-                fallbackSuggestions.push("Try different dates when more team members are available");
-            }
-            
-            // If no violations found in fallback, still escalate for safety
-            const canAutoApprove = fallbackViolations.length === 0 && !leaveDetails.isHalfDay;
+            // Graceful Fallback - Use local evaluation results
+            const canAutoApprove = violations.length === 0 && 
+                                   !leaveDetails.isHalfDay && 
+                                   remainingBalance >= leaveDetails.days &&
+                                   !ruleResults.blocking;
             
             return {
                 fallback: true,
                 success: true,
+                companyName: employee.company.name,
+                leaveTypeConfig,
                 analysis: {
                     approved: canAutoApprove,
                     message: canAutoApprove 
-                        ? "Request validated locally (AI engine unavailable)"
+                        ? `Request validated for ${employee.company.name} (AI engine unavailable)`
                         : "Escalated for manual review",
-                    violations: fallbackViolations,
-                    suggestions: fallbackSuggestions,
+                    violations: violations,
+                    suggestions: suggestions,
                     confidence: canAutoApprove ? 0.75 : 0.5,
                     explanation: `⚠️ AI Constraint Engine temporarily unavailable. ${
                         canAutoApprove 
-                            ? 'Basic validation passed - request auto-approved.' 
-                            : `Manual review required: ${fallbackViolations.join('; ') || 'Safety escalation'}`
+                            ? `Basic validation passed for ${employee.company.name} - request auto-approved.` 
+                            : `Manual review required: ${violations.join('; ') || 'Safety escalation'}`
                     }`,
                     decision_reason: canAutoApprove 
-                        ? "Local validation passed all basic checks"
-                        : `Escalated: ${fallbackViolations[0] || 'AI engine offline, safety escalation'}`
+                        ? `Local validation passed all ${employee.company.name} policy checks`
+                        : `Escalated: ${violations[0] || 'AI engine offline, safety escalation'}`
                 }
             };
         }
 
-        return { success: true, analysis };
+        return { 
+            success: true, 
+            analysis,
+            companyName: employee.company.name,
+            leaveTypeConfig,
+        };
 
     } catch (error) {
         console.error("Analysis Error:", error);
