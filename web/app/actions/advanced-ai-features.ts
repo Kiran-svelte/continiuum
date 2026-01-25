@@ -131,7 +131,7 @@ export async function resolveLeaveConflicts(): Promise<{
 
             // Find overlapping requests
             const overlapping = pendingRequests.filter(other => {
-                if (other.id === request.id) return false;
+                if (other.request_id === request.request_id) return false;
                 if (other.employee.department !== request.employee.department) return false;
                 
                 const otherStart = new Date(other.start_date);
@@ -145,7 +145,7 @@ export async function resolveLeaveConflicts(): Promise<{
                 let priorityScore = 50;
 
                 // Seniority bonus
-                const hireDate = (request.employee as any).hire_date;
+                const hireDate = request.employee.hire_date;
                 if (hireDate) {
                     const tenure = (Date.now() - new Date(hireDate).getTime()) / (1000 * 60 * 60 * 24 * 365);
                     priorityScore += Math.min(tenure * 5, 20);
@@ -168,13 +168,13 @@ export async function resolveLeaveConflicts(): Promise<{
                     orgId,
                     request.employee.department || 'General',
                     startDate,
-                    Number(request.days)
+                    Number(request.total_days)
                 );
 
                 conflicts.push({
-                    requestId: request.id,
-                    employeeName: `${request.employee.first_name} ${request.employee.last_name}`,
-                    conflictsWith: overlapping.map(o => `${o.employee.first_name} ${o.employee.last_name}`),
+                    requestId: request.request_id,
+                    employeeName: request.employee.full_name,
+                    conflictsWith: overlapping.map(o => o.employee.full_name),
                     priorityScore: Math.round(priorityScore),
                     alternativeDates: alternatives,
                     recommendation: priorityScore > 70 ? 'approve' : alternatives.length > 0 ? 'suggest_alternative' : 'escalate',
@@ -271,7 +271,7 @@ export async function analyzeWorkloadBalance(): Promise<{
         const employees = await prisma.employee.findMany({
             where: { org_id: orgId },
             include: {
-                attendance: {
+                attendances: {
                     where: { date: { gte: thirtyDaysAgo } }
                 },
                 leave_requests: {
@@ -305,11 +305,11 @@ export async function analyzeWorkloadBalance(): Promise<{
                 
                 let workload = 50; // Base
                 
-                const avgHours = emp.attendance.reduce((sum, a) => {
+                const avgHours = emp.attendances.reduce((sum: number, a: { check_in: Date | null; check_out: Date | null }) => {
                     if (!a.check_in || !a.check_out) return sum;
                     const hours = (new Date(a.check_out).getTime() - new Date(a.check_in).getTime()) / (1000 * 60 * 60);
                     return sum + hours;
-                }, 0) / (emp.attendance.length || 1);
+                }, 0) / (emp.attendances.length || 1);
 
                 if (avgHours > 9) workload += 30;
                 else if (avgHours > 8) workload += 15;
@@ -322,7 +322,7 @@ export async function analyzeWorkloadBalance(): Promise<{
 
                 if (workload > 70) {
                     overloadedEmployees.push({
-                        name: `${emp.first_name} ${emp.last_name}`,
+                        name: emp.full_name,
                         workload,
                         suggestion: workload > 85 
                             ? 'Urgent: Recommend mandatory time off'
@@ -402,13 +402,14 @@ export async function optimizeHolidays(): Promise<{
         }
 
         const orgId = employee.org_id;
+        const countryCode = employee.country_code || 'IN';
         const workDays = (employee.company?.work_days as number[]) || [1, 2, 3, 4, 5];
 
-        // Get holidays for this year and next
+        // Get public holidays for this year and next
         const currentYear = new Date().getFullYear();
-        const holidays = await prisma.holiday.findMany({
+        const holidays = await prisma.publicHoliday.findMany({
             where: {
-                company_id: orgId,
+                country_code: countryCode,
                 date: {
                     gte: new Date(),
                     lte: new Date(currentYear + 1, 11, 31)
@@ -555,7 +556,7 @@ export async function analyzeAttendancePatterns(): Promise<{
         const employees = await prisma.employee.findMany({
             where: { org_id: orgId },
             include: {
-                attendance: {
+                attendances: {
                     where: { date: { gte: ninetyDaysAgo } },
                     orderBy: { date: 'asc' }
                 }
@@ -575,7 +576,7 @@ export async function analyzeAttendancePatterns(): Promise<{
             let overtimeDays = 0;
             let consistentDays = 0;
 
-            for (const att of emp.attendance) {
+            for (const att of emp.attendances) {
                 const dayOfWeek = new Date(att.date).getDay() || 7;
                 dayStats[dayOfWeek].total++;
 
@@ -617,33 +618,33 @@ export async function analyzeAttendancePatterns(): Promise<{
             }
 
             // Detect overtime pattern
-            if (overtimeDays > emp.attendance.length * 0.3) {
+            if (overtimeDays > emp.attendances.length * 0.3) {
                 empPatterns.push({
                     type: 'overtime',
                     description: `Regular overtime (${Math.round(totalOvertime)} extra hours in 90 days)`,
-                    frequency: `${Math.round((overtimeDays / emp.attendance.length) * 100)}% of work days`,
+                    frequency: `${Math.round((overtimeDays / emp.attendances.length) * 100)}% of work days`,
                     days: [],
                     recommendation: 'Review workload distribution or consider comp-off'
                 });
             }
 
             // Detect consistent attendance
-            if (consistentDays > emp.attendance.length * 0.9) {
+            if (consistentDays > emp.attendances.length * 0.9) {
                 empPatterns.push({
                     type: 'consistent',
                     description: 'Excellent attendance record',
-                    frequency: `${Math.round((consistentDays / emp.attendance.length) * 100)}% on-time`,
+                    frequency: `${Math.round((consistentDays / emp.attendances.length) * 100)}% on-time`,
                     days: [],
                     recommendation: 'Consider for attendance bonus or recognition'
                 });
             }
 
-            const overallScore = Math.round((consistentDays / (emp.attendance.length || 1)) * 100);
+            const overallScore = Math.round((consistentDays / (emp.attendances.length || 1)) * 100);
 
             if (empPatterns.length > 0) {
                 patterns.push({
                     employeeId: emp.emp_id,
-                    employeeName: `${emp.first_name} ${emp.last_name}`,
+                    employeeName: emp.full_name,
                     patterns: empPatterns,
                     overallScore
                 });
@@ -717,7 +718,7 @@ export async function simulateLeaveImpact(
 
         // Get blocked collaborators (people waiting for this employee)
         const blockedCollaborators = approvedLeaves.map(l => 
-            `${l.employee.first_name} ${l.employee.last_name}`
+            l.employee.full_name
         );
 
         // Determine risk level
@@ -816,7 +817,7 @@ export async function processAutoEscalations(): Promise<{
             autoEscalateAt.setHours(autoEscalateAt.getHours() + 24);
 
             escalated.push({
-                requestId: request.id,
+                requestId: request.request_id,
                 currentLevel,
                 maxLevel: 3,
                 escalatedTo,
@@ -864,6 +865,7 @@ export async function calculateCompensation(): Promise<{
         ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
         
         const workDays = (employee.company?.work_days as number[]) || [1, 2, 3, 4, 5];
+        const countryCode = employee.country_code || 'IN';
 
         // Get attendance records
         const attendance = await prisma.attendance.findMany({
@@ -873,15 +875,15 @@ export async function calculateCompensation(): Promise<{
             }
         });
 
-        // Get holidays
-        const holidays = await prisma.holiday.findMany({
+        // Get public holidays
+        const holidays = await prisma.publicHoliday.findMany({
             where: {
-                company_id: employee.org_id,
+                country_code: countryCode,
                 date: { gte: ninetyDaysAgo }
             }
         });
 
-        const holidayDates = new Set(holidays.map(h => h.date.toISOString().split('T')[0]));
+        const holidayDates = new Set(holidays.map((h: { date: Date }) => h.date.toISOString().split('T')[0]));
 
         let overtimeHours = 0;
         let weekendDays = 0;
@@ -991,10 +993,11 @@ export async function optimizeYearEndLeave(): Promise<{
         const remaining = Number(balance.annual_entitlement) + Number(balance.carried_forward) - Number(balance.used_days) - Number(balance.pending_days);
         const expiringDays = Math.max(0, remaining - carryForwardMax);
 
-        // Get holidays for optimal planning
-        const holidays = await prisma.holiday.findMany({
+        // Get public holidays for optimal planning
+        const countryCode = employee.country_code || 'IN';
+        const holidays = await prisma.publicHoliday.findMany({
             where: {
-                company_id: employee.org_id,
+                country_code: countryCode,
                 date: {
                     gte: new Date(),
                     lte: new Date(currentYear, 11, 31)
@@ -1187,9 +1190,10 @@ export async function getSmartNotifications(): Promise<{
         }
 
         // 4. Upcoming holiday reminder
-        const nextHoliday = await prisma.holiday.findFirst({
+        const countryCode = employee.country_code || 'IN';
+        const nextHoliday = await prisma.publicHoliday.findFirst({
             where: {
-                company_id: employee.org_id,
+                country_code: countryCode,
                 date: { gte: now }
             },
             orderBy: { date: 'asc' }
@@ -1303,8 +1307,8 @@ export async function analyzeTeamSynergy(): Promise<{
                 if (totalInteractions >= 2) { // Only include if enough data
                     synergies.push({
                         combination: [
-                            `${emp1.first_name} ${emp1.last_name}`,
-                            `${emp2.first_name} ${emp2.last_name}`
+                            emp1.full_name,
+                            emp2.full_name
                         ],
                         synergyScore,
                         collaborationCount: complementCount,

@@ -38,7 +38,7 @@ const employeeSteps = [
             "Real-time leave balance tracking",
             "Daily attendance status",
             "Quick actions for common tasks",
-            "AI-powered insights"
+            "AI-powered wellness insights"
         ],
         tip: "Check your dashboard daily to stay on top of your work schedule!"
     },
@@ -52,7 +52,7 @@ const employeeSteps = [
             "Natural language leave requests",
             "Smart date detection",
             "Policy compliance check",
-            "Instant recommendations"
+            "Leave impact simulator"
         ],
         tip: "Try saying: 'I need sick leave tomorrow' or 'Can I take vacation next week?'"
     },
@@ -66,7 +66,7 @@ const employeeSteps = [
             "One-click check-in/out",
             "Today's status and timestamps",
             "Total hours shown on checkout",
-            "Recent attendance history"
+            "Attendance pattern insights"
         ],
         tip: "Tap Check In at start, and Check Out before you leave."
     },
@@ -79,13 +79,27 @@ const employeeSteps = [
         features: [
             "Multiple leave types",
             "Real-time approval status",
-            "Balances and recent history",
-            "Holiday calendar"
+            "Holiday optimizer suggestions",
+            "Smart calendar for best leave dates"
         ],
         tip: "Submit early to improve approval chances and plan around holidays."
     },
     {
         id: 5,
+        title: "Smart Leave Assistant (Advanced)",
+        description: "Access AI-powered advanced features to optimize your work-life balance.",
+        icon: Sparkles,
+        color: "from-violet-500 to-fuchsia-500",
+        features: [
+            "Wellness score tracking",
+            "Comp-off calculator",
+            "Year-end leave optimizer",
+            "Smart notifications"
+        ],
+        tip: "Visit the Advanced dashboard to see AI recommendations for optimal leave timing!"
+    },
+    {
+        id: 6,
         title: "Documents & Profile",
         description: "View documents and your profile details in one place.",
         icon: User,
@@ -111,7 +125,7 @@ const hrSteps = [
             "Workforce overview",
             "Pending approvals queue",
             "Department analytics",
-            "Quick action buttons"
+            "AI-powered team health metrics"
         ],
         tip: "Start each day by reviewing pending requests to maintain SLA!"
     },
@@ -137,8 +151,8 @@ const hrSteps = [
         color: "from-[#00f2ff] to-blue-500",
         features: [
             "AI recommendation engine",
-            "Policy compliance checking",
-            "Team coverage analysis",
+            "Smart conflict resolution",
+            "Auto-escalation system",
             "Bulk approval actions"
         ],
         tip: "AI recommendations speed up decisions but final approval is always yours!"
@@ -152,13 +166,27 @@ const hrSteps = [
         features: [
             "Pending approvals queue",
             "Leave requests overview",
-            "Department filters",
-            "Activity feed"
+            "Burnout risk detection",
+            "Team synergy analysis"
         ],
         tip: "Clear the approvals queue early to maintain SLAs."
     },
     {
         id: 5,
+        title: "Advanced AI Analytics",
+        description: "Access cutting-edge AI features for workforce optimization and predictive insights.",
+        icon: Sparkles,
+        color: "from-violet-500 to-fuchsia-500",
+        features: [
+            "Workload balancer engine",
+            "Attendance pattern recognition",
+            "Predictive leave analytics",
+            "Department health scoring"
+        ],
+        tip: "Visit the Advanced Command Center for deep workforce intelligence!"
+    },
+    {
+        id: 6,
         title: "Policies & Settings",
         description: "Configure leave policies, constraints, and organizational settings for your company.",
         icon: Settings,
@@ -167,7 +195,7 @@ const hrSteps = [
             "Leave policy configuration",
             "Blackout date management",
             "Approval workflow setup",
-            "Notification preferences"
+            "Holiday calendar settings"
         ],
         tip: "Well-configured policies lead to smoother leave management!"
     }

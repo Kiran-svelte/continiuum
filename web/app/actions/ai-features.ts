@@ -341,7 +341,7 @@ export async function getPredictiveAnalytics(): Promise<{
             prisma.employee.findMany({
                 where: { org_id: orgId },
                 include: {
-                    attendance: {
+                    attendances: {
                         where: {
                             date: { gte: new Date(new Date().setDate(new Date().getDate() - 90)) }
                         }
@@ -414,8 +414,8 @@ export async function getPredictiveAnalytics(): Promise<{
             }
 
             // Factor 2: Late arrivals
-            const lateCount = emp.attendance?.filter(a => a.status === 'LATE').length || 0;
-            const totalAttendance = emp.attendance?.length || 1;
+            const lateCount = emp.attendances?.filter((a: { status: string }) => a.status === 'LATE').length || 0;
+            const totalAttendance = emp.attendances?.length || 1;
             const latePercent = (lateCount / totalAttendance) * 100;
             if (latePercent > 30) {
                 factors.push('Consistent late arrivals');
@@ -429,7 +429,7 @@ export async function getPredictiveAnalytics(): Promise<{
             }
 
             // Factor 4: Short notice leaves (stress indicator)
-            const shortNoticeLeaves = emp.leave_requests?.filter(l => {
+            const shortNoticeLeaves = emp.leave_requests?.filter((l: { start_date: Date; created_at: Date }) => {
                 const daysBefore = Math.ceil((new Date(l.start_date).getTime() - new Date(l.created_at).getTime()) / (1000 * 60 * 60 * 24));
                 return daysBefore < 2;
             }).length || 0;
@@ -442,7 +442,7 @@ export async function getPredictiveAnalytics(): Promise<{
             if (riskScore >= 30) {
                 burnoutRisks.push({
                     employeeId: emp.emp_id,
-                    employeeName: `${emp.first_name} ${emp.last_name}`,
+                    employeeName: emp.full_name,
                     riskLevel: riskScore >= 60 ? 'high' : riskScore >= 40 ? 'medium' : 'low',
                     riskScore,
                     factors,
@@ -508,7 +508,7 @@ export async function getTeamInsights(): Promise<{
         const allEmployees = await prisma.employee.findMany({
             where: { org_id: orgId },
             include: {
-                attendance: {
+                attendances: {
                     where: { date: today }
                 },
                 leave_requests: {
@@ -555,7 +555,7 @@ export async function getTeamInsights(): Promise<{
         });
 
         // Today's overview
-        const present = allEmployees.filter(e => e.attendance.length > 0 && e.attendance[0].check_in).length;
+        const present = allEmployees.filter(e => e.attendances.length > 0 && e.attendances[0].check_in).length;
         const onLeave = allEmployees.filter(e => e.leave_requests.length > 0).length;
         const total = allEmployees.length;
         const absent = total - present - onLeave;
@@ -594,7 +594,7 @@ export async function getEmployeeWellness(employeeId?: string): Promise<{
             where: { clerk_id: user.id },
             include: {
                 company: true,
-                attendance: {
+                attendances: {
                     where: {
                         date: { gte: new Date(new Date().setDate(new Date().getDate() - 30)) }
                     },
@@ -618,8 +618,8 @@ export async function getEmployeeWellness(employeeId?: string): Promise<{
         const recommendations: string[] = [];
 
         // 1. Work-Life Balance Score
-        const totalWorkDays = employee.attendance.length;
-        const normalWorkDays = employee.attendance.filter(a => {
+        const totalWorkDays = employee.attendances.length;
+        const normalWorkDays = employee.attendances.filter((a: { check_in: Date | null; check_out: Date | null }) => {
             if (!a.check_in || !a.check_out) return false;
             const hours = (new Date(a.check_out).getTime() - new Date(a.check_in).getTime()) / (1000 * 60 * 60);
             return hours <= 9; // Normal is <= 9 hours
@@ -657,7 +657,7 @@ export async function getEmployeeWellness(employeeId?: string): Promise<{
         }
 
         // 3. Attendance Health
-        const lateCount = employee.attendance.filter(a => a.status === 'LATE').length;
+        const lateCount = employee.attendances.filter((a: { status: string }) => a.status === 'LATE').length;
         const latePercent = totalWorkDays > 0 ? (lateCount / totalWorkDays) * 100 : 0;
         const attendanceHealth = Math.max(50, Math.round(100 - (latePercent * 2)));
         
@@ -666,7 +666,7 @@ export async function getEmployeeWellness(employeeId?: string): Promise<{
         }
 
         // 4. Stress Indicator (inverse - lower is better for display but we show as positive)
-        const shortNoticeLeaves = employee.leave_requests.filter(l => {
+        const shortNoticeLeaves = employee.leave_requests.filter((l: { start_date: Date; created_at: Date }) => {
             const daysBefore = Math.ceil(
                 (new Date(l.start_date).getTime() - new Date(l.created_at).getTime()) / (1000 * 60 * 60 * 24)
             );
