@@ -10,8 +10,16 @@ import { auth } from '@clerk/nextjs/server';
 import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { PRICING_TIERS } from '@/lib/billing/razorpay-lite';
+import { checkApiRateLimit, rateLimitedResponse } from '@/lib/api-rate-limit';
+import { billingLogger } from '@/lib/logger';
 
 export async function POST(req: NextRequest) {
+    // Rate limiting - billing is very sensitive
+    const rateLimit = await checkApiRateLimit(req, 'billing');
+    if (!rateLimit.allowed) {
+        return rateLimitedResponse(rateLimit);
+    }
+    
     try {
         const { userId } = await auth();
         if (!userId) {
@@ -27,7 +35,7 @@ export async function POST(req: NextRequest) {
         // Verify signature
         const razorpaySecret = process.env.RAZORPAY_KEY_SECRET;
         if (!razorpaySecret) {
-            console.error('RAZORPAY_KEY_SECRET not configured');
+            billingLogger.error('RAZORPAY_KEY_SECRET not configured');
             return NextResponse.json({ error: 'Payment verification unavailable' }, { status: 500 });
         }
 
@@ -38,12 +46,12 @@ export async function POST(req: NextRequest) {
             .digest('hex');
 
         if (expectedSignature !== signature) {
-            console.error('Invalid Razorpay signature', { orderId, paymentId });
+            billingLogger.error('Invalid Razorpay signature', { orderId, paymentId });
             return NextResponse.json({ error: 'Invalid payment signature' }, { status: 400 });
         }
 
         // Signature verified! Payment is authentic.
-        console.log('✅ Payment verified:', { orderId, paymentId, tier });
+        billingLogger.info('Payment verified', { orderId, paymentId, tier });
 
         // Get user's organization
         const employee = await prisma.employee.findFirst({

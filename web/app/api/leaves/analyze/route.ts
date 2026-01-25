@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
+import { checkApiRateLimit, rateLimitedResponse } from "@/lib/api-rate-limit";
+import { aiLogger } from "@/lib/logger";
 
 // Helper function to format date as YYYY-MM-DD without timezone conversion
 function formatDateLocal(date: Date): string {
@@ -246,6 +248,12 @@ function parseLeaveRequest(text: string): {
 }
 
 export async function POST(req: NextRequest) {
+    // Rate limiting - AI analysis is expensive
+    const rateLimit = await checkApiRateLimit(req, 'aiAnalysis');
+    if (!rateLimit.allowed) {
+        return rateLimitedResponse(rateLimit);
+    }
+    
     try {
         const { userId } = await auth();
         if (!userId) {
@@ -261,7 +269,7 @@ export async function POST(req: NextRequest) {
 
         // Parse the natural language request
         const parsed = parseLeaveRequest(text);
-        console.log("[API] Parsed leave request:", parsed);
+        aiLogger.debug("Parsed leave request", parsed);
 
         // Get employee from database
         const employee = await prisma.employee.findUnique({
@@ -431,7 +439,7 @@ export async function POST(req: NextRequest) {
             aiRequest.end_date = parsed.endDate;
         }
 
-        console.log("[API] Sending to AI:", JSON.stringify(aiRequest, null, 2));
+        aiLogger.debug("Sending to AI", aiRequest);
 
         // Call the AI constraint engine
         const aiResponse = await fetch(`${process.env.AI_SERVICE_URL || 'http://localhost:8001'}/analyze`, {
@@ -444,7 +452,7 @@ export async function POST(req: NextRequest) {
 
         if (!aiResponse.ok) {
             const errorText = await aiResponse.text();
-            console.error("[API] AI Engine error:", errorText);
+            aiLogger.error("AI Engine error", { status: aiResponse.status, error: errorText });
             throw new Error(`AI Engine returned ${aiResponse.status}: ${errorText}`);
         }
 

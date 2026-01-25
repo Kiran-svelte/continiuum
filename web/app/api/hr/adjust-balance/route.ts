@@ -2,8 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { logAudit, AuditAction } from "@/lib/audit";
+import { checkApiRateLimit, rateLimitedResponse } from "@/lib/api-rate-limit";
+import { apiLogger } from "@/lib/logger";
 
 export async function POST(request: NextRequest) {
+    // Rate limiting - balance adjustments are sensitive
+    const rateLimit = await checkApiRateLimit(request, 'policies');
+    if (!rateLimit.allowed) {
+        return rateLimitedResponse(rateLimit);
+    }
+    
     try {
         const { userId } = await auth();
         if (!userId) {

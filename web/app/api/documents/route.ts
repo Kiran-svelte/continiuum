@@ -1,8 +1,16 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
+import { checkApiRateLimit, rateLimitedResponse } from "@/lib/api-rate-limit";
+import { apiLogger } from "@/lib/logger";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+    // Rate limiting
+    const rateLimit = await checkApiRateLimit(req, 'documents');
+    if (!rateLimit.allowed) {
+        return rateLimitedResponse(rateLimit);
+    }
+    
     try {
         const { userId } = await auth();
         if (!userId) {
@@ -36,7 +44,7 @@ export async function GET() {
             }) || [];
         } catch (dbError) {
             // Table doesn't exist yet - return empty array (not mock data)
-            console.log("Document table not available:", dbError);
+            apiLogger.debug("Document table not available", dbError);
             documents = [];
         }
 

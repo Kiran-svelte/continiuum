@@ -2,8 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { logAudit, AuditAction } from "@/lib/audit";
+import { checkApiRateLimit, rateLimitedResponse } from "@/lib/api-rate-limit";
+import { apiLogger } from "@/lib/logger";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+    // Rate limiting
+    const rateLimit = await checkApiRateLimit(req, 'policies');
+    if (!rateLimit.allowed) {
+        return rateLimitedResponse(rateLimit);
+    }
+    
     try {
         const { userId } = await auth();
         if (!userId) {
@@ -31,7 +39,7 @@ export async function GET() {
             }) || [];
         } catch (dbError) {
             // Policy table doesn't exist yet - return empty array
-            console.log("Policy table not available:", dbError);
+            apiLogger.debug("Policy table not available", dbError);
             policies = [];
         }
 
@@ -51,7 +59,7 @@ export async function GET() {
         });
 
     } catch (error) {
-        console.error("[API] Policies GET Error:", error);
+        apiLogger.error("Policies GET Error", error);
         return NextResponse.json(
             { success: false, error: "Failed to fetch policies" },
             { status: 500 }
@@ -104,7 +112,7 @@ export async function PUT(request: NextRequest) {
                 data: { value, updated_at: new Date() }
             });
         } catch (updateErr) {
-            console.error("Error updating policy:", updateErr);
+            apiLogger.error("Error updating policy", updateErr);
             return NextResponse.json({ success: false, error: "Failed to update policy" }, { status: 500 });
         }
 
@@ -126,7 +134,7 @@ export async function PUT(request: NextRequest) {
         return NextResponse.json({ success: true });
 
     } catch (error) {
-        console.error("[API] Policies PUT Error:", error);
+        apiLogger.error("Policies PUT Error", error);
         return NextResponse.json(
             { success: false, error: "Failed to update policy" },
             { status: 500 }

@@ -152,9 +152,13 @@ export function OnboardingFlow({ user, intent, savedData }: { user: any; intent:
         setError(""); // Clear previous errors
         
         try {
-            console.log("[Onboarding] Creating company:", companyName, industry);
+            if (process.env.NODE_ENV === 'development') {
+                console.log("[Onboarding] Creating company:", companyName, industry);
+            }
             const res = await registerCompany(companyName, industry, size, location, website);
-            console.log("[Onboarding] registerCompany result:", res);
+            if (process.env.NODE_ENV === 'development') {
+                console.log("[Onboarding] registerCompany result:", res);
+            }
             
             if (res.success && res.companyId) {
                 // Store company ID and move to settings step

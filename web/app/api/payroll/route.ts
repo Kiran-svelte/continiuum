@@ -1,8 +1,16 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
+import { checkApiRateLimit, rateLimitedResponse } from "@/lib/api-rate-limit";
+import { apiLogger } from "@/lib/logger";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+    // Rate limiting - payroll is sensitive
+    const rateLimit = await checkApiRateLimit(req, 'payroll');
+    if (!rateLimit.allowed) {
+        return rateLimitedResponse(rateLimit);
+    }
+    
     try {
         const { userId } = await auth();
         if (!userId) {
@@ -39,7 +47,7 @@ export async function GET() {
             }) || [];
         } catch (dbError) {
             // Payroll table doesn't exist yet - return empty array
-            console.log("Payroll table not available:", dbError);
+            apiLogger.debug("Payroll table not available", dbError);
             payrollRecords = [];
         }
 
@@ -61,7 +69,7 @@ export async function GET() {
         });
 
     } catch (error) {
-        console.error("[API] Payroll GET Error:", error);
+        apiLogger.error("Payroll GET Error", error);
         return NextResponse.json(
             { success: false, error: "Failed to fetch payroll data" },
             { status: 500 }

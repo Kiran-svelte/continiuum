@@ -3,16 +3,27 @@ import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { sendLeaveApprovalEmail, sendPriorityLeaveNotification } from "@/lib/email-service";
+import { checkApiRateLimit, rateLimitedResponse, addRateLimitHeaders } from "@/lib/api-rate-limit";
+import { createAuditLog, AUDIT_ACTIONS } from "@/lib/audit-logger";
+import { leaveLogger } from "@/lib/logger";
 
 /**
  * Leave Request Submission API
  * 
  * Handles leave request submission with:
+ * - Rate limiting (5 req/min per user)
  * - AI-based auto-approval or escalation
+ * - Audit logging for all submissions
  * - Explainable decision reasoning
  * - Graceful error handling with fallback
  */
 export async function POST(req: NextRequest) {
+    // Rate limiting
+    const rateLimit = await checkApiRateLimit(req, 'leaveSubmit');
+    if (!rateLimit.allowed) {
+        return rateLimitedResponse(rateLimit);
+    }
+    
     const explanations: string[] = [];
     
     try {
@@ -83,7 +94,7 @@ export async function POST(req: NextRequest) {
             explanations.push(decisionReason);
         }
 
-        console.log(`[Submit] ${decisionReason}`);
+        leaveLogger.info(`${decisionReason}`, { userId, leaveType, days });
 
         // Perform atomic transaction
         const result = await prisma.$transaction(async (tx) => {
@@ -193,7 +204,7 @@ export async function POST(req: NextRequest) {
                     approvedBy: 'AI System',
                     reason: decisionReason
                 }
-            ).catch(err => console.error('Email notification failed:', err));
+            ).catch(err => leaveLogger.error('Email notification failed', err));
         } else {
             // Send priority notification to HR for escalated requests
             // Determine priority based on leave type and urgency
@@ -234,9 +245,33 @@ export async function POST(req: NextRequest) {
                         reason: reason || 'No reason provided',
                         priority
                     }
-                ).catch(err => console.error('HR notification failed:', err));
+                ).catch(err => leaveLogger.error('HR notification failed', err));
             }
         }
+
+        // Audit log the leave submission
+        await createAuditLog({
+            actor_id: employee.emp_id,
+            actor_role: employee.role,
+            action: AUDIT_ACTIONS.LEAVE_REQUEST_CREATED,
+            entity_type: 'LeaveRequest',
+            entity_id: result.request_id,
+            resource_name: `${leaveType} - ${days} days`,
+            new_state: {
+                status: result.status,
+                leave_type: leaveType,
+                start_date: startDate,
+                end_date: endDate,
+                total_days: days,
+                is_half_day: isHalfDay
+            },
+            details: {
+                ai_recommendation: isAutoApprovable ? 'approve' : 'escalate',
+                ai_confidence: aiConfidence,
+                decision_reason: decisionReason
+            },
+            target_org: employee.company_id || 'unknown'
+        }).catch(err => leaveLogger.error('Audit log failed', err));
 
         // Revalidate paths to update UI
         revalidatePath("/employee/dashboard");
@@ -265,7 +300,7 @@ export async function POST(req: NextRequest) {
         });
 
     } catch (error) {
-        console.error("[API] Leave Submit Error:", error);
+        leaveLogger.error("Leave Submit Error", error);
         const errorMessage = error instanceof Error ? error.message : "Failed to submit leave request";
         
         return NextResponse.json(

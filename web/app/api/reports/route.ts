@@ -1,8 +1,16 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
+import { checkApiRateLimit, rateLimitedResponse } from "@/lib/api-rate-limit";
+import { apiLogger } from "@/lib/logger";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+    // Rate limiting - reports are expensive
+    const rateLimit = await checkApiRateLimit(req, 'reports');
+    if (!rateLimit.allowed) {
+        return rateLimitedResponse(rateLimit);
+    }
+    
     try {
         const { userId } = await auth();
         if (!userId) {
@@ -103,7 +111,7 @@ export async function GET() {
 
         } catch (e) {
             // Attendance table might not exist or have different schema
-            console.log("Attendance stats not available:", e);
+            apiLogger.debug("Attendance stats not available", e);
         }
 
         // Calculate average processing time for approved/rejected requests
@@ -132,7 +140,7 @@ export async function GET() {
                 }
             }
         } catch (e) {
-            console.log("Could not calculate processing time:", e);
+            apiLogger.debug("Could not calculate processing time", e);
         }
 
         return NextResponse.json({
@@ -159,7 +167,7 @@ export async function GET() {
         });
 
     } catch (error) {
-        console.error("[API] Reports GET Error:", error);
+        apiLogger.error("Reports GET Error", error);
         return NextResponse.json(
             { success: false, error: "Failed to generate reports" },
             { status: 500 }

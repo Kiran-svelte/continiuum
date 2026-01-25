@@ -7,6 +7,7 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import { ConfirmProvider } from "@/components/ui/confirm-provider";
 import { GlobalErrorBoundary } from "@/components/ui/error-boundary";
 import { ScrollToTop } from "@/components/ui/scroll-to-top";
+import { ScreenReaderAnnouncer } from "@/lib/accessibility";
 import "./globals.css";
 
 import { Inter } from "next/font/google";
@@ -52,6 +53,7 @@ export default async function RootLayout({
             <ConfirmProvider>
               {children}
               <ScrollToTop />
+              <ScreenReaderAnnouncer />
             </ConfirmProvider>
           </GlobalErrorBoundary>
           <Analytics />
