@@ -61,6 +61,13 @@ export default async function HRDashboard() {
                     </div>
                     
                     <div className="flex items-center gap-3">
+                        <Link 
+                            href="/hr/dashboard/ai-insights" 
+                            className="hidden md:flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-purple-500/20 to-indigo-500/20 border border-purple-500/30 hover:border-purple-400/50 transition-all"
+                        >
+                            <Sparkles className="w-4 h-4 text-purple-400" />
+                            <span className="text-sm text-purple-300 font-medium">AI Insights</span>
+                        </Link>
                         <div className="hidden md:flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
                             <div className="relative">
                                 <div className="w-2 h-2 rounded-full bg-emerald-400"></div>

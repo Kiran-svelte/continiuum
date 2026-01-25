@@ -207,7 +207,14 @@ export default function EmployeeDashboard() {
     ];
 
     const GuideShortcut = () => (
-        <div className="flex items-center justify-end mb-4">
+        <div className="flex items-center justify-end gap-3 mb-4">
+            <button
+                onClick={() => router.push('/employee/dashboard/my-insights')}
+                className="px-4 py-2 text-sm rounded-lg bg-gradient-to-r from-purple-500/20 to-indigo-500/20 border border-purple-500/30 hover:border-purple-400/50 text-purple-300 flex items-center gap-2 transition-all"
+            >
+                <Sparkles className="w-4 h-4" />
+                My Wellness & Insights
+            </button>
             <button
                 onClick={() => router.push('/employee/welcome?tutorial=1')}
                 className="px-3 py-2 text-sm rounded-lg bg-white/10 hover:bg-white/20 text-white"
