@@ -42,77 +42,398 @@ if DB_URL:
     DB_URL = DB_URL.strip('"').strip("'")
 
 # ============================================================
-# CONSTRAINT RULES DEFINITION
+# DEFAULT CONSTRAINT RULES DEFINITION
+# These are used as fallback when no company-specific rules exist
 # ============================================================
-CONSTRAINT_RULES = {
+DEFAULT_CONSTRAINT_RULES = {
     "RULE001": {
+        "id": "RULE001",
         "name": "Maximum Leave Duration",
-        "description": "Check if requested days exceed maximum allowed",
-        "limits": {
-            "Annual Leave": 20,
-            "Sick Leave": 15,
-            "Emergency Leave": 5,
-            "Personal Leave": 5,
-            "Maternity Leave": 18,
-            "Paternity Leave": 15,
-            "Bereavement Leave": 5,
-            "Study Leave": 10
+        "description": "Check if requested days exceed maximum allowed per leave type",
+        "category": "limits",
+        "is_blocking": True,
+        "priority": 100,
+        "is_active": True,
+        "config": {
+            "limits": {
+                "Annual Leave": 20,
+                "Sick Leave": 15,
+                "Emergency Leave": 5,
+                "Personal Leave": 5,
+                "Maternity Leave": 180,
+                "Paternity Leave": 15,
+                "Bereavement Leave": 5,
+                "Study Leave": 10,
+                "LWP": 30,
+                "Comp Off": 5
+            }
         }
     },
     "RULE002": {
+        "id": "RULE002",
         "name": "Leave Balance Check",
-        "description": "Verify sufficient leave balance available"
+        "description": "Verify sufficient leave balance available before approval",
+        "category": "balance",
+        "is_blocking": True,
+        "priority": 99,
+        "is_active": True,
+        "config": {
+            "allow_negative": False,
+            "negative_limit": 0
+        }
     },
     "RULE003": {
+        "id": "RULE003",
         "name": "Minimum Team Coverage",
-        "description": "Ensure minimum team members present",
-        "min_coverage_percent": 60  # At least 60% of team must be present
+        "description": "Ensure minimum team members present during leave period",
+        "category": "coverage",
+        "is_blocking": True,
+        "priority": 90,
+        "is_active": True,
+        "config": {
+            "min_coverage_percent": 60,
+            "applies_to_departments": ["all"]
+        }
     },
     "RULE004": {
+        "id": "RULE004",
         "name": "Maximum Concurrent Leave",
-        "description": "Limit simultaneous leaves in a team",
-        "max_concurrent": 2  # Max 2 people on leave at same time per team
+        "description": "Limit simultaneous leaves in a team/department",
+        "category": "coverage",
+        "is_blocking": True,
+        "priority": 89,
+        "is_active": True,
+        "config": {
+            "max_concurrent": 2,
+            "scope": "department"
+        }
     },
     "RULE005": {
+        "id": "RULE005",
         "name": "Blackout Period Check",
-        "description": "No leaves during blackout dates"
+        "description": "No leaves during specified blackout dates",
+        "category": "blackout",
+        "is_blocking": True,
+        "priority": 95,
+        "is_active": True,
+        "config": {
+            "blackout_dates": [],
+            "blackout_days_of_week": [],
+            "exception_leave_types": ["Emergency Leave", "Bereavement Leave"]
+        }
     },
     "RULE006": {
+        "id": "RULE006",
         "name": "Advance Notice Requirement",
-        "description": "Minimum notice period for leave requests",
-        "notice_days": {
-            "Annual Leave": 7,
-            "Sick Leave": 0,
-            "Emergency Leave": 0,
-            "Personal Leave": 3,
-            "Maternity Leave": 30,
-            "Paternity Leave": 14,
-            "Bereavement Leave": 0,
-            "Study Leave": 14
+        "description": "Minimum notice period required for leave requests",
+        "category": "notice",
+        "is_blocking": False,
+        "priority": 80,
+        "is_active": True,
+        "config": {
+            "notice_days": {
+                "Annual Leave": 7,
+                "Sick Leave": 0,
+                "Emergency Leave": 0,
+                "Personal Leave": 3,
+                "Maternity Leave": 30,
+                "Paternity Leave": 14,
+                "Bereavement Leave": 0,
+                "Study Leave": 14,
+                "LWP": 7,
+                "Comp Off": 1
+            }
         }
     },
     "RULE007": {
+        "id": "RULE007",
         "name": "Consecutive Leave Limit",
-        "description": "Maximum consecutive days allowed at once",
-        "max_consecutive": {
-            "Annual Leave": 10,
-            "Sick Leave": 5,
-            "Emergency Leave": 3,
-            "Personal Leave": 3
+        "description": "Maximum consecutive days allowed for each leave type",
+        "category": "limits",
+        "is_blocking": True,
+        "priority": 85,
+        "is_active": True,
+        "config": {
+            "max_consecutive": {
+                "Annual Leave": 10,
+                "Sick Leave": 5,
+                "Emergency Leave": 3,
+                "Personal Leave": 3,
+                "Study Leave": 5,
+                "LWP": 15,
+                "Comp Off": 2
+            }
+        }
+    },
+    "RULE008": {
+        "id": "RULE008",
+        "name": "Weekend/Holiday Sandwich Rule",
+        "description": "Count weekends/holidays between leave days as leave",
+        "category": "calculation",
+        "is_blocking": False,
+        "priority": 70,
+        "is_active": True,
+        "config": {
+            "enabled": True,
+            "min_gap_days": 1,
+            "applies_to": ["Annual Leave", "Personal Leave"]
+        }
+    },
+    "RULE009": {
+        "id": "RULE009",
+        "name": "Minimum Gap Between Leaves",
+        "description": "Required gap between consecutive leave requests",
+        "category": "limits",
+        "is_blocking": False,
+        "priority": 75,
+        "is_active": True,
+        "config": {
+            "min_gap_days": 7,
+            "applies_to": ["Annual Leave", "Personal Leave"],
+            "exception_types": ["Sick Leave", "Emergency Leave", "Bereavement Leave"]
+        }
+    },
+    "RULE010": {
+        "id": "RULE010",
+        "name": "Probation Period Restriction",
+        "description": "Limit leave types available during probation",
+        "category": "eligibility",
+        "is_blocking": True,
+        "priority": 98,
+        "is_active": True,
+        "config": {
+            "probation_months": 6,
+            "allowed_during_probation": ["Sick Leave", "Emergency Leave", "Bereavement Leave"],
+            "restricted_types": ["Annual Leave", "Personal Leave", "Study Leave"]
+        }
+    },
+    "RULE011": {
+        "id": "RULE011",
+        "name": "Critical Project Freeze",
+        "description": "Restrict leaves during critical project periods",
+        "category": "blackout",
+        "is_blocking": False,
+        "priority": 85,
+        "is_active": False,
+        "config": {
+            "enabled": False,
+            "freeze_periods": [],
+            "exception_types": ["Sick Leave", "Emergency Leave", "Bereavement Leave"]
+        }
+    },
+    "RULE012": {
+        "id": "RULE012",
+        "name": "Document Requirement",
+        "description": "Require supporting documents for certain leave types/durations",
+        "category": "documentation",
+        "is_blocking": False,
+        "priority": 60,
+        "is_active": True,
+        "config": {
+            "require_document_above_days": 3,
+            "always_require_for": ["Sick Leave", "Study Leave", "Maternity Leave", "Paternity Leave"],
+            "document_types": ["medical_certificate", "proof_of_event", "other"]
         }
     },
     "RULE013": {
+        "id": "RULE013",
         "name": "Monthly Leave Quota",
         "description": "Maximum leaves per month per employee",
-        "max_per_month": 5
+        "category": "limits",
+        "is_blocking": False,
+        "priority": 65,
+        "is_active": True,
+        "config": {
+            "max_per_month": 5,
+            "exception_types": ["Sick Leave", "Emergency Leave", "Bereavement Leave"]
+        }
     },
     "RULE014": {
+        "id": "RULE014",
         "name": "Half-Day Leave Escalation",
         "description": "Half-day leaves require HR approval - never auto-approved",
-        "always_escalate": True,
-        "priority": "HIGH"
+        "category": "escalation",
+        "is_blocking": False,
+        "priority": 50,
+        "is_active": True,
+        "config": {
+            "always_escalate": True,
+            "escalate_to": "hr"
+        }
     }
 }
+
+# Active constraint rules (loaded dynamically per organization)
+# This global is used as a fallback - prefer get_org_constraint_rules() for org-specific rules
+CONSTRAINT_RULES = DEFAULT_CONSTRAINT_RULES.copy()
+
+# Cache for organization-specific rules (org_id -> rules dict)
+_org_rules_cache = {}
+_org_rules_cache_time = {}
+CACHE_TTL_SECONDS = 300  # 5 minutes cache
+
+
+def get_org_constraint_rules(org_id: str) -> Dict:
+    """
+    Get constraint rules for a specific organization.
+    Fetches from database if available, otherwise returns defaults.
+    Uses caching to avoid repeated DB calls.
+    """
+    global _org_rules_cache, _org_rules_cache_time
+    
+    # Check cache first
+    cache_key = org_id or "default"
+    now = datetime.now()
+    
+    if cache_key in _org_rules_cache:
+        cache_time = _org_rules_cache_time.get(cache_key)
+        if cache_time and (now - cache_time).total_seconds() < CACHE_TTL_SECONDS:
+            print(f"📦 Using cached rules for org: {cache_key}", file=sys.stderr)
+            return _org_rules_cache[cache_key]
+    
+    # Fetch from database
+    conn = get_db_connection()
+    if not conn:
+        print(f"⚠️ No DB connection, using default rules", file=sys.stderr)
+        return DEFAULT_CONSTRAINT_RULES
+    
+    try:
+        cur = conn.cursor(row_factory=dict_row)
+        
+        # Query constraint_policies table for org-specific rules
+        cur.execute("""
+            SELECT rules FROM constraint_policies 
+            WHERE org_id = %s AND is_active = true
+            ORDER BY updated_at DESC LIMIT 1
+        """, (org_id,))
+        
+        result = cur.fetchone()
+        cur.close()
+        conn.close()
+        
+        if result and result.get('rules'):
+            org_rules = result['rules']
+            
+            # If rules is a string (JSON), parse it
+            if isinstance(org_rules, str):
+                org_rules = json.loads(org_rules)
+            
+            # Filter to only active rules
+            active_rules = {}
+            for rule_id, rule_data in org_rules.items():
+                if rule_data.get('is_active', True):
+                    # Normalize the rule structure for backwards compatibility
+                    active_rules[rule_id] = normalize_rule_format(rule_id, rule_data)
+            
+            # Cache the result
+            _org_rules_cache[cache_key] = active_rules
+            _org_rules_cache_time[cache_key] = now
+            
+            print(f"✅ Loaded {len(active_rules)} active rules for org: {org_id}", file=sys.stderr)
+            return active_rules
+        else:
+            # No custom rules, use defaults
+            print(f"📋 No custom rules for org {org_id}, using defaults", file=sys.stderr)
+            _org_rules_cache[cache_key] = DEFAULT_CONSTRAINT_RULES
+            _org_rules_cache_time[cache_key] = now
+            return DEFAULT_CONSTRAINT_RULES
+            
+    except Exception as e:
+        print(f"❌ Error fetching org rules: {e}", file=sys.stderr)
+        if conn:
+            conn.close()
+        return DEFAULT_CONSTRAINT_RULES
+
+
+def normalize_rule_format(rule_id: str, rule_data: Dict) -> Dict:
+    """
+    Normalize rule data format for backwards compatibility.
+    Ensures config is properly structured even if stored in flat format.
+    """
+    # Get default rule structure as template
+    default = DEFAULT_CONSTRAINT_RULES.get(rule_id, {})
+    
+    normalized = {
+        "id": rule_id,
+        "name": rule_data.get("name", default.get("name", rule_id)),
+        "description": rule_data.get("description", default.get("description", "")),
+        "category": rule_data.get("category", default.get("category", "limits")),
+        "is_blocking": rule_data.get("is_blocking", default.get("is_blocking", True)),
+        "priority": rule_data.get("priority", default.get("priority", 50)),
+        "is_active": rule_data.get("is_active", True),
+        "is_custom": rule_data.get("is_custom", False),
+    }
+    
+    # Handle config - might be nested or flat
+    if "config" in rule_data:
+        normalized["config"] = rule_data["config"]
+    else:
+        # Try to extract config from flat structure (old format compatibility)
+        config = {}
+        
+        # RULE001: limits
+        if "limits" in rule_data:
+            config["limits"] = rule_data["limits"]
+        
+        # RULE003: min_coverage_percent
+        if "min_coverage_percent" in rule_data:
+            config["min_coverage_percent"] = rule_data["min_coverage_percent"]
+        
+        # RULE004: max_concurrent
+        if "max_concurrent" in rule_data:
+            config["max_concurrent"] = rule_data["max_concurrent"]
+        
+        # RULE006: notice_days
+        if "notice_days" in rule_data:
+            config["notice_days"] = rule_data["notice_days"]
+        
+        # RULE007: max_consecutive
+        if "max_consecutive" in rule_data:
+            config["max_consecutive"] = rule_data["max_consecutive"]
+        
+        # RULE013: max_per_month
+        if "max_per_month" in rule_data:
+            config["max_per_month"] = rule_data["max_per_month"]
+        
+        # RULE014: always_escalate
+        if "always_escalate" in rule_data:
+            config["always_escalate"] = rule_data["always_escalate"]
+        
+        # Use default config if nothing extracted
+        normalized["config"] = config if config else default.get("config", {})
+    
+    return normalized
+
+
+def clear_org_rules_cache(org_id: str = None):
+    """Clear the rules cache for an organization or all orgs"""
+    global _org_rules_cache, _org_rules_cache_time
+    if org_id:
+        _org_rules_cache.pop(org_id, None)
+        _org_rules_cache_time.pop(org_id, None)
+    else:
+        _org_rules_cache.clear()
+        _org_rules_cache_time.clear()
+    print(f"🗑️ Rules cache cleared for: {org_id or 'all'}", file=sys.stderr)
+
+
+def get_rule_config(rules: Dict, rule_id: str, config_key: str, default=None):
+    """
+    Safely get a config value from a rule, handling both nested and flat structures.
+    """
+    rule = rules.get(rule_id, {})
+    config = rule.get("config", {})
+    
+    # Check nested config first
+    if config_key in config:
+        return config[config_key]
+    
+    # Check flat structure (old format)
+    if config_key in rule:
+        return rule[config_key]
+    
+    # Return default
+    return default
 
 
 from urllib.parse import urlparse, unquote
@@ -759,20 +1080,35 @@ def get_monthly_leave_count(emp_id: str, month: int, year: int) -> int:
 
 # ============================================================
 # CONSTRAINT EVALUATION FUNCTIONS
+# All functions now accept 'rules' parameter for dynamic rule configuration
 # ============================================================
 
-def check_rule001_max_duration(leave_info: Dict) -> Dict:
+def check_rule001_max_duration(leave_info: Dict, rules: Dict = None) -> Dict:
     """RULE001: Check maximum leave duration"""
+    if rules is None:
+        rules = CONSTRAINT_RULES
+    
+    # Check if rule is active
+    rule = rules.get("RULE001", {})
+    if not rule.get("is_active", True):
+        return {"rule_id": "RULE001", "rule_name": "Maximum Leave Duration", "passed": True, 
+                "skipped": True, "message": "Rule disabled"}
+    
     leave_type = leave_info['leave_type']
     days = leave_info['days_requested']
-    max_allowed = CONSTRAINT_RULES["RULE001"]["limits"].get(leave_type, 20)
+    
+    # Get limits from config or flat structure
+    config = rule.get("config", rule)
+    limits = config.get("limits", {})
+    max_allowed = limits.get(leave_type, 20)
     
     passed = days <= max_allowed
     
     return {
         "rule_id": "RULE001",
-        "rule_name": "Maximum Leave Duration",
+        "rule_name": rule.get("name", "Maximum Leave Duration"),
         "passed": passed,
+        "is_blocking": rule.get("is_blocking", True),
         "details": {
             "requested_days": days,
             "max_allowed": max_allowed,
@@ -783,8 +1119,16 @@ def check_rule001_max_duration(leave_info: Dict) -> Dict:
     }
 
 
-def check_rule002_balance(emp_id: str, leave_info: Dict) -> Dict:
+def check_rule002_balance(emp_id: str, leave_info: Dict, rules: Dict = None) -> Dict:
     """RULE002: Check leave balance"""
+    if rules is None:
+        rules = CONSTRAINT_RULES
+    
+    rule = rules.get("RULE002", {})
+    if not rule.get("is_active", True):
+        return {"rule_id": "RULE002", "rule_name": "Leave Balance Check", "passed": True,
+                "skipped": True, "message": "Rule disabled"}
+    
     leave_type = leave_info['leave_type']
     days = leave_info['days_requested']
     balance = get_leave_balance(emp_id, leave_type)
@@ -793,8 +1137,9 @@ def check_rule002_balance(emp_id: str, leave_info: Dict) -> Dict:
     
     return {
         "rule_id": "RULE002",
-        "rule_name": "Leave Balance Check",
+        "rule_name": rule.get("name", "Leave Balance Check"),
         "passed": passed,
+        "is_blocking": rule.get("is_blocking", True),
         "details": {
             "current_balance": balance,
             "requested_days": days,
@@ -805,21 +1150,34 @@ def check_rule002_balance(emp_id: str, leave_info: Dict) -> Dict:
     }
 
 
-def check_rule003_team_coverage(emp_id: str, leave_info: Dict) -> Dict:
+def check_rule003_team_coverage(emp_id: str, leave_info: Dict, rules: Dict = None) -> Dict:
     """RULE003: Check minimum team coverage"""
+    if rules is None:
+        rules = CONSTRAINT_RULES
+    
+    rule = rules.get("RULE003", {})
+    if not rule.get("is_active", True):
+        return {"rule_id": "RULE003", "rule_name": "Minimum Team Coverage", "passed": True,
+                "skipped": True, "message": "Rule disabled"}
+    
     team_status = get_team_status(emp_id, leave_info['start_date'], leave_info['end_date'])
     
     team_size = team_status['team_size']
     would_be_available = team_status['available']
-    min_required = team_status['min_coverage']
+    
+    # Get min coverage from rule config
+    config = rule.get("config", rule)
+    min_coverage_percent = config.get("min_coverage_percent", 60)
+    min_required = max(1, round(team_size * (min_coverage_percent / 100)))
     
     passed = would_be_available >= min_required
     coverage_percent = round((would_be_available / team_size) * 100) if team_size > 0 else 0
     
     return {
         "rule_id": "RULE003",
-        "rule_name": "Minimum Team Coverage",
+        "rule_name": rule.get("name", "Minimum Team Coverage"),
         "passed": passed,
+        "is_blocking": rule.get("is_blocking", True),
         "details": {
             "team_name": team_status.get('team_name', 'Unknown'),
             "team_size": team_size,
@@ -834,19 +1192,29 @@ def check_rule003_team_coverage(emp_id: str, leave_info: Dict) -> Dict:
     }
 
 
-def check_rule004_concurrent_leave(emp_id: str, leave_info: Dict) -> Dict:
+def check_rule004_concurrent_leave(emp_id: str, leave_info: Dict, rules: Dict = None) -> Dict:
     """RULE004: Check maximum concurrent leaves"""
+    if rules is None:
+        rules = CONSTRAINT_RULES
+    
+    rule = rules.get("RULE004", {})
+    if not rule.get("is_active", True):
+        return {"rule_id": "RULE004", "rule_name": "Maximum Concurrent Leave", "passed": True,
+                "skipped": True, "message": "Rule disabled"}
+    
     team_status = get_team_status(emp_id, leave_info['start_date'], leave_info['end_date'])
     
     would_be_on_leave = team_status['would_be_on_leave']
-    max_concurrent = CONSTRAINT_RULES["RULE004"]["max_concurrent"]
+    config = rule.get("config", rule)
+    max_concurrent = config.get("max_concurrent", 2)
     
     passed = would_be_on_leave <= max_concurrent
     
     return {
         "rule_id": "RULE004",
-        "rule_name": "Maximum Concurrent Leave",
+        "rule_name": rule.get("name", "Maximum Concurrent Leave"),
         "passed": passed,
+        "is_blocking": rule.get("is_blocking", True),
         "details": {
             "current_on_leave": team_status['on_leave'],
             "would_be_on_leave": would_be_on_leave,
@@ -857,8 +1225,16 @@ def check_rule004_concurrent_leave(emp_id: str, leave_info: Dict) -> Dict:
     }
 
 
-def check_rule005_blackout(leave_info: Dict) -> Dict:
+def check_rule005_blackout(leave_info: Dict, rules: Dict = None) -> Dict:
     """RULE005: Check blackout dates"""
+    if rules is None:
+        rules = CONSTRAINT_RULES
+    
+    rule = rules.get("RULE005", {})
+    if not rule.get("is_active", True):
+        return {"rule_id": "RULE005", "rule_name": "Blackout Period Check", "passed": True,
+                "skipped": True, "message": "Rule disabled"}
+    
     blackouts = get_blackout_dates(leave_info['start_date'], leave_info['end_date'])
     
     passed = len(blackouts) == 0
@@ -867,8 +1243,9 @@ def check_rule005_blackout(leave_info: Dict) -> Dict:
     
     return {
         "rule_id": "RULE005",
-        "rule_name": "Blackout Period Check",
+        "rule_name": rule.get("name", "Blackout Period Check"),
         "passed": passed,
+        "is_blocking": rule.get("is_blocking", True),
         "details": {
             "blackout_dates": blackouts,
             "conflicts": blackout_names
@@ -878,22 +1255,33 @@ def check_rule005_blackout(leave_info: Dict) -> Dict:
     }
 
 
-def check_rule006_notice(leave_info: Dict) -> Dict:
+def check_rule006_notice(leave_info: Dict, rules: Dict = None) -> Dict:
     """RULE006: Check advance notice requirement"""
+    if rules is None:
+        rules = CONSTRAINT_RULES
+    
+    rule = rules.get("RULE006", {})
+    if not rule.get("is_active", True):
+        return {"rule_id": "RULE006", "rule_name": "Advance Notice Requirement", "passed": True,
+                "skipped": True, "message": "Rule disabled"}
+    
     leave_type = leave_info['leave_type']
     start_date = datetime.strptime(leave_info['start_date'], "%Y-%m-%d")
     today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
     
     days_notice = (start_date - today).days
-    required_notice = CONSTRAINT_RULES["RULE006"]["notice_days"].get(leave_type, 3)
+    config = rule.get("config", rule)
+    notice_days_map = config.get("notice_days", {})
+    required_notice = notice_days_map.get(leave_type, 3)
     
     # If no notice required (0), always pass. Otherwise check days_notice >= required
     passed = (required_notice == 0) or (days_notice >= required_notice)
     
     return {
         "rule_id": "RULE006",
-        "rule_name": "Advance Notice Requirement",
+        "rule_name": rule.get("name", "Advance Notice Requirement"),
         "passed": passed,
+        "is_blocking": rule.get("is_blocking", False),
         "details": {
             "days_notice_given": days_notice,
             "days_required": required_notice,
@@ -904,18 +1292,29 @@ def check_rule006_notice(leave_info: Dict) -> Dict:
     }
 
 
-def check_rule007_consecutive(leave_info: Dict) -> Dict:
+def check_rule007_consecutive(leave_info: Dict, rules: Dict = None) -> Dict:
     """RULE007: Check consecutive leave limit"""
+    if rules is None:
+        rules = CONSTRAINT_RULES
+    
+    rule = rules.get("RULE007", {})
+    if not rule.get("is_active", True):
+        return {"rule_id": "RULE007", "rule_name": "Consecutive Leave Limit", "passed": True,
+                "skipped": True, "message": "Rule disabled"}
+    
     leave_type = leave_info['leave_type']
     days = leave_info['days_requested']
-    max_consecutive = CONSTRAINT_RULES["RULE007"]["max_consecutive"].get(leave_type, 10)
+    config = rule.get("config", rule)
+    max_consecutive_map = config.get("max_consecutive", {})
+    max_consecutive = max_consecutive_map.get(leave_type, 10)
     
     passed = days <= max_consecutive
     
     return {
         "rule_id": "RULE007",
-        "rule_name": "Consecutive Leave Limit",
+        "rule_name": rule.get("name", "Consecutive Leave Limit"),
         "passed": passed,
+        "is_blocking": rule.get("is_blocking", True),
         "details": {
             "requested_consecutive": days,
             "max_consecutive": max_consecutive
@@ -925,22 +1324,32 @@ def check_rule007_consecutive(leave_info: Dict) -> Dict:
     }
 
 
-def check_rule013_monthly_quota(emp_id: str, leave_info: Dict) -> Dict:
+def check_rule013_monthly_quota(emp_id: str, leave_info: Dict, rules: Dict = None) -> Dict:
     """RULE013: Check monthly leave quota"""
+    if rules is None:
+        rules = CONSTRAINT_RULES
+    
+    rule = rules.get("RULE013", {})
+    if not rule.get("is_active", True):
+        return {"rule_id": "RULE013", "rule_name": "Monthly Leave Quota", "passed": True,
+                "skipped": True, "message": "Rule disabled"}
+    
     start_date = datetime.strptime(leave_info['start_date'], "%Y-%m-%d")
     month = start_date.month
     year = start_date.year
     
     current_monthly = get_monthly_leave_count(emp_id, month, year)
     new_total = current_monthly + leave_info['days_requested']
-    max_monthly = CONSTRAINT_RULES["RULE013"]["max_per_month"]
+    config = rule.get("config", rule)
+    max_monthly = config.get("max_per_month", 5)
     
     passed = new_total <= max_monthly
     
     return {
         "rule_id": "RULE013",
-        "rule_name": "Monthly Leave Quota",
+        "rule_name": rule.get("name", "Monthly Leave Quota"),
         "passed": passed,
+        "is_blocking": rule.get("is_blocking", False),
         "details": {
             "already_taken_this_month": current_monthly,
             "requesting": leave_info['days_requested'],
@@ -952,8 +1361,16 @@ def check_rule013_monthly_quota(emp_id: str, leave_info: Dict) -> Dict:
     }
 
 
-def check_rule014_half_day(leave_info: Dict) -> Dict:
+def check_rule014_half_day(leave_info: Dict, rules: Dict = None) -> Dict:
     """RULE014: Half-day leaves ALWAYS require HR approval - never auto-approved"""
+    if rules is None:
+        rules = CONSTRAINT_RULES
+    
+    rule = rules.get("RULE014", {})
+    if not rule.get("is_active", True):
+        return {"rule_id": "RULE014", "rule_name": "Half-Day Leave Escalation", "passed": True,
+                "skipped": True, "message": "Rule disabled"}
+    
     is_half_day = leave_info.get('is_half_day', False)
     
     # Also detect from leave_type name
@@ -970,8 +1387,9 @@ def check_rule014_half_day(leave_info: Dict) -> Dict:
     
     return {
         "rule_id": "RULE014",
-        "rule_name": "Half-Day Leave Escalation",
+        "rule_name": rule.get("name", "Half-Day Leave Escalation"),
         "passed": passed,
+        "is_blocking": rule.get("is_blocking", False),
         "details": {
             "is_half_day": is_half_day,
             "priority": "HIGH" if is_half_day else "NORMAL",
@@ -983,19 +1401,40 @@ def check_rule014_half_day(leave_info: Dict) -> Dict:
 
 
 # ============================================================
-# MAIN CONSTRAINT ENGINE
+# MAIN CONSTRAINT ENGINE - NOW FULLY DYNAMIC
 # ============================================================
 
-def evaluate_all_constraints(emp_id: str, leave_info: Dict, custom_rules: Dict = None) -> Dict:
+def evaluate_all_constraints(emp_id: str, leave_info: Dict, org_id: str = None) -> Dict:
+    """
+    Evaluate all active constraint rules for a leave request.
+    
+    Args:
+        emp_id: Employee ID
+        leave_info: Leave request details
+        org_id: Organization ID (optional - fetches org-specific rules if provided)
+    
+    Returns:
+        Complete evaluation result with all constraint checks
+    """
     start_time = datetime.now()
     results = []
     violations = []
+    warnings = []
     passed_rules = []
+    skipped_rules = []
     
-    # Merge custom rules with defaults if needed
-    # Note: Current implementation uses global CONSTRAINT_RULES. 
-    # If custom_rules are needed, we'd need to update the check functions.
-    # For now, we proceed with global rules to avoid breaking function signatures.
+    # Get organization-specific rules or defaults
+    if org_id:
+        rules = get_org_constraint_rules(org_id)
+        print(f"📋 Using {len(rules)} rules for org: {org_id}", file=sys.stderr)
+    else:
+        # Try to get org_id from employee
+        employee = get_employee_info(emp_id)
+        if employee and employee.get('org_id'):
+            rules = get_org_constraint_rules(employee['org_id'])
+        else:
+            rules = DEFAULT_CONSTRAINT_RULES
+            print(f"⚠️ No org_id, using default rules", file=sys.stderr)
 
     # Ensure leave_info has all necessary fields
     if 'days_requested' not in leave_info:
@@ -1004,27 +1443,50 @@ def evaluate_all_constraints(emp_id: str, leave_info: Dict, custom_rules: Dict =
         end = datetime.strptime(leave_info['end_date'], "%Y-%m-%d")
         leave_info['days_requested'] = (end - start).days + 1
 
-    # Checks
-    checks = [
-        check_rule001_max_duration(leave_info),
-        check_rule002_balance(emp_id, leave_info),
-        check_rule003_team_coverage(emp_id, leave_info),
-        check_rule004_concurrent_leave(emp_id, leave_info),
-        check_rule005_blackout(leave_info),
-        check_rule006_notice(leave_info),
-        check_rule007_consecutive(leave_info),
-        check_rule013_monthly_quota(emp_id, leave_info),
-        check_rule014_half_day(leave_info),  # Half-day always escalates
-    ]
+    # Run all checks - passing the rules dict to each function
+    # Only run checks for rules that exist in the rules dict
+    checks = []
     
+    if "RULE001" in rules:
+        checks.append(check_rule001_max_duration(leave_info, rules))
+    if "RULE002" in rules:
+        checks.append(check_rule002_balance(emp_id, leave_info, rules))
+    if "RULE003" in rules:
+        checks.append(check_rule003_team_coverage(emp_id, leave_info, rules))
+    if "RULE004" in rules:
+        checks.append(check_rule004_concurrent_leave(emp_id, leave_info, rules))
+    if "RULE005" in rules:
+        checks.append(check_rule005_blackout(leave_info, rules))
+    if "RULE006" in rules:
+        checks.append(check_rule006_notice(leave_info, rules))
+    if "RULE007" in rules:
+        checks.append(check_rule007_consecutive(leave_info, rules))
+    if "RULE013" in rules:
+        checks.append(check_rule013_monthly_quota(emp_id, leave_info, rules))
+    if "RULE014" in rules:
+        checks.append(check_rule014_half_day(leave_info, rules))
+    
+    # Process results
     for check in checks:
         results.append(check)
+        
+        # Handle skipped rules
+        if check.get('skipped'):
+            skipped_rules.append(check['rule_id'])
+            continue
+            
         if not check['passed']:
-            violations.append(check)
+            # Check if this is a blocking violation or just a warning
+            if check.get('is_blocking', True):
+                violations.append(check)
+            else:
+                warnings.append(check)
         else:
             passed_rules.append(check['rule_id'])
             
     processing_time = (datetime.now() - start_time).total_seconds() * 1000
+    
+    # Determine outcome: Only blocking violations prevent approval
     all_passed = len(violations) == 0
     
     # Get employee info for response
@@ -1036,11 +1498,13 @@ def evaluate_all_constraints(emp_id: str, leave_info: Dict, custom_rules: Dict =
         "approved": all_passed,
         "status": "APPROVED" if all_passed else "ESCALATE_TO_HR",
         "recommendation": "approve" if all_passed else "escalate",
+        "has_warnings": len(warnings) > 0,
         "employee": {
             "emp_id": emp_id,
             "name": employee['full_name'] if employee else "Unknown",
             "department": employee['department'] if employee else "Unknown",
-            "team": team_status.get('team_name', 'Unknown')
+            "team": team_status.get('team_name', 'Unknown'),
+            "org_id": employee.get('org_id') if employee else None
         },
         "leave_request": {
             "type": leave_info['leave_type'],
@@ -1064,13 +1528,19 @@ def evaluate_all_constraints(emp_id: str, leave_info: Dict, custom_rules: Dict =
             "total_rules": len(results),
             "passed": len(passed_rules),
             "failed": len(violations),
+            "warnings_count": len(warnings),
+            "skipped": len(skipped_rules),
             "passed_rules": passed_rules,
             "violations": violations,
-            "all_checks": results
+            "warnings": warnings,
+            "skipped_rules": skipped_rules,
+            "all_checks": results,
+            "rules_loaded": len(rules)
         },
         "violations": violations,
+        "warnings": warnings,
         "processing_time_ms": round(processing_time, 2),
-        "decision_reason": "All constraints satisfied" if all_passed else f"{len(violations)} constraint(s) violated",
+        "decision_reason": "All constraints satisfied" if all_passed else f"{len(violations)} blocking constraint(s) violated",
         "suggestions": generate_suggestions(violations, leave_info) if not all_passed else []
     }
 
@@ -1343,18 +1813,67 @@ def home():
     """Service health check"""
     return jsonify({
         "status": "online",
-        "service": "Constraint Satisfaction Engine",
-        "version": "1.0.0",
-        "endpoints": ["/rules", "/validate", "/analyze", "/evaluate"]
+        "service": "Dynamic Constraint Satisfaction Engine",
+        "version": "2.0.0",
+        "features": [
+            "Organization-specific rules",
+            "Dynamic rule configuration",
+            "Blocking vs warning violations",
+            "Rule caching with TTL"
+        ],
+        "endpoints": ["/rules", "/rules/<org_id>", "/validate", "/analyze", "/evaluate", "/cache/clear"]
     })
 
 
 @app.route('/rules', methods=['GET'])
 def get_rules():
-    """Get all constraint rules"""
+    """Get default constraint rules or org-specific rules"""
+    org_id = request.args.get('org_id')
+    
+    if org_id:
+        rules = get_org_constraint_rules(org_id)
+        return jsonify({
+            "org_id": org_id,
+            "total_rules": len(rules),
+            "active_rules": len([r for r in rules.values() if r.get('is_active', True)]),
+            "rules": rules,
+            "is_custom": True
+        })
+    else:
+        return jsonify({
+            "total_rules": len(DEFAULT_CONSTRAINT_RULES),
+            "rules": DEFAULT_CONSTRAINT_RULES,
+            "is_custom": False,
+            "note": "Pass ?org_id=xxx to get organization-specific rules"
+        })
+
+
+@app.route('/rules/<org_id>', methods=['GET'])
+def get_org_rules(org_id: str):
+    """Get rules for a specific organization"""
+    rules = get_org_constraint_rules(org_id)
+    active_count = len([r for r in rules.values() if r.get('is_active', True)])
+    
     return jsonify({
-        "total_rules": len(CONSTRAINT_RULES),
-        "rules": CONSTRAINT_RULES
+        "org_id": org_id,
+        "total_rules": len(rules),
+        "active_rules": active_count,
+        "inactive_rules": len(rules) - active_count,
+        "rules": rules
+    })
+
+
+@app.route('/cache/clear', methods=['POST'])
+def clear_cache():
+    """Clear the rules cache (useful after HR updates rules)"""
+    data = request.json or {}
+    org_id = data.get('org_id')
+    
+    clear_org_rules_cache(org_id)
+    
+    return jsonify({
+        "success": True,
+        "message": f"Cache cleared for: {org_id or 'all organizations'}"
     })
 
 
@@ -1364,36 +1883,64 @@ def validate_quick():
     data = request.json or {}
     leave_type = data.get('leave_type', 'Annual Leave')
     days = data.get('days', 1)
+    org_id = data.get('org_id')
     
-    max_allowed = CONSTRAINT_RULES["RULE001"]["limits"].get(leave_type, 20)
-    max_consecutive = CONSTRAINT_RULES["RULE007"]["max_consecutive"].get(leave_type, 10)
-    notice_required = CONSTRAINT_RULES["RULE006"]["notice_days"].get(leave_type, 3)
+    # Get org-specific rules if available
+    rules = get_org_constraint_rules(org_id) if org_id else DEFAULT_CONSTRAINT_RULES
+    
+    # Get config from rules
+    rule001 = rules.get("RULE001", {})
+    rule006 = rules.get("RULE006", {})
+    rule007 = rules.get("RULE007", {})
+    
+    config001 = rule001.get("config", rule001)
+    config006 = rule006.get("config", rule006)
+    config007 = rule007.get("config", rule007)
+    
+    limits = config001.get("limits", {})
+    notice_days = config006.get("notice_days", {})
+    max_consecutive_map = config007.get("max_consecutive", {})
+    
+    max_allowed = limits.get(leave_type, 20)
+    max_consecutive = max_consecutive_map.get(leave_type, 10)
+    notice_required = notice_days.get(leave_type, 3)
     
     return jsonify({
         "leave_type": leave_type,
         "requested_days": days,
+        "org_id": org_id,
         "validations": {
             "max_duration": {
                 "valid": days <= max_allowed,
-                "max": max_allowed
+                "max": max_allowed,
+                "rule_active": rule001.get("is_active", True)
             },
             "max_consecutive": {
                 "valid": days <= max_consecutive,
-                "max": max_consecutive
+                "max": max_consecutive,
+                "rule_active": rule007.get("is_active", True)
             },
-            "notice_required": notice_required
+            "notice_required": notice_required,
+            "notice_rule_active": rule006.get("is_active", True)
         }
     })
 
 
 if __name__ == '__main__':
     print("\n" + "="*60)
-    print("[*] CONSTRAINT SATISFACTION ENGINE")
+    print("[*] DYNAMIC CONSTRAINT SATISFACTION ENGINE v2.0")
     print("="*60)
-    print(f"[*] Total Rules: {len(CONSTRAINT_RULES)}")
+    print(f"[*] Default Rules: {len(DEFAULT_CONSTRAINT_RULES)}")
     print("[*] Rules loaded:")
-    for rule_id, rule in CONSTRAINT_RULES.items():
-        print(f"   - {rule_id}: {rule['name']}")
+    for rule_id, rule in DEFAULT_CONSTRAINT_RULES.items():
+        status = "✅" if rule.get('is_active', True) else "⏸️"
+        blocking = "🚫" if rule.get('is_blocking', True) else "⚠️"
+        print(f"   {status} {blocking} {rule_id}: {rule['name']}")
+    
+    print("\n[*] Features:")
+    print("   - Dynamic org-specific rules")
+    print("   - Rule caching with 5-min TTL")
+    print("   - Blocking vs warning violations")
     
     # Check Database Connection on Startup
     test_db_connection()

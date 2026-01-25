@@ -1567,6 +1567,144 @@ function LeavePoliciesSection({
                 </CardContent>
             </Card>
 
+            {/* Constraint Rules Preview */}
+            <Card className="border-purple-500/30 bg-purple-500/5">
+                <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2 text-purple-600">
+                        <Settings2 className="h-5 w-5" />
+                        Constraint Rules Preview
+                    </CardTitle>
+                    <CardDescription>
+                        These 14 AI constraint rules will be created based on your settings above. You can fine-tune them later in HR → Constraint Rules.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        {/* Rule 1 - Max Duration */}
+                        <div className="flex items-center gap-2 p-2 rounded border bg-background">
+                            <div className="w-2 h-2 rounded-full bg-blue-500" />
+                            <span className="text-sm flex-1">Maximum Leave Duration</span>
+                            <Badge variant="secondary" className="text-xs">
+                                {approvalSettings.escalate_above_days}+ days → escalate
+                            </Badge>
+                        </div>
+                        
+                        {/* Rule 2 - Balance Check */}
+                        <div className="flex items-center gap-2 p-2 rounded border bg-background">
+                            <div className="w-2 h-2 rounded-full bg-green-500" />
+                            <span className="text-sm flex-1">Leave Balance Check</span>
+                            <Badge variant="secondary" className="text-xs">
+                                {approvalSettings.escalate_low_balance ? "Strict" : "Flexible"}
+                            </Badge>
+                        </div>
+                        
+                        {/* Rule 3 - Team Coverage */}
+                        <div className="flex items-center gap-2 p-2 rounded border bg-background">
+                            <div className="w-2 h-2 rounded-full bg-purple-500" />
+                            <span className="text-sm flex-1">Minimum Team Coverage</span>
+                            <Badge variant="secondary" className="text-xs">
+                                Min {approvalSettings.min_team_coverage} present
+                            </Badge>
+                        </div>
+                        
+                        {/* Rule 4 - Concurrent Leaves */}
+                        <div className="flex items-center gap-2 p-2 rounded border bg-background">
+                            <div className="w-2 h-2 rounded-full bg-purple-500" />
+                            <span className="text-sm flex-1">Max Concurrent Leaves</span>
+                            <Badge variant="secondary" className="text-xs">
+                                Max {approvalSettings.max_concurrent_leaves}
+                            </Badge>
+                        </div>
+                        
+                        {/* Rule 5 - Blackout Periods */}
+                        <div className="flex items-center gap-2 p-2 rounded border bg-background">
+                            <div className="w-2 h-2 rounded-full bg-red-500" />
+                            <span className="text-sm flex-1">Blackout Period Check</span>
+                            <Badge variant={approvalSettings.blackout_dates.length > 0 || approvalSettings.blackout_days_of_week.length > 0 ? "default" : "outline"} className="text-xs">
+                                {approvalSettings.blackout_dates.length + approvalSettings.blackout_days_of_week.length > 0 ? "Active" : "No blackouts"}
+                            </Badge>
+                        </div>
+                        
+                        {/* Rule 6 - Notice Period */}
+                        <div className="flex items-center gap-2 p-2 rounded border bg-background">
+                            <div className="w-2 h-2 rounded-full bg-yellow-500" />
+                            <span className="text-sm flex-1">Advance Notice Required</span>
+                            <Badge variant="secondary" className="text-xs">
+                                {approvalSettings.auto_approve_min_notice} days
+                            </Badge>
+                        </div>
+                        
+                        {/* Rule 7 - Consecutive Leaves */}
+                        <div className="flex items-center gap-2 p-2 rounded border bg-background">
+                            <div className="w-2 h-2 rounded-full bg-blue-500" />
+                            <span className="text-sm flex-1">Consecutive Leave Limit</span>
+                            <Badge variant={approvalSettings.escalate_consecutive_leaves ? "default" : "outline"} className="text-xs">
+                                {approvalSettings.escalate_consecutive_leaves ? "Enabled" : "Disabled"}
+                            </Badge>
+                        </div>
+                        
+                        {/* Rule 8 - Sandwich Rule */}
+                        <div className="flex items-center gap-2 p-2 rounded border bg-background">
+                            <div className="w-2 h-2 rounded-full bg-cyan-500" />
+                            <span className="text-sm flex-1">Weekend Sandwich Rule</span>
+                            <Badge variant="secondary" className="text-xs">Active</Badge>
+                        </div>
+                        
+                        {/* Rule 9 - Gap Between Leaves */}
+                        <div className="flex items-center gap-2 p-2 rounded border bg-background">
+                            <div className="w-2 h-2 rounded-full bg-blue-500" />
+                            <span className="text-sm flex-1">Minimum Gap Between Leaves</span>
+                            <Badge variant={approvalSettings.escalate_consecutive_leaves ? "default" : "outline"} className="text-xs">
+                                {approvalSettings.escalate_consecutive_leaves ? "7 days" : "Disabled"}
+                            </Badge>
+                        </div>
+                        
+                        {/* Rule 10 - Probation */}
+                        <div className="flex items-center gap-2 p-2 rounded border bg-background">
+                            <div className="w-2 h-2 rounded-full bg-orange-500" />
+                            <span className="text-sm flex-1">Probation Restriction</span>
+                            <Badge variant="secondary" className="text-xs">
+                                {settings.probation_leave ? "Allow all" : "Limited"}
+                            </Badge>
+                        </div>
+                        
+                        {/* Rule 11 - Project Freeze */}
+                        <div className="flex items-center gap-2 p-2 rounded border bg-background opacity-60">
+                            <div className="w-2 h-2 rounded-full bg-gray-400" />
+                            <span className="text-sm flex-1">Critical Project Freeze</span>
+                            <Badge variant="outline" className="text-xs">Disabled</Badge>
+                        </div>
+                        
+                        {/* Rule 12 - Document Required */}
+                        <div className="flex items-center gap-2 p-2 rounded border bg-background">
+                            <div className="w-2 h-2 rounded-full bg-pink-500" />
+                            <span className="text-sm flex-1">Document Requirement</span>
+                            <Badge variant="secondary" className="text-xs">
+                                {approvalSettings.require_document_above_days}+ days
+                            </Badge>
+                        </div>
+                        
+                        {/* Rule 13 - Monthly Quota */}
+                        <div className="flex items-center gap-2 p-2 rounded border bg-background">
+                            <div className="w-2 h-2 rounded-full bg-blue-500" />
+                            <span className="text-sm flex-1">Monthly Leave Quota</span>
+                            <Badge variant="secondary" className="text-xs">Max 5/month</Badge>
+                        </div>
+                        
+                        {/* Rule 14 - Half-Day Escalation */}
+                        <div className="flex items-center gap-2 p-2 rounded border bg-background">
+                            <div className="w-2 h-2 rounded-full bg-amber-500" />
+                            <span className="text-sm flex-1">Half-Day Escalation</span>
+                            <Badge variant="secondary" className="text-xs">Always review</Badge>
+                        </div>
+                    </div>
+                    
+                    <p className="text-xs text-muted-foreground mt-4 text-center">
+                        💡 After setup, go to <strong>HR → Constraint Rules</strong> to enable/disable individual rules and customize their settings
+                    </p>
+                </CardContent>
+            </Card>
+
             {/* Info Box */}
             <div className="bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 rounded-lg p-4 flex gap-3">
                 <Info className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />

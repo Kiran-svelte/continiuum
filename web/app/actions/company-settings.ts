@@ -245,8 +245,13 @@ export async function saveLeaveSettings(companyId: string, settings: LeaveSettin
 
 /* =========================================================================
    2b. SAVE APPROVAL SETTINGS (Auto-Approve/Escalate Rules)
-   Saves approval rules to ConstraintPolicy with standardized structure
+   Saves approval rules to ConstraintPolicy with ALL 14 CONSTRAINT RULES
+   Each rule is stored individually with its own config
    ========================================================================= */
+
+// Import the default rules from constraint-rules config
+import { DEFAULT_CONSTRAINT_RULES } from "@/lib/constraint-rules-config";
+
 export async function saveApprovalSettings(companyId: string, settings: ApprovalSettingsInput) {
     const user = await currentUser();
     if (!user) throw new Error("Unauthorized");
@@ -261,55 +266,215 @@ export async function saveApprovalSettings(companyId: string, settings: Approval
             return { success: false, error: "Not authorized" };
         }
 
-        // Structure the rules in the format the constraint engine expects
-        const policyRules = {
-            // Auto-approval rules
+        // Build all 14 constraint rules with user's settings applied
+        const constraintRules: Record<string, any> = {};
+        const now = new Date().toISOString();
+
+        // RULE001: Maximum Leave Duration - Apply escalate_above_days
+        constraintRules["RULE001"] = {
+            ...DEFAULT_CONSTRAINT_RULES["RULE001"],
+            is_active: true,
+            config: {
+                ...DEFAULT_CONSTRAINT_RULES["RULE001"].config,
+                // User can override max days via escalation threshold
+                default_max: settings.escalate_above_days
+            },
+            created_at: now,
+            updated_at: now
+        };
+
+        // RULE002: Leave Balance Check - Apply negative balance setting
+        constraintRules["RULE002"] = {
+            ...DEFAULT_CONSTRAINT_RULES["RULE002"],
+            is_active: true,
+            config: {
+                allow_negative: settings.escalate_low_balance ? false : true,
+                negative_limit: 0
+            },
+            created_at: now,
+            updated_at: now
+        };
+
+        // RULE003: Minimum Team Coverage
+        constraintRules["RULE003"] = {
+            ...DEFAULT_CONSTRAINT_RULES["RULE003"],
+            is_active: true,
+            config: {
+                min_coverage_percent: Math.round((settings.min_team_coverage / 10) * 100),
+                min_present: settings.min_team_coverage,
+                applies_to_departments: ["all"]
+            },
+            created_at: now,
+            updated_at: now
+        };
+
+        // RULE004: Maximum Concurrent Leave
+        constraintRules["RULE004"] = {
+            ...DEFAULT_CONSTRAINT_RULES["RULE004"],
+            is_active: true,
+            config: {
+                max_concurrent: settings.max_concurrent_leaves,
+                scope: "department"
+            },
+            created_at: now,
+            updated_at: now
+        };
+
+        // RULE005: Blackout Period Check
+        constraintRules["RULE005"] = {
+            ...DEFAULT_CONSTRAINT_RULES["RULE005"],
+            is_active: settings.blackout_dates.length > 0 || settings.blackout_days_of_week.length > 0,
+            config: {
+                blackout_dates: settings.blackout_dates,
+                blackout_days_of_week: settings.blackout_days_of_week,
+                exception_leave_types: ["Emergency Leave", "Bereavement Leave", "SL"]
+            },
+            created_at: now,
+            updated_at: now
+        };
+
+        // RULE006: Advance Notice Requirement
+        constraintRules["RULE006"] = {
+            ...DEFAULT_CONSTRAINT_RULES["RULE006"],
+            is_active: true,
+            config: {
+                default_notice_days: settings.auto_approve_min_notice,
+                notice_days: {
+                    "Annual Leave": 7,
+                    "Sick Leave": 0,
+                    "Emergency Leave": 0,
+                    "CL": settings.auto_approve_min_notice,
+                    "SL": 0,
+                    "PL": 7,
+                    "ML": 30,
+                    "PTL": 14,
+                    "LWP": 7
+                }
+            },
+            created_at: now,
+            updated_at: now
+        };
+
+        // RULE007: Consecutive Leave Limit
+        constraintRules["RULE007"] = {
+            ...DEFAULT_CONSTRAINT_RULES["RULE007"],
+            is_active: settings.escalate_consecutive_leaves,
+            config: {
+                ...DEFAULT_CONSTRAINT_RULES["RULE007"].config,
+                escalate_consecutive: settings.escalate_consecutive_leaves
+            },
+            created_at: now,
+            updated_at: now
+        };
+
+        // RULE008: Weekend/Holiday Sandwich Rule
+        constraintRules["RULE008"] = {
+            ...DEFAULT_CONSTRAINT_RULES["RULE008"],
+            is_active: true,
+            created_at: now,
+            updated_at: now
+        };
+
+        // RULE009: Minimum Gap Between Leaves
+        constraintRules["RULE009"] = {
+            ...DEFAULT_CONSTRAINT_RULES["RULE009"],
+            is_active: settings.escalate_consecutive_leaves,
+            created_at: now,
+            updated_at: now
+        };
+
+        // RULE010: Probation Period Restriction
+        constraintRules["RULE010"] = {
+            ...DEFAULT_CONSTRAINT_RULES["RULE010"],
+            is_active: true,
+            created_at: now,
+            updated_at: now
+        };
+
+        // RULE011: Critical Project Freeze
+        constraintRules["RULE011"] = {
+            ...DEFAULT_CONSTRAINT_RULES["RULE011"],
+            is_active: false, // Disabled by default, HR can enable later
+            created_at: now,
+            updated_at: now
+        };
+
+        // RULE012: Document Requirement
+        constraintRules["RULE012"] = {
+            ...DEFAULT_CONSTRAINT_RULES["RULE012"],
+            is_active: true,
+            config: {
+                require_document_above_days: settings.require_document_above_days,
+                always_require_for: ["SL", "ML", "PTL"],
+                document_types: ["medical_certificate", "proof_of_event", "other"]
+            },
+            created_at: now,
+            updated_at: now
+        };
+
+        // RULE013: Monthly Leave Quota
+        constraintRules["RULE013"] = {
+            ...DEFAULT_CONSTRAINT_RULES["RULE013"],
+            is_active: true,
+            created_at: now,
+            updated_at: now
+        };
+
+        // RULE014: Half-Day Leave Escalation
+        constraintRules["RULE014"] = {
+            ...DEFAULT_CONSTRAINT_RULES["RULE014"],
+            is_active: true,
+            created_at: now,
+            updated_at: now
+        };
+
+        // Also store the auto-approve settings for quick reference
+        const autoApproveConfig = {
             auto_approve: {
                 max_days: settings.auto_approve_max_days,
                 min_notice_days: settings.auto_approve_min_notice,
                 allowed_leave_types: settings.auto_approve_leave_types,
             },
-            // Escalation triggers
             escalation: {
                 above_days: settings.escalate_above_days,
                 consecutive_leaves: settings.escalate_consecutive_leaves,
                 low_balance: settings.escalate_low_balance,
                 require_document_above_days: settings.require_document_above_days,
-            },
-            // Team coverage
-            team_coverage: {
-                max_concurrent: settings.max_concurrent_leaves,
-                min_coverage: settings.min_team_coverage,
-            },
-            // Blackout periods
-            blackout: {
-                dates: settings.blackout_dates,
-                days_of_week: settings.blackout_days_of_week,
-            },
+            }
         };
 
-        // Upsert the ConstraintPolicy - create or update
-        await prisma.constraintPolicy.upsert({
-            where: {
-                // Find existing active policy for this org
-                id: await prisma.constraintPolicy.findFirst({
-                    where: { org_id: companyId, is_active: true },
-                    select: { id: true }
-                }).then(p => p?.id || 'new-policy-' + Date.now())
-            },
-            create: {
-                org_id: companyId,
-                name: "Company Policy",
-                rules: policyRules,
-                is_active: true,
-            },
-            update: {
-                rules: policyRules,
-                updated_at: new Date(),
-            }
+        // Store in rules object
+        constraintRules["_auto_approve_config"] = autoApproveConfig;
+
+        // Find existing policy
+        const existingPolicy = await prisma.constraintPolicy.findFirst({
+            where: { org_id: companyId, is_active: true },
+            select: { id: true }
         });
 
+        if (existingPolicy) {
+            // Update existing policy
+            await prisma.constraintPolicy.update({
+                where: { id: existingPolicy.id },
+                data: {
+                    rules: constraintRules,
+                    updated_at: new Date()
+                }
+            });
+        } else {
+            // Create new policy
+            await prisma.constraintPolicy.create({
+                data: {
+                    org_id: companyId,
+                    name: "Company Constraint Rules",
+                    rules: constraintRules,
+                    is_active: true
+                }
+            });
+        }
+
         revalidatePath("/hr/settings");
+        revalidatePath("/hr/constraint-rules");
         return { success: true };
     } catch (error: any) {
         console.error("[saveApprovalSettings] Error:", error);
