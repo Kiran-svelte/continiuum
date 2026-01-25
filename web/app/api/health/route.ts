@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { prisma, checkDatabaseHealth } from "@/lib/prisma";
 import { getSecurityHeaders } from "@/lib/security";
 
 // Health Check Response
@@ -18,6 +18,10 @@ interface HealthCheck {
         activeConnections?: number;
         requestsPerMinute?: number;
     };
+    poolConfig?: {
+        connectionLimit: number;
+        poolTimeout: number;
+    };
 }
 
 interface HealthStatus {
@@ -33,18 +37,27 @@ export async function GET(request: NextRequest) {
     const headers = getSecurityHeaders();
     const startCheck = Date.now();
 
-    // Database health check
+    // Database health check using centralized function
     let dbStatus: HealthStatus = { status: 'fail', message: 'Connection failed' };
+    let poolInfo: { connection_limit: number; pool_timeout: number } | null = null;
+    
     try {
-        const dbStart = Date.now();
-        await prisma.$queryRaw`SELECT 1`;
-        const dbLatency = Date.now() - dbStart;
+        const dbHealth = await checkDatabaseHealth();
+        poolInfo = dbHealth.poolInfo;
         
-        dbStatus = {
-            status: dbLatency < 100 ? 'pass' : dbLatency < 500 ? 'warn' : 'fail',
-            message: dbLatency < 100 ? 'Connection healthy' : 'High latency',
-            latency: dbLatency
-        };
+        if (dbHealth.healthy) {
+            const dbLatency = dbHealth.latencyMs;
+            dbStatus = {
+                status: dbLatency < 100 ? 'pass' : dbLatency < 500 ? 'warn' : 'fail',
+                message: dbLatency < 100 ? 'Connection healthy' : 'High latency',
+                latency: dbLatency
+            };
+        } else {
+            dbStatus = {
+                status: 'fail',
+                message: 'Database connection failed'
+            };
+        }
     } catch (error) {
         dbStatus = {
             status: 'fail',
@@ -93,7 +106,11 @@ export async function GET(request: NextRequest) {
         },
         metrics: {
             responseTime
-        }
+        },
+        poolConfig: poolInfo ? {
+            connectionLimit: poolInfo.connection_limit,
+            poolTimeout: poolInfo.pool_timeout
+        } : undefined
     };
 
     // Return appropriate status code
