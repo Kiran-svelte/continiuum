@@ -347,17 +347,33 @@ export async function getEscalationDetail(requestId: string) {
     if (!user) return { success: false, error: "Unauthorized" };
 
     try {
+        // SECURITY: First get HR's org_id
+        const hrEmployee = await prisma.employee.findUnique({
+            where: { clerk_id: user.id },
+            select: { org_id: true, role: true }
+        });
+
+        if (!hrEmployee || !["hr", "admin"].includes(hrEmployee.role || "")) {
+            return { success: false, error: "Access denied" };
+        }
+
         const request = await prisma.leaveRequest.findUnique({
             where: { request_id: requestId },
             include: {
                 employee: {
-                    select: { full_name: true, department: true, email: true }
+                    select: { full_name: true, department: true, email: true, org_id: true }
                 }
             }
         });
 
         if (!request) {
             return { success: false, error: "Request not found" };
+        }
+
+        // SECURITY: Verify request belongs to HR's organization
+        if (request.employee.org_id !== hrEmployee.org_id) {
+            console.error(`[SECURITY] Cross-tenant escalation access: HR tried to view request ${requestId} from different org`);
+            return { success: false, error: "Access denied - request not in your organization" };
         }
 
         return {
@@ -408,11 +424,15 @@ export async function updateLeaveRequestStatus(
     if (!user) return { success: false, error: "Unauthorized" };
 
     try {
-        // 1. Get HR employee making the decision
+        // 1. Get HR employee making the decision - with org_id for security check
         const hrEmployee = await prisma.employee.findUnique({
             where: { clerk_id: user.id },
-            select: { full_name: true }
+            select: { full_name: true, org_id: true, role: true, emp_id: true }
         });
+
+        if (!hrEmployee || !["hr", "hr_manager", "admin"].includes(hrEmployee.role || "")) {
+            return { success: false, error: "Access denied - HR role required" };
+        }
 
         // 2. Fetch Request Details FIRST to get days/type for balance update
         const request = await prisma.leaveRequest.findUnique({
@@ -421,6 +441,12 @@ export async function updateLeaveRequestStatus(
         });
 
         if (!request) return { success: false, error: "Request not found" };
+
+        // SECURITY: Verify request belongs to HR's organization
+        if (request.employee.org_id !== hrEmployee.org_id) {
+            console.error(`[SECURITY] Cross-tenant leave action: HR ${hrEmployee.emp_id} tried to ${status} request ${requestId} from different org`);
+            return { success: false, error: "Access denied - request not in your organization" };
+        }
 
         const currentYear = new Date().getFullYear();
         const leaveTypeKey = request.leave_type.toLowerCase().replace(" leave", "") === "annual" ? "vacation" :

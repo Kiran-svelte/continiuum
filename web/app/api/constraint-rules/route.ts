@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@clerk/nextjs/server";
 import { DEFAULT_CONSTRAINT_RULES } from "@/lib/constraint-rules-config";
 
 // API endpoint for Python constraint engine to fetch active rules
@@ -7,6 +8,12 @@ import { DEFAULT_CONSTRAINT_RULES } from "@/lib/constraint-rules-config";
 
 export async function GET(request: NextRequest) {
     try {
+        // SECURITY: Verify authentication
+        const { userId } = await auth();
+        if (!userId) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
         const searchParams = request.nextUrl.searchParams;
         const orgId = searchParams.get("org_id");
 
@@ -15,6 +22,17 @@ export async function GET(request: NextRequest) {
                 { error: "org_id is required" },
                 { status: 400 }
             );
+        }
+
+        // SECURITY: Verify user belongs to this organization
+        const employee = await prisma.employee.findUnique({
+            where: { clerk_id: userId },
+            select: { org_id: true, role: true }
+        });
+
+        if (!employee || employee.org_id !== orgId) {
+            console.error(`[SECURITY] Cross-tenant constraint rules access attempt: User ${userId} tried to access org ${orgId}`);
+            return NextResponse.json({ error: "Access denied" }, { status: 403 });
         }
 
         // Get company's constraint policy
@@ -80,6 +98,12 @@ export async function GET(request: NextRequest) {
 // POST /api/constraint-rules/validate
 export async function POST(request: NextRequest) {
     try {
+        // SECURITY: Verify authentication
+        const { userId } = await auth();
+        if (!userId) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
         const body = await request.json();
         const { org_id, employee_id, leave_type, start_date, end_date, days_requested } = body;
 
@@ -88,6 +112,17 @@ export async function POST(request: NextRequest) {
                 { error: "Missing required fields" },
                 { status: 400 }
             );
+        }
+
+        // SECURITY: Verify user belongs to this organization
+        const callerEmployee = await prisma.employee.findUnique({
+            where: { clerk_id: userId },
+            select: { org_id: true }
+        });
+
+        if (!callerEmployee || callerEmployee.org_id !== org_id) {
+            console.error(`[SECURITY] Cross-tenant constraint validation attempt: User ${userId} tried to validate for org ${org_id}`);
+            return NextResponse.json({ error: "Access denied" }, { status: 403 });
         }
 
         // Get active rules for this org
