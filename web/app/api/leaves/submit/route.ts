@@ -287,7 +287,7 @@ export async function POST(req: NextRequest) {
                 ai_confidence: aiConfidence,
                 decision_reason: decisionReason
             },
-            target_org: employee.company_id || 'unknown'
+            target_org: employee.org_id || 'unknown'
         }).catch(err => leaveLogger.error('Audit log failed', err));
 
         // Revalidate paths to update UI

@@ -162,6 +162,7 @@ export async function getEmployeeDashboardStats() {
         
         // Count present days from attendance records
         const presentDays = employee.attendances.filter(a => {
+            if (!a.check_in) return false;
             const checkInDate = new Date(a.check_in);
             return checkInDate >= startOfMonth && checkInDate <= now;
         }).length;

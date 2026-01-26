@@ -721,10 +721,11 @@ export async function processYearEndCarryForward(companyId?: string, fromYear?: 
 
         // 7. Log audit
         await logAudit({
-            org_id: targetCompanyId!,
-            actor_id: employee!.emp_id,
-            action: AuditAction.LEAVE_STATUS_CHANGE,
-            resource_type: "leave_balance",
+            orgId: targetCompanyId!,
+            actorId: employee!.emp_id,
+            action: AuditAction.LEAVE_BALANCE_ADJUSTED,
+            entityType: "leave_balance",
+            entityId: `carry_forward_${sourceYear}_${targetYear}`,
             details: {
                 action: "year_end_carry_forward",
                 from_year: sourceYear,

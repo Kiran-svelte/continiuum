@@ -103,7 +103,7 @@ export async function getTrialInfo(orgId: string): Promise<TrialInfo | null> {
         isExpiring,
         isExpired,
         percentComplete: Math.round((daysUsed / TRIAL_DURATION_DAYS) * 100),
-        features: tierConfig?.features || [],
+        features: tierConfig?.features ? [...tierConfig.features] : [],
     };
 }
 

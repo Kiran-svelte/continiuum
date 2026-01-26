@@ -747,7 +747,7 @@ export async function rejectEmployee(empId: string, reason: string) {
             data: {
                 approval_status: "rejected",
                 rejection_reason: reason,
-                onboarding_status: "rejected",
+                onboarding_status: "not_started", // Reset to not_started
                 org_id: null, // Remove from company
                 onboarding_completed: false,
             },
@@ -813,7 +813,7 @@ export async function resetRejectedEmployeeState() {
         await prisma.employee.update({
             where: { clerk_id: user.id },
             data: {
-                approval_status: null,
+                approval_status: "pending",
                 rejection_reason: null,
                 onboarding_status: "in_progress",
                 onboarding_step: "details",

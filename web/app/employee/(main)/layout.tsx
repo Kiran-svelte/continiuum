@@ -48,8 +48,8 @@ export default async function DashboardLayout({
             where: { clerk_id: user.id },
             data: {
                 org_id: null,
-                approval_status: null,
-                onboarding_status: "details",
+                approval_status: "pending",
+                onboarding_status: "not_started",
                 onboarding_completed: false
             }
         });

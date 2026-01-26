@@ -8,7 +8,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { sendEmail, EmailTemplates } from '@/lib/email-service';
+import { sendEmail } from '@/lib/email-service';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
@@ -25,16 +25,20 @@ export async function GET(req: NextRequest) {
     const now = new Date();
 
     try {
-        // Find organizations with active trials
-        const orgsWithTrials = await prisma.organization.findMany({
+        // Find subscriptions with active trials
+        const subsWithTrials = await prisma.subscription.findMany({
             where: {
-                subscription_status: 'trialing',
-                trial_ends_at: { not: null }
+                status: 'trialing',
+                trial_end: { not: null }
             },
             include: {
-                employees: {
-                    where: { role: { in: ['hr', 'admin'] } },
-                    select: { email: true, full_name: true }
+                company: {
+                    include: {
+                        employees: {
+                            where: { role: { in: ['hr', 'admin'] } },
+                            select: { email: true, full_name: true }
+                        }
+                    }
                 }
             }
         });
@@ -43,8 +47,8 @@ export async function GET(req: NextRequest) {
         let expired = 0;
         let notified = 0;
 
-        for (const org of orgsWithTrials) {
-            const trialEnd = org.trial_ends_at!;
+        for (const sub of subsWithTrials) {
+            const trialEnd = sub.trial_end!;
             const daysLeft = Math.ceil((trialEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
             // Trial expired
@@ -52,16 +56,25 @@ export async function GET(req: NextRequest) {
                 expired++;
                 
                 // Downgrade to FREE tier
-                await prisma.organization.update({
-                    where: { org_id: org.org_id },
+                await prisma.subscription.update({
+                    where: { id: sub.id },
                     data: {
-                        subscription_status: 'expired',
+                        status: 'active',
+                        plan: 'FREE',
+                        plan_tier: 'FREE'
+                    }
+                });
+
+                // Update company tier
+                await prisma.company.update({
+                    where: { id: sub.org_id },
+                    data: {
                         subscription_tier: 'FREE'
                     }
                 });
 
                 // Notify admins
-                for (const admin of org.employees) {
+                for (const admin of sub.company.employees) {
                     await sendEmail(
                         admin.email,
                         '⚠️ Your Continuum Trial Has Expired',
@@ -99,7 +112,7 @@ export async function GET(req: NextRequest) {
             else if (daysLeft === 3) {
                 expiringSoon++;
                 
-                for (const admin of org.employees) {
+                for (const admin of sub.company.employees) {
                     await sendEmail(
                         admin.email,
                         '⏳ Your Continuum Trial Expires in 3 Days',
@@ -127,7 +140,7 @@ export async function GET(req: NextRequest) {
             else if (daysLeft === 1) {
                 expiringSoon++;
                 
-                for (const admin of org.employees) {
+                for (const admin of sub.company.employees) {
                     await sendEmail(
                         admin.email,
                         '🚨 FINAL WARNING: Trial Expires Tomorrow!',
@@ -166,12 +179,12 @@ export async function GET(req: NextRequest) {
             success: true,
             time: now.toISOString(),
             stats: {
-                activeTrials: orgsWithTrials.length,
+                activeTrials: subsWithTrials.length,
                 expiringSoon,
                 expired,
                 notified
             },
-            message: `Processed ${orgsWithTrials.length} trials: ${expired} expired, ${expiringSoon} expiring soon`
+            message: `Processed ${subsWithTrials.length} trials: ${expired} expired, ${expiringSoon} expiring soon`
         });
 
     } catch (error: any) {

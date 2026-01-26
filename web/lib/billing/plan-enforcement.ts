@@ -6,6 +6,7 @@
  */
 
 import { currentUser } from '@clerk/nextjs/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { checkPlanLimit, getSubscriptionStatus, PRICING_TIERS, type PricingTier, getUsageAnalytics } from './razorpay-lite';
 
@@ -55,9 +56,8 @@ export function withPlanLimit<T extends (...args: any[]) => Promise<any>>(
         if (!check.allowed) {
             return {
                 success: false,
-                error: check.reason,
+                error: `Plan limit reached. Current: ${check.currentUsage}, Limit: ${check.limit}`,
                 planLimited: true,
-                upgradeRequired: check.upgradeRequired,
             };
         }
 
@@ -79,6 +79,7 @@ export async function getPlanStatus(orgId: string): Promise<PlanCheckResult> {
             limits: PRICING_TIERS.FREE.limits,
             usage: {
                 employees: { current: 0, max: 10, percentage: 0 },
+                apiCalls: { current: 0, max: 0, percentage: 0 },
             },
         };
     }
@@ -86,13 +87,14 @@ export async function getPlanStatus(orgId: string): Promise<PlanCheckResult> {
     const result: PlanCheckResult = {
         allowed: !status.isOverLimit,
         tier: status.tier,
-        limits: status.tierConfig.limits,
+        limits: status.tierConfig.limits as typeof PRICING_TIERS.FREE.limits,
         usage: {
             employees: {
                 current: status.employeeCount,
                 max: status.employeeLimit === -1 ? Infinity : status.employeeLimit,
                 percentage: status.usagePercentage,
             },
+            apiCalls: { current: 0, max: 0, percentage: 0 },
         },
     };
 
@@ -113,7 +115,7 @@ export async function getPlanStatus(orgId: string): Promise<PlanCheckResult> {
 /**
  * API Route middleware for plan enforcement
  */
-export function withApiPlanCheck(action: 'api_call') {
+export function withApiPlanCheck(action: 'apiCalls') {
     return async (request: NextRequest) => {
         const apiKey = request.headers.get('x-api-key');
         
@@ -143,7 +145,7 @@ export function withApiPlanCheck(action: 'api_call') {
         if (!check.allowed) {
             return NextResponse.json(
                 { 
-                    error: check.reason,
+                    error: `Plan limit reached. Current: ${check.currentUsage}, Limit: ${check.limit}`,
                     upgrade_url: `${process.env.NEXT_PUBLIC_APP_URL}/hr/settings/billing`,
                 },
                 { status: 403 }

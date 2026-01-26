@@ -12,7 +12,7 @@ interface Employee {
     department: string;
     position: string;
     location: string;
-    join_date: string;
+    join_date: Date | string | null;
     status: string;
     phone?: string;
 }

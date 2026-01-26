@@ -203,7 +203,6 @@ export async function createSubscription(
     // Create subscription
     const subscription = await razorpay.subscriptions.create({
         plan_id: tierConfig.razorpayPlanId,
-        customer_id: customerId,
         total_count: totalCount,
         quantity: 1,
         notes: {
@@ -211,7 +210,7 @@ export async function createSubscription(
             tier: tier,
             billingCycle,
         },
-    });
+    } as any) as any;
 
     // Store subscription in database
     await prisma.subscription.create({
@@ -361,9 +360,7 @@ export async function cancelSubscription(orgId: string) {
     }
 
     // Cancel in Razorpay
-    await razorpay.subscriptions.cancel(subscription.razorpay_subscription_id, {
-        cancel_at_cycle_end: 1, // Cancel at end of billing cycle
-    });
+    await razorpay.subscriptions.cancel(subscription.razorpay_subscription_id, true);
 
     // Update in database
     await prisma.subscription.update({
@@ -694,7 +691,6 @@ async function handleSubscriptionCharged(subscription: any, payment: any) {
     // Record payment
     await prisma.payment.create({
         data: {
-            payment_id: `pay_${Date.now()}`,
             org_id: orgId,
             razorpay_payment_id: payment.id,
             razorpay_order_id: payment.order_id,
@@ -791,7 +787,6 @@ async function handleOrderPaid(order: any, payment: any) {
     // Record payment
     await prisma.payment.create({
         data: {
-            payment_id: `pay_${Date.now()}`,
             org_id: orgId,
             razorpay_payment_id: payment.id,
             razorpay_order_id: order.id,
@@ -899,7 +894,7 @@ export async function getInvoices(orgId: string) {
     });
 
     return payments.map(p => ({
-        id: p.payment_id,
+        id: p.id,
         date: p.created_at,
         amount: p.amount,
         currency: p.currency,
