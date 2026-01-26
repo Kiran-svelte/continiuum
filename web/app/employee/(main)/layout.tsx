@@ -40,6 +40,22 @@ export default async function DashboardLayout({
         return redirect("/hr/dashboard");
     }
 
+    // CRITICAL: Handle orphaned employees (company was deleted)
+    // Employee has org_id but company doesn't exist - reset their state
+    if (employee.org_id && !employee.company) {
+        // Company was deleted, reset the employee's org affiliation
+        await prisma.employee.update({
+            where: { clerk_id: user.id },
+            data: {
+                org_id: null,
+                approval_status: null,
+                onboarding_status: "details",
+                onboarding_completed: false
+            }
+        });
+        return redirect("/onboarding?intent=employee&reason=company_deleted");
+    }
+
     // CRITICAL: Employee MUST have joined a company (org_id)
     // This catches users who signed up but never entered a company code
     if (!employee.org_id || !employee.company) {

@@ -2,15 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 
-// Default leave allocations for new employees
-const DEFAULT_LEAVE_ALLOCATIONS: Record<string, number> = {
+// Fallback leave allocations ONLY if company has no leave types configured
+const FALLBACK_LEAVE_ALLOCATIONS: Record<string, number> = {
     "Sick Leave": 12,
     "Vacation Leave": 20,
     "Casual Leave": 7,
-    "Maternity Leave": 180,
-    "Paternity Leave": 15,
-    "Bereavement Leave": 5,
-    "Comp Off": 10,
 };
 
 export async function GET(req: NextRequest) {
@@ -20,10 +16,10 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
         }
 
-        // Get employee
+        // Get employee with org_id for company lookup
         const employee = await prisma.employee.findUnique({
             where: { clerk_id: userId },
-            select: { emp_id: true, country_code: true }
+            select: { emp_id: true, country_code: true, org_id: true }
         });
 
         if (!employee) {
@@ -47,25 +43,48 @@ export async function GET(req: NextRequest) {
             }
         });
 
-        // If no balances exist, create default ones
-        if (balances.length === 0) {
-            console.log("[API] Creating default leave balances for employee:", employee.emp_id);
+        // If no balances exist, create from company's leave types
+        if (balances.length === 0 && employee.org_id) {
+            console.log("[API] Creating leave balances for employee:", employee.emp_id);
             
-            const leaveTypes = Object.entries(DEFAULT_LEAVE_ALLOCATIONS);
-            
-            for (const [leaveType, allocation] of leaveTypes) {
-                await prisma.leaveBalance.create({
-                    data: {
-                        emp_id: employee.emp_id,
-                        country_code: employee.country_code || "IN",
-                        leave_type: leaveType,
-                        year: currentYear,
-                        annual_entitlement: allocation,
-                        carried_forward: 0,
-                        used_days: 0,
-                        pending_days: 0,
-                    }
-                });
+            // First try to get company's configured leave types
+            const companyLeaveTypes = await prisma.leaveType.findMany({
+                where: { company_id: employee.org_id }
+            });
+
+            if (companyLeaveTypes.length > 0) {
+                // Use company's configured leave types
+                for (const lt of companyLeaveTypes) {
+                    await prisma.leaveBalance.create({
+                        data: {
+                            emp_id: employee.emp_id,
+                            country_code: employee.country_code || "IN",
+                            leave_type: lt.code,
+                            year: currentYear,
+                            annual_entitlement: lt.annual_quota,
+                            carried_forward: 0,
+                            used_days: 0,
+                            pending_days: 0,
+                        }
+                    });
+                }
+            } else {
+                // Fallback to defaults only if company has no configured types
+                console.warn("[API] Company has no leave types - using fallback defaults");
+                for (const [leaveType, allocation] of Object.entries(FALLBACK_LEAVE_ALLOCATIONS)) {
+                    await prisma.leaveBalance.create({
+                        data: {
+                            emp_id: employee.emp_id,
+                            country_code: employee.country_code || "IN",
+                            leave_type: leaveType,
+                            year: currentYear,
+                            annual_entitlement: allocation,
+                            carried_forward: 0,
+                            used_days: 0,
+                            pending_days: 0,
+                        }
+                    });
+                }
             }
             
             // Re-fetch after creation

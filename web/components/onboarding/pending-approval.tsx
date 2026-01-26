@@ -38,9 +38,12 @@ export function PendingApprovalStatus({ employeeName, companyName }: PendingAppr
 
     // Auto-check every 30 seconds
     useEffect(() => {
-        const interval = setInterval(checkStatus, 30000);
+        // Initial check on mount
+        checkStatus();
+        const interval = setInterval(() => checkStatus(), 30000);
         return () => clearInterval(interval);
-    }, []);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [router]);
 
     return (
         <div className="min-h-screen w-full flex items-center justify-center bg-[#0a0a0f] text-white p-4 relative overflow-hidden">

@@ -495,11 +495,7 @@ export function OnboardingFlow({ user, intent, savedData }: { user: any; intent:
                                 <CompanySettings
                                     companyId={createdCompanyId}
                                     onComplete={handleCompanySettingsComplete}
-                                    onBack={() => {
-                                        // Note: Can't really go back since company is created
-                                        // Just proceed to dashboard
-                                        handleCompanySettingsComplete();
-                                    }}
+                                    // No onBack - company is already created, can't undo
                                 />
                             </div>
                         ) : (

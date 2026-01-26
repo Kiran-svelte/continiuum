@@ -93,7 +93,7 @@ export default function LeavePage() {
             if (res.success) {
                 // Success styling or redirect
                 toast.success("Leave request submitted successfully!");
-                router.push('/dashboard');
+                router.push('/employee/dashboard');
             } else {
                 toast.error("Submission Failed: " + res.error);
             }
