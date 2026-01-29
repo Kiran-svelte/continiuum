@@ -28,20 +28,14 @@ export async function GET(req: NextRequest) {
         }
 
         // Try to fetch documents from database
-        // Note: If Document table doesn't exist yet, return empty array
         let documents: any[] = [];
         
         try {
-            // Check if document table exists and fetch
-            documents = await (prisma as any).document?.findMany?.({
-                where: { 
-                    OR: [
-                        { emp_id: employee.emp_id },
-                        { org_id: employee.org_id, is_company_wide: true }
-                    ]
-                },
-                orderBy: { created_at: 'desc' }
-            }) || [];
+            // Fetch documents for this employee from the Document table
+            documents = await prisma.document.findMany({
+                where: { emp_id: employee.emp_id },
+                orderBy: { uploaded_at: 'desc' }
+            });
         } catch (dbError) {
             // Table doesn't exist yet - return empty array (not mock data)
             apiLogger.debug("Document table not available", dbError);
@@ -52,14 +46,15 @@ export async function GET(req: NextRequest) {
         const formattedDocs = documents.map((doc: any) => ({
             id: doc.id,
             name: doc.name,
-            size: formatFileSize(doc.size_bytes || 0),
-            date: new Date(doc.created_at).toLocaleDateString('en-US', { 
+            size: 'Document', // Size not stored in current schema
+            date: new Date(doc.uploaded_at).toLocaleDateString('en-US', { 
                 month: 'short', 
                 day: 'numeric', 
                 year: 'numeric' 
             }),
-            type: doc.document_type || 'other',
-            url: doc.file_url
+            type: doc.type || 'other',
+            url: doc.file_url,
+            verified: doc.verified
         }));
 
         return NextResponse.json({

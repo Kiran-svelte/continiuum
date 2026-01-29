@@ -536,7 +536,7 @@ export function updateDataSubjectRequest(
 // 7. COMPLIANCE DASHBOARD DATA
 // ============================================================================
 
-export function getComplianceStatus(): {
+export async function getComplianceStatus(orgId?: string): Promise<{
     totalEmployees: number;
     dataSubjectRequests: {
         pending: number;
@@ -546,7 +546,7 @@ export function getComplianceStatus(): {
     consentStats: Record<string, { granted: number; withdrawn: number }>;
     retentionPolicies: number;
     lastAudit?: Date;
-} {
+}> {
     const consentStats: Record<string, { granted: number; withdrawn: number }> = {};
     
     for (const consent of consentStore) {
@@ -560,8 +560,13 @@ export function getComplianceStatus(): {
         }
     }
     
+    // Get total employee count from database
+    const totalEmployees = await prisma.employee.count({
+        where: orgId ? { org_id: orgId } : undefined,
+    });
+    
     return {
-        totalEmployees: 0, // Would come from DB
+        totalEmployees,
         dataSubjectRequests: {
             pending: dataSubjectRequests.filter(r => r.status === 'PENDING').length,
             completed: dataSubjectRequests.filter(r => r.status === 'COMPLETED').length,

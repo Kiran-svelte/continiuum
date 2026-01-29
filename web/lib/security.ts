@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { headers } from 'next/headers';
+import { prisma } from '@/lib/prisma';
 
 // ============================================================
 // RATE LIMITING
@@ -308,8 +309,26 @@ export async function logSecurityEvent(
         console.log('[SECURITY]', JSON.stringify(entry, null, 2));
     }
     
-    // In production, send to logging service
-    // TODO: Integrate with your logging service (e.g., DataDog, LogRocket, etc.)
+    // Write security events to audit log in production
+    try {
+        await prisma.auditLog.create({
+            data: {
+                action: `SECURITY_${action.toUpperCase()}`,
+                entity_type: resource,
+                entity_id: `security_${Date.now()}`,
+                actor_type: userId ? 'user' : 'system',
+                actor_id: userId || 'anonymous',
+                target_org: 'system', // Security events are system-wide
+                details: {
+                    ...entry,
+                    ...details,
+                },
+            },
+        });
+    } catch (dbError) {
+        // Don't let logging failures break security flow
+        console.error('[SECURITY] Failed to persist audit log:', dbError);
+    }
 }
 
 // ============================================================

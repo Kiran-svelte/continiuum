@@ -6,6 +6,59 @@ import { analyzeLeaveRequest, AIAnalysisResult } from "./leave-constraints";
 import { revalidatePath } from "next/cache";
 import { sendHRNewLeaveRequestEmail, sendLeaveApprovalEmail, sendLeaveSubmissionEmail } from "@/lib/email-service";
 
+/**
+ * Calculate actual working days between two dates
+ * Excludes weekends and company holidays
+ */
+async function calculateWorkingDays(
+    startDate: Date, 
+    endDate: Date, 
+    orgId: string,
+    isHalfDay: boolean = false
+): Promise<number> {
+    if (isHalfDay) return 0.5;
+    
+    // Get company work days configuration
+    const company = await prisma.company.findUnique({
+        where: { id: orgId },
+        select: { work_days: true }
+    });
+    
+    // Default work days: Monday=1 to Friday=5
+    const workDays = company?.work_days || [1, 2, 3, 4, 5];
+    
+    // Get holidays for the date range
+    const holidays = await prisma.holiday.findMany({
+        where: {
+            company_id: orgId,
+            date: {
+                gte: startDate,
+                lte: endDate
+            }
+        },
+        select: { date: true }
+    });
+    const holidayDates = new Set(holidays.map(h => h.date.toISOString().split('T')[0]));
+    
+    // Count working days
+    let count = 0;
+    const current = new Date(startDate);
+    
+    while (current <= endDate) {
+        const dayOfWeek = current.getDay(); // 0=Sunday, 1=Monday, ...
+        const dateStr = current.toISOString().split('T')[0];
+        
+        // Check if it's a working day and not a holiday
+        if (workDays.includes(dayOfWeek) && !holidayDates.has(dateStr)) {
+            count++;
+        }
+        
+        current.setDate(current.getDate() + 1);
+    }
+    
+    return count;
+}
+
 export async function submitLeaveRequest(formData: {
     leaveType: string;
     reason: string;
@@ -199,6 +252,15 @@ export async function submitLeaveRequest(formData: {
 
             // C. Create Leave Request
             const requestId = `REQ-${Date.now()}`;
+            
+            // Calculate actual working days (excluding weekends and holidays)
+            const workingDays = await calculateWorkingDays(
+                new Date(formData.startDate),
+                new Date(formData.endDate),
+                employee.org_id!,
+                formData.isHalfDay || false
+            );
+            
             const newRequest = await tx.leaveRequest.create({
                 data: {
                     request_id: requestId,
@@ -208,12 +270,12 @@ export async function submitLeaveRequest(formData: {
                     start_date: new Date(formData.startDate),
                     end_date: new Date(formData.endDate),
                     total_days: formData.days,
-                    working_days: formData.days, // Simplified
+                    working_days: workingDays,
                     reason: formData.reason,
                     status: requestStatus,
                     is_half_day: formData.isHalfDay || false,
                     ai_recommendation: isAutoApprovable ? "approve" : "escalate",
-                    ai_confidence: 0.95, // Mocked from Python if available
+                    ai_confidence: 0.95,
                     ai_analysis_json: JSON.stringify(analysis) as any,
                     // SLA
                     sla_deadline: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24h SLA

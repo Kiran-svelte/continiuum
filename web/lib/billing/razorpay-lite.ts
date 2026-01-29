@@ -250,6 +250,22 @@ export async function getUsageAnalytics(orgId: string) {
 
     const tier = (subscription?.plan || 'FREE') as PricingTier;
     const limits = PRICING_TIERS[tier].limits;
+    
+    // Get monthly API call count from audit logs
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+    
+    const apiCallCount = await prisma.auditLog.count({
+        where: {
+            target_org: orgId,
+            action: 'USAGE_API_CALL',
+            created_at: { gte: startOfMonth }
+        }
+    });
+    
+    const apiLimit = limits.apiCalls === -1 ? Infinity : limits.apiCalls;
+    const apiPercentage = limits.apiCalls === -1 ? 0 : Math.round((apiCallCount / limits.apiCalls) * 100);
 
     return {
         employees: {
@@ -258,9 +274,9 @@ export async function getUsageAnalytics(orgId: string) {
             percentage: limits.employees === -1 ? 0 : Math.round((employees / limits.employees) * 100),
         },
         apiCalls: {
-            current: 0, // Would come from usage tracking
+            current: apiCallCount,
             limit: limits.apiCalls === -1 ? 'Unlimited' : limits.apiCalls,
-            percentage: 0,
+            percentage: apiPercentage,
         },
         reports: 0,
         logins: 0,
@@ -268,11 +284,33 @@ export async function getUsageAnalytics(orgId: string) {
 }
 
 /**
- * Get invoices for an organization
+ * Get invoices/payments for an organization
  */
 export async function getInvoices(orgId: string) {
-    // For now, return empty array until Payment model is available
-    return [];
+    try {
+        const payments = await prisma.payment.findMany({
+            where: { org_id: orgId },
+            orderBy: { created_at: 'desc' },
+            take: 50, // Limit to last 50 payments
+        });
+        
+        return payments.map(p => ({
+            id: p.id,
+            amount: p.amount / 100, // Convert paise to rupees
+            currency: p.currency,
+            status: p.status,
+            method: p.method,
+            razorpayPaymentId: p.razorpay_payment_id,
+            invoiceId: p.invoice_id,
+            fee: p.fee ? p.fee / 100 : null,
+            tax: p.tax ? p.tax / 100 : null,
+            createdAt: p.created_at.toISOString(),
+            capturedAt: p.captured_at?.toISOString() || null,
+        }));
+    } catch (error) {
+        console.error('[Razorpay] Failed to fetch invoices:', error);
+        return [];
+    }
 }
 
 /**

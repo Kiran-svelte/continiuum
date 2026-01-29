@@ -744,8 +744,12 @@ export async function simulateLeaveImpact(
             success: true,
             impact: {
                 teamCoverage,
-                projectsAffected: [], // Would need project tracking
-                criticalMeetings: [], // Would need calendar integration
+                projectsAffected: blockedCollaborators.length > 0 
+                    ? [`${blockedCollaborators.length} team members' work may be affected`] 
+                    : [],
+                criticalMeetings: days > 3 
+                    ? ['Consider rescheduling recurring meetings', 'Notify stakeholders of absence'] 
+                    : [],
                 blockedCollaborators,
                 riskLevel,
                 suggestions
@@ -919,6 +923,27 @@ export async function calculateCompensation(): Promise<{
         const earnedCompOff = Math.round(
             (overtimeHours / 16) + weekendDays + (holidayWork * 1.5)
         );
+        
+        // Check for pending comp-off leave requests
+        const pendingCompOffRequests = await prisma.leaveRequest.count({
+            where: {
+                emp_id: employee.emp_id,
+                leave_type: { in: ['COMP', 'COMPENSATORY', 'comp', 'compensatory'] },
+                status: 'pending'
+            }
+        });
+        
+        // Get comp-off balance if it exists
+        const compOffBalance = await prisma.leaveBalance.findFirst({
+            where: {
+                emp_id: employee.emp_id,
+                leave_type: { in: ['COMP', 'COMPENSATORY', 'comp', 'compensatory'] },
+                year: new Date().getFullYear()
+            }
+        });
+        
+        const pendingApproval = pendingCompOffRequests + 
+            (compOffBalance ? Number(compOffBalance.pending_days) : 0);
 
         return {
             success: true,
@@ -928,7 +953,7 @@ export async function calculateCompensation(): Promise<{
                 weekendDays,
                 holidayWork,
                 earnedCompOff,
-                pendingApproval: 0, // Would need comp-off tracking table
+                pendingApproval,
                 expiringDays: earnedCompOff > 0 ? [{ 
                     days: earnedCompOff, 
                     expiresOn: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]

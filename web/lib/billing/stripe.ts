@@ -317,7 +317,26 @@ export async function checkPlanLimit(
                     upgradeRequired: 'STARTER',
                 };
             }
-            // TODO: Check monthly API call count from usage table
+            // Check monthly API call count from audit logs (USAGE_API_CALL events)
+            const startOfMonth = new Date();
+            startOfMonth.setDate(1);
+            startOfMonth.setHours(0, 0, 0, 0);
+            
+            const apiCallCount = await prisma.auditLog.count({
+                where: {
+                    target_org: orgId,
+                    action: 'USAGE_API_CALL',
+                    created_at: { gte: startOfMonth }
+                }
+            });
+            
+            if (apiCallCount >= limits.apiCalls) {
+                return {
+                    allowed: false,
+                    reason: `Monthly API limit reached (${limits.apiCalls} calls). Resets next month.`,
+                    upgradeRequired: status.tier === 'STARTER' ? 'PROFESSIONAL' : 'ENTERPRISE',
+                };
+            }
             return { allowed: true };
 
         case 'custom_report':

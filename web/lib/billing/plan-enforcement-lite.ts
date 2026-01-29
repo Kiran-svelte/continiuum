@@ -99,6 +99,22 @@ export async function getPlanStatus(orgId: string): Promise<PlanCheckResult> {
     }
 
     const tierLimits = status.tierConfig.limits as TierLimits;
+    
+    // Get API call count from audit logs
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+    
+    const apiCallCount = await prisma.auditLog.count({
+        where: {
+            target_org: orgId,
+            action: 'USAGE_API_CALL',
+            created_at: { gte: startOfMonth }
+        }
+    });
+    
+    const apiLimit = tierLimits.apiCalls === -1 ? Infinity : tierLimits.apiCalls;
+    const apiPercentage = tierLimits.apiCalls === -1 ? 0 : Math.round((apiCallCount / tierLimits.apiCalls) * 100);
 
     const result: PlanCheckResult = {
         allowed: !status.isOverLimit,
@@ -111,9 +127,9 @@ export async function getPlanStatus(orgId: string): Promise<PlanCheckResult> {
                 percentage: status.usagePercentage,
             },
             apiCalls: {
-                current: 0, // Would come from usage tracking
+                current: apiCallCount,
                 max: tierLimits.apiCalls === -1 ? 'Unlimited' : tierLimits.apiCalls,
-                percentage: 0,
+                percentage: apiPercentage,
             },
         },
     };

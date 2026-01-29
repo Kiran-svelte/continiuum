@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { ArrowRight, X, FileText, Plus, Minus, Upload, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useConfirm } from "@/components/ui/confirm-provider";
+import { uploadDocument, getEmployeeDocuments } from "@/app/actions/documents";
 
 interface LeaveBalance {
     leave_type: string;
@@ -18,6 +19,7 @@ interface Document {
     type: string;
     date: string;
     size: string;
+    verified?: boolean;
 }
 
 interface EmployeeQuickActionsProps {
@@ -36,13 +38,38 @@ export function EmployeeQuickActions({ employeeId, employeeName, leaveBalances }
     const [adjustmentReason, setAdjustmentReason] = useState("");
     const [isSaving, setIsSaving] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
-    const [uploadedDocs, setUploadedDocs] = useState<Document[]>([
-        { id: "1", name: "Employment Contract", type: "pdf", date: "2024-01-15", size: "245 KB" },
-        { id: "2", name: "ID Verification", type: "pdf", date: "2024-01-15", size: "1.2 MB" },
-        { id: "3", name: "Tax Form W-4", type: "pdf", date: "2024-01-20", size: "89 KB" },
-    ]);
+    const [isLoadingDocs, setIsLoadingDocs] = useState(false);
+    const [uploadedDocs, setUploadedDocs] = useState<Document[]>([]);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const { confirmAction } = useConfirm();
+
+    // Load documents from database when modal opens
+    useEffect(() => {
+        if (showDocumentsModal && employeeId) {
+            loadDocuments();
+        }
+    }, [showDocumentsModal, employeeId]);
+    
+    const loadDocuments = async () => {
+        setIsLoadingDocs(true);
+        try {
+            const result = await getEmployeeDocuments(employeeId);
+            if (result.success && result.documents) {
+                setUploadedDocs(result.documents.map(doc => ({
+                    id: doc.id,
+                    name: doc.name,
+                    type: doc.type,
+                    date: doc.uploadedAt.split('T')[0],
+                    size: 'Document',
+                    verified: doc.verified,
+                })));
+            }
+        } catch (error) {
+            console.error('Failed to load documents:', error);
+        } finally {
+            setIsLoadingDocs(false);
+        }
+    };
 
     const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
@@ -61,23 +88,52 @@ export function EmployeeQuickActions({ employeeId, employeeName, leaveBalances }
 
         setIsUploading(true);
         try {
-            // In production, upload to cloud storage (S3, Cloudinary, etc.)
-            // For now, simulate upload and add to local state
-            await new Promise(r => setTimeout(r, 1500));
+            // Convert file to base64
+            const reader = new FileReader();
+            const base64Promise = new Promise<string>((resolve, reject) => {
+                reader.onload = () => {
+                    const result = reader.result as string;
+                    // Extract base64 part after data:mimetype;base64,
+                    const base64 = result.split(',')[1];
+                    resolve(base64);
+                };
+                reader.onerror = reject;
+            });
+            reader.readAsDataURL(file);
+            const base64Content = await base64Promise;
             
-            const newDoc: Document = {
-                id: Date.now().toString(),
-                name: file.name,
-                type: file.name.split('.').pop() || 'file',
-                date: new Date().toISOString().split('T')[0],
-                size: file.size > 1024 * 1024 
-                    ? `${(file.size / (1024 * 1024)).toFixed(1)} MB`
-                    : `${Math.round(file.size / 1024)} KB`,
-            };
+            // Determine document type from file extension - matches Prisma DocType enum
+            // DocType: passport, contract, id_proof, tax_form, other
+            const ext = file.name.split('.').pop()?.toLowerCase();
+            const docType = ['jpg', 'jpeg', 'png'].includes(ext || '') ? 'id_proof' : 'other';
             
-            setUploadedDocs(prev => [newDoc, ...prev]);
-            setShowUploadModal(false);
-            toast.success(`Document "${file.name}" uploaded successfully`);
+            // Upload via server action
+            const result = await uploadDocument({
+                employeeId,
+                type: docType,
+                fileName: file.name,
+                fileContent: base64Content,
+                contentType: file.type,
+                fileSize: file.size,
+            });
+            
+            if (result.success && result.document) {
+                const newDoc: Document = {
+                    id: result.document.id,
+                    name: result.document.name,
+                    type: file.name.split('.').pop() || 'file',
+                    date: result.document.uploadedAt.split('T')[0],
+                    size: file.size > 1024 * 1024 
+                        ? `${(file.size / (1024 * 1024)).toFixed(1)} MB`
+                        : `${Math.round(file.size / 1024)} KB`,
+                };
+                
+                setUploadedDocs(prev => [newDoc, ...prev]);
+                setShowUploadModal(false);
+                toast.success(`Document "${file.name}" uploaded successfully`);
+            } else {
+                toast.error(result.error || 'Failed to upload document');
+            }
         } catch {
             toast.error('Failed to upload document. Please try again.');
         } finally {

@@ -110,12 +110,13 @@ function getLeaveTypeConfig(leaveTypes: any[], typeCode: string) {
 /**
  * Check company-specific leave rules
  */
-function evaluateLeaveRules(
+async function evaluateLeaveRules(
     leaveRules: any[],
     leaveDetails: { startDate: string; endDate: string; days: number },
     teamState: { alreadyOnLeave: number; teamSize: number },
-    department?: string
-): { violations: string[]; suggestions: string[]; blocking: boolean } {
+    department?: string,
+    empId?: string
+): Promise<{ violations: string[]; suggestions: string[]; blocking: boolean }> {
     const violations: string[] = [];
     const suggestions: string[] = [];
     let hasBlockingViolation = false;
@@ -165,9 +166,32 @@ function evaluateLeaveRules(
                 break;
 
             case 'min_gap':
-                // Would need to check previous leaves - simplified for now
+                // Check gap between this leave and previous leaves
                 const minGap = config.days || 7;
-                suggestions.push(`Note: ${rule.name} requires ${minGap} days gap between leaves`);
+                if (empId) {
+                    const previousLeave = await prisma.leaveRequest.findFirst({
+                        where: {
+                            emp_id: empId,
+                            status: { in: ['approved', 'pending'] },
+                            end_date: { lt: new Date(leaveDetails.startDate) }
+                        },
+                        orderBy: { end_date: 'desc' }
+                    });
+                    
+                    if (previousLeave) {
+                        const daysSinceLast = Math.floor(
+                            (new Date(leaveDetails.startDate).getTime() - previousLeave.end_date.getTime()) / (1000 * 60 * 60 * 24)
+                        );
+                        
+                        if (daysSinceLast < minGap) {
+                            violations.push(`${rule.name}: Only ${daysSinceLast} days since last leave (minimum ${minGap} days required)`);
+                            suggestions.push(`Wait until ${new Date(previousLeave.end_date.getTime() + minGap * 24 * 60 * 60 * 1000).toLocaleDateString()}`);
+                            if (rule.is_blocking) hasBlockingViolation = true;
+                        }
+                    }
+                } else {
+                    suggestions.push(`Note: ${rule.name} requires ${minGap} days gap between leaves`);
+                }
                 break;
 
             case 'department_limit':
@@ -298,7 +322,7 @@ export async function analyzeLeaveRequest(
         };
 
         // 6. Evaluate COMPANY-SPECIFIC leave rules
-        const ruleResults = evaluateLeaveRules(leaveRules, leaveDetails, teamState, department);
+        const ruleResults = await evaluateLeaveRules(leaveRules, leaveDetails, teamState, department, employee.emp_id);
         violations.push(...ruleResults.violations);
         suggestions.push(...ruleResults.suggestions);
 
