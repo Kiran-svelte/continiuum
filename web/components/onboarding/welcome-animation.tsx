@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { formatDisplayName } from "@/lib/utils";
 import { markWelcomeShown } from "@/app/actions/onboarding";
 import { Sparkles, Zap, Globe, Users, Shield, ArrowRight } from "lucide-react";
 
@@ -118,7 +119,7 @@ export function WelcomeAnimation({ userName, onComplete }: WelcomeAnimationProps
         onComplete();
     };
 
-    const firstName = userName?.split(" ")[0] || "there";
+    const firstName = formatDisplayName(userName, "there").split(" ")[0] || "there";
 
     return (
         <div className="fixed inset-0 z-[100] bg-black overflow-hidden">

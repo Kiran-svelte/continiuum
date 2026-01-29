@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { getPusherClient } from "@/lib/realtime/pusher-client";
 import { 
     Search, 
     Filter, 
@@ -76,6 +77,7 @@ export default function AuditLogsPage() {
     const [filteredLogs, setFilteredLogs] = useState<AuditLogEntry[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isLiveMode, setIsLiveMode] = useState(true);
+    const [realtimeStatus, setRealtimeStatus] = useState<'connecting' | 'connected' | 'unavailable' | 'error'>('connecting');
     const [expandedLog, setExpandedLog] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedActorType, setSelectedActorType] = useState<string>('all');
@@ -86,6 +88,7 @@ export default function AuditLogsPage() {
     const [newLogCount, setNewLogCount] = useState(0);
     const logsContainerRef = useRef<HTMLDivElement>(null);
     const lastFetchTime = useRef<string | null>(null);
+    const pusherChannelRef = useRef<any>(null);
 
     // Fetch logs from API
     const fetchLogs = useCallback(async (since?: string) => {
@@ -179,12 +182,76 @@ export default function AuditLogsPage() {
         setFilteredLogs(filtered);
     }, [logs, searchQuery, selectedActorType, selectedAction, selectedResourceType, dateRange]);
 
-    // Live mode - real-time polling for new logs
+    // Live mode - realtime via Pusher (fallback to polling if unavailable)
     useEffect(() => {
         if (!isLiveMode) return;
 
+        let cancelled = false;
+        const pusher = getPusherClient();
+
+        if (!pusher) {
+            setRealtimeStatus('unavailable');
+            return;
+        }
+
+        setRealtimeStatus('connecting');
+
+        (async () => {
+            try {
+                const res = await fetch('/api/realtime/hr-channel');
+                if (!res.ok) throw new Error('Failed to get realtime channel');
+                const data = await res.json();
+                const channelName = data?.channelName as string | undefined;
+                if (!channelName) throw new Error('Missing channelName');
+                if (cancelled) return;
+
+                const channel = pusher.subscribe(channelName);
+                pusherChannelRef.current = channel;
+
+                channel.bind('pusher:subscription_succeeded', () => {
+                    if (!cancelled) setRealtimeStatus('connected');
+                });
+                channel.bind('pusher:subscription_error', () => {
+                    if (!cancelled) setRealtimeStatus('error');
+                });
+
+                channel.bind('audit_log.created', (payload: any) => {
+                    const incoming = payload?.log as AuditLogEntry | undefined;
+                    if (!incoming?.id) return;
+
+                    setLogs(prev => {
+                        if (prev.some(l => l.id === incoming.id)) return prev;
+                        return [incoming, ...prev];
+                    });
+                    setNewLogCount(prev => prev + 1);
+                    lastFetchTime.current = incoming.timestamp;
+                });
+            } catch (e) {
+                console.warn('Realtime setup error:', e);
+                if (!cancelled) setRealtimeStatus('error');
+            }
+        })();
+
+        return () => {
+            cancelled = true;
+            try {
+                if (pusherChannelRef.current) {
+                    pusherChannelRef.current.unbind_all();
+                    pusher.unsubscribe(pusherChannelRef.current.name);
+                }
+            } catch {
+                // ignore
+            }
+            pusherChannelRef.current = null;
+        };
+    }, [isLiveMode]);
+
+    // Fallback polling only when realtime is unavailable/error
+    useEffect(() => {
+        if (!isLiveMode) return;
+        if (realtimeStatus === 'connected' || realtimeStatus === 'connecting') return;
+
         const interval = setInterval(async () => {
-            // Real API mode: poll for new logs since last fetch
             if (lastFetchTime.current) {
                 const newLogs = await fetchLogs(lastFetchTime.current);
                 if (newLogs && newLogs.length > 0) {
@@ -196,7 +263,7 @@ export default function AuditLogsPage() {
         }, 5000);
 
         return () => clearInterval(interval);
-    }, [isLiveMode, fetchLogs]);
+    }, [isLiveMode, realtimeStatus, fetchLogs]);
 
     // Clear new log notification on scroll to top
     const handleScroll = useCallback(() => {
@@ -286,8 +353,20 @@ export default function AuditLogsPage() {
                                 : 'bg-slate-800 border-slate-700 text-slate-400'
                         }`}
                     >
-                        <span className={`w-2 h-2 rounded-full ${isLiveMode ? 'bg-green-400 animate-pulse' : 'bg-slate-500'}`} />
-                        {isLiveMode ? 'Live' : 'Paused'}
+                        <span
+                            className={`w-2 h-2 rounded-full ${
+                                !isLiveMode
+                                    ? 'bg-slate-500'
+                                    : realtimeStatus === 'connected'
+                                        ? 'bg-green-400 animate-pulse'
+                                        : realtimeStatus === 'connecting'
+                                            ? 'bg-amber-400 animate-pulse'
+                                            : realtimeStatus === 'unavailable'
+                                                ? 'bg-slate-500'
+                                                : 'bg-rose-400 animate-pulse'
+                            }`}
+                        />
+                        {isLiveMode ? (realtimeStatus === 'connected' ? 'Live' : realtimeStatus === 'connecting' ? 'Connecting' : 'Live (Fallback)') : 'Paused'}
                     </button>
 
                     {/* Export Dropdown */}

@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import crypto from "crypto";
+import { getPusherServer } from "@/lib/realtime/pusher-server";
+import { hrOrgChannelName } from "@/lib/realtime/channels";
 
 // Audit Actions Enum
 export enum AuditAction {
@@ -149,6 +151,71 @@ export async function logAudit(input: AuditLogInput): Promise<{ success: boolean
                 integrity_hash: integrityHash
             }
         });
+
+        // Best-effort realtime broadcast (never blocks audit logging)
+        try {
+            const pusher = getPusherServer();
+            if (pusher) {
+                const details = input.details;
+                const actorNameFromDetails = typeof details?.["actor_name"] === "string" ? (details["actor_name"] as string) : undefined;
+                const summaryFromDetails = typeof details?.["summary"] === "string" ? (details["summary"] as string) : undefined;
+
+                let actorName = actorNameFromDetails || "System";
+                let actorRole = input.actorRole;
+
+                if ((input.actorType || "user") === "user") {
+                    const actor = await prisma.employee.findUnique({
+                        where: { emp_id: input.actorId },
+                        select: { full_name: true, role: true },
+                    });
+                    actorName = actor?.full_name || actorName || "Unknown";
+                    actorRole = actorRole || actor?.role || actorRole;
+                } else if ((input.actorType || "user") === "ai") {
+                    actorName = actorName || "Constraint Engine";
+                }
+
+                const summary = summaryFromDetails || input.action;
+
+                const realtimeLog = {
+                    id: log.id,
+                    timestamp: log.created_at.toISOString(),
+                    actor_type: log.actor_type,
+                    actor_id: log.actor_id,
+                    actor_name: actorName,
+                    actor_role: log.actor_role || actorRole || "system",
+                    action: log.action,
+                    resource_type: log.entity_type,
+                    resource_id: log.entity_id,
+                    resource_name: log.resource_name,
+                    previous_state: log.previous_state,
+                    new_state: log.new_state,
+                    decision: log.decision,
+                    decision_reason: log.decision_reason,
+                    confidence_score: log.confidence_score,
+                    model_version: log.model_version,
+                    ip_address: log.ip_address,
+                    user_agent: log.user_agent,
+                    request_id: log.request_id || requestId,
+                    integrity_hash: log.integrity_hash || integrityHash,
+                    org_id: log.target_org,
+                };
+
+                const realtimeActivity = {
+                    id: log.id,
+                    action: log.action,
+                    created_at: log.created_at,
+                    actor_name: actorName,
+                    change_summary: summary,
+                };
+
+                await pusher.trigger(hrOrgChannelName(input.orgId), "audit_log.created", {
+                    log: realtimeLog,
+                    activity: realtimeActivity,
+                });
+            }
+        } catch (realtimeError) {
+            console.warn("Audit Log realtime broadcast error:", realtimeError);
+        }
         
         return { success: true, id: log.id };
         

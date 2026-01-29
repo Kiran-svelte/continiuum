@@ -24,20 +24,26 @@ export function OnboardingFlow({ user, intent, savedData }: { user: any; intent:
 
     // Determine initial step based on user's saved progress
     const determineInitialStep = (): "legal" | "choice" | "details" | "create" | "constraints" | "join" | "pending_approval" => {
-        // If already pending approval AND has org_id, show pending screen
-        // CRITICAL: This BLOCKS switching to HR flow when already joined a company
-        if (user?.onboarding_status === "pending_approval" && user?.org_id) {
+        const isHR = user?.role === "hr" || user?.role === "admin";
+
+        // Employees who already joined a company should not be able to switch into HR creation.
+        // But HR users with an org_id must be able to continue HR onboarding (constraints/settings).
+        if (!isHR && user?.onboarding_status === "pending_approval" && user?.org_id) {
             return "pending_approval" as any;
         }
 
-        // SECURITY: If user has joined a company (has org_id), they CANNOT switch to HR flow
-        // This prevents employees from creating a competing company
-        if (user?.org_id) {
-            if (user?.onboarding_completed) {
-                return "pending_approval" as any; // Will be redirected by server
-            }
-            // They're mid-employee flow, keep them there
+        if (!isHR && user?.org_id) {
             return "pending_approval" as any;
+        }
+
+        if (isHR && user?.terms_accepted_at) {
+            const savedStep = user?.onboarding_step;
+            if (savedStep && ["create", "constraints"].includes(savedStep)) {
+                return savedStep as any;
+            }
+            if (user?.org_id && !user?.onboarding_completed) {
+                return "constraints";
+            }
         }
 
         // SECURITY: If user has pending approval status but no org_id, they were rejected
@@ -314,6 +320,18 @@ export function OnboardingFlow({ user, intent, savedData }: { user: any; intent:
                                 <UserPlus className="w-12 h-12 text-[#00f2ff] mb-6" />
                                 <h3 className="text-xl font-bold text-white mb-2">Join Team</h3>
                                 <p className="text-slate-400 text-sm">For Employees. Setup your profile and join your team.</p>
+                                {safeIntent === 'employee' && (
+                                    <p className="mt-4 text-xs text-slate-500">
+                                        Already have an account?{" "}
+                                        <a
+                                            href="/employee/sign-in"
+                                            onClick={(e) => e.stopPropagation()}
+                                            className="text-[#00f2ff] hover:text-[#00c8d2] font-medium"
+                                        >
+                                            Sign in here
+                                        </a>
+                                    </p>
+                                )}
                             </div>
                         )}
                     </motion.div>

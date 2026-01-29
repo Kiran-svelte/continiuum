@@ -4,6 +4,9 @@ import { currentUser } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
+const SETTINGS_ADMIN_ROLES = new Set(["hr", "admin", "hr_manager", "super_admin"]);
+const canManageCompanySettings = (role?: string | null) => SETTINGS_ADMIN_ROLES.has((role || "").toLowerCase());
+
 // =========================================================================
 // COMPANY SETTINGS ACTIONS
 // For managing work schedules, leave types, and leave rules
@@ -183,7 +186,7 @@ export async function saveWorkSchedule(companyId: string, settings: WorkSchedule
             select: { org_id: true, role: true }
         });
 
-        if (!employee || employee.org_id !== companyId || employee.role !== 'hr') {
+        if (!employee || employee.org_id !== companyId || !canManageCompanySettings(employee.role)) {
             return { success: false, error: "Not authorized to modify company settings" };
         }
 
@@ -221,7 +224,7 @@ export async function saveLeaveSettings(companyId: string, settings: LeaveSettin
             select: { org_id: true, role: true }
         });
 
-        if (!employee || employee.org_id !== companyId || employee.role !== 'hr') {
+        if (!employee || employee.org_id !== companyId || !canManageCompanySettings(employee.role)) {
             return { success: false, error: "Not authorized" };
         }
 
@@ -262,7 +265,7 @@ export async function saveApprovalSettings(companyId: string, settings: Approval
             select: { org_id: true, role: true }
         });
 
-        if (!employee || employee.org_id !== companyId || employee.role !== 'hr') {
+        if (!employee || employee.org_id !== companyId || !canManageCompanySettings(employee.role)) {
             return { success: false, error: "Not authorized" };
         }
 
@@ -495,7 +498,7 @@ export async function createLeaveType(companyId: string, leaveType: LeaveTypeInp
             select: { org_id: true, role: true }
         });
 
-        if (!employee || employee.org_id !== companyId || employee.role !== 'hr') {
+        if (!employee || employee.org_id !== companyId || !canManageCompanySettings(employee.role)) {
             return { success: false, error: "Not authorized" };
         }
 
@@ -546,7 +549,7 @@ export async function updateLeaveType(leaveTypeId: string, data: Partial<LeaveTy
             select: { org_id: true, role: true }
         });
 
-        if (!employee || employee.role !== 'hr') {
+        if (!employee || !canManageCompanySettings(employee.role)) {
             return { success: false, error: "Not authorized" };
         }
 
@@ -595,7 +598,7 @@ export async function deleteLeaveType(leaveTypeId: string) {
             select: { org_id: true, role: true }
         });
 
-        if (!employee || employee.role !== 'hr') {
+        if (!employee || !canManageCompanySettings(employee.role)) {
             return { success: false, error: "Not authorized" };
         }
 
@@ -635,7 +638,7 @@ export async function createLeaveRule(companyId: string, rule: LeaveRuleInput) {
             select: { org_id: true, role: true }
         });
 
-        if (!employee || employee.org_id !== companyId || employee.role !== 'hr') {
+        if (!employee || employee.org_id !== companyId || !canManageCompanySettings(employee.role)) {
             return { success: false, error: "Not authorized" };
         }
 
@@ -671,7 +674,7 @@ export async function updateLeaveRule(ruleId: string, data: Partial<LeaveRuleInp
             select: { org_id: true, role: true }
         });
 
-        if (!employee || employee.role !== 'hr') {
+        if (!employee || !canManageCompanySettings(employee.role)) {
             return { success: false, error: "Not authorized" };
         }
 
@@ -715,7 +718,7 @@ export async function deleteLeaveRule(ruleId: string) {
             select: { org_id: true, role: true }
         });
 
-        if (!employee || employee.role !== 'hr') {
+        if (!employee || !canManageCompanySettings(employee.role)) {
             return { success: false, error: "Not authorized" };
         }
 
@@ -847,7 +850,7 @@ export async function completeCompanySetup(companyId: string) {
             select: { emp_id: true, org_id: true, role: true }
         });
 
-        if (!employee || employee.org_id !== companyId || employee.role !== 'hr') {
+        if (!employee || employee.org_id !== companyId || !canManageCompanySettings(employee.role)) {
             return { success: false, error: "Not authorized" };
         }
 

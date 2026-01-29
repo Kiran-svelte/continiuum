@@ -716,11 +716,12 @@ export async function getMissingCheckIns() {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
-        // Get all active employees in the organization
+        // Get all active, approved employees in the organization (include HR/admin as employees)
         const allEmployees = await prisma.employee.findMany({
             where: {
                 org_id: hrEmployee.org_id,
-                is_active: true
+                is_active: true,
+                approval_status: 'approved'
             },
             select: {
                 emp_id: true,
@@ -734,7 +735,12 @@ export async function getMissingCheckIns() {
         const checkedInToday = await prisma.attendance.findMany({
             where: {
                 date: today,
-                check_in: { not: null }
+                check_in: { not: null },
+                employee: {
+                    org_id: hrEmployee.org_id,
+                    is_active: true,
+                    approval_status: 'approved'
+                }
             },
             select: {
                 emp_id: true
@@ -746,7 +752,12 @@ export async function getMissingCheckIns() {
             where: {
                 status: 'approved',
                 start_date: { lte: today },
-                end_date: { gte: today }
+                end_date: { gte: today },
+                employee: {
+                    org_id: hrEmployee.org_id,
+                    is_active: true,
+                    approval_status: 'approved'
+                }
             },
             select: {
                 emp_id: true
@@ -789,6 +800,16 @@ export async function markEmployeeAbsent(empId: string, markAsLeave: boolean) {
 
         if (!hrEmployee || !['hr', 'admin', 'manager'].includes(hrEmployee.role?.toLowerCase() || '')) {
             return { success: false, error: "Unauthorized: HR access required" };
+        }
+
+        // Verify target employee belongs to the same organization
+        const targetEmployee = await prisma.employee.findUnique({
+            where: { emp_id: empId },
+            select: { org_id: true, full_name: true, country_code: true }
+        });
+
+        if (!targetEmployee || targetEmployee.org_id !== hrEmployee.org_id) {
+            return { success: false, error: "Employee not found in your organization" };
         }
 
         const today = new Date();
@@ -916,22 +937,55 @@ export async function getAttendanceOverview() {
             onLeaveToday
         ] = await Promise.all([
             prisma.employee.count({
-                where: { org_id: hrEmployee.org_id, is_active: true }
+                where: {
+                    org_id: hrEmployee.org_id,
+                    is_active: true,
+                    approval_status: 'approved'
+                }
             }),
             prisma.attendance.count({
-                where: { date: today, status: 'PRESENT' }
+                where: {
+                    date: today,
+                    status: 'PRESENT',
+                    employee: {
+                        org_id: hrEmployee.org_id,
+                        is_active: true,
+                        approval_status: 'approved'
+                    }
+                }
             }),
             prisma.attendance.count({
-                where: { date: today, status: 'LATE' }
+                where: {
+                    date: today,
+                    status: 'LATE',
+                    employee: {
+                        org_id: hrEmployee.org_id,
+                        is_active: true,
+                        approval_status: 'approved'
+                    }
+                }
             }),
             prisma.attendance.count({
-                where: { date: today, status: 'ABSENT' }
+                where: {
+                    date: today,
+                    status: 'ABSENT',
+                    employee: {
+                        org_id: hrEmployee.org_id,
+                        is_active: true,
+                        approval_status: 'approved'
+                    }
+                }
             }),
             prisma.leaveRequest.count({
                 where: {
                     status: 'approved',
                     start_date: { lte: today },
-                    end_date: { gte: today }
+                    end_date: { gte: today },
+                    employee: {
+                        org_id: hrEmployee.org_id,
+                        is_active: true,
+                        approval_status: 'approved'
+                    }
                 }
             })
         ]);

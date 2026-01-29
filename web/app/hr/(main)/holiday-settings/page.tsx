@@ -237,7 +237,7 @@ export default function HolidaySettingsPage() {
                     </div>
                     <div className="flex items-center gap-2 px-3 py-1 bg-green-500/10 border border-green-500/20 rounded-lg">
                         <Globe className="w-4 h-4 text-green-400" />
-                        <span className="text-sm text-green-400 font-mono">Nager.Date API Connected</span>
+                        <span className="text-sm text-green-400 font-mono">Calendarific Connected</span>
                     </div>
                 </div>
             </header>

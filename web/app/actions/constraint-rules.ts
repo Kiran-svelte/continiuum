@@ -8,6 +8,9 @@ import {
     type ConstraintRule 
 } from "@/lib/constraint-rules-config";
 
+const POLICY_ADMIN_ROLES = new Set(["hr", "hr_manager", "admin", "super_admin"]);
+const hasPolicyAccess = (role?: string | null) => POLICY_ADMIN_ROLES.has((role || "").toLowerCase());
+
 // Re-export for backward compatibility
 export { DEFAULT_CONSTRAINT_RULES, RULE_CATEGORIES };
 export type { ConstraintRule };
@@ -40,24 +43,27 @@ export async function getCompanyConstraintRules(): Promise<{
         });
 
         if (policy && policy.rules) {
-            // Company has custom rules configured
             const customRules = policy.rules as Record<string, any>;
-            const rules: ConstraintRule[] = Object.entries(customRules).map(([ruleId, ruleData]: [string, any]) => ({
-                id: ruleId,
-                rule_id: ruleId,
-                name: ruleData.name,
-                description: ruleData.description,
-                category: ruleData.category,
-                is_active: ruleData.is_active !== false,
-                is_blocking: ruleData.is_blocking ?? true,
-                priority: ruleData.priority ?? 50,
-                config: ruleData.config || {},
-                is_custom: ruleData.is_custom ?? false,
-                created_at: new Date(ruleData.created_at || Date.now()),
-                updated_at: new Date(ruleData.updated_at || Date.now())
-            }));
-            
-            return { success: true, rules };
+            const hasValidRules = Object.keys(customRules).some((key) => key.startsWith("RULE"));
+
+            if (hasValidRules) {
+                const rules: ConstraintRule[] = Object.entries(customRules).map(([ruleId, ruleData]: [string, any]) => ({
+                    id: ruleId,
+                    rule_id: ruleId,
+                    name: ruleData.name,
+                    description: ruleData.description,
+                    category: ruleData.category,
+                    is_active: ruleData.is_active !== false,
+                    is_blocking: ruleData.is_blocking ?? true,
+                    priority: ruleData.priority ?? 50,
+                    config: ruleData.config || {},
+                    is_custom: ruleData.is_custom ?? false,
+                    created_at: new Date(ruleData.created_at || Date.now()),
+                    updated_at: new Date(ruleData.updated_at || Date.now())
+                }));
+
+                return { success: true, rules };
+            }
         }
 
         // No custom policy - return all default rules as active
@@ -174,7 +180,7 @@ export async function toggleRuleStatus(
         }
 
         // Check role
-        if (!['hr_manager', 'admin', 'super_admin'].includes(employee.role)) {
+        if (!hasPolicyAccess(employee.role)) {
             return { success: false, error: "Insufficient permissions" };
         }
 
@@ -250,7 +256,7 @@ export async function updateRuleConfig(
             return { success: false, error: "Employee not found" };
         }
 
-        if (!['hr_manager', 'admin', 'super_admin'].includes(employee.role)) {
+        if (!hasPolicyAccess(employee.role)) {
             return { success: false, error: "Insufficient permissions" };
         }
 
@@ -335,7 +341,7 @@ export async function createCustomRule(
             return { success: false, error: "Employee not found" };
         }
 
-        if (!['hr_manager', 'admin', 'super_admin'].includes(employee.role)) {
+        if (!hasPolicyAccess(employee.role)) {
             return { success: false, error: "Insufficient permissions" };
         }
 
@@ -406,7 +412,7 @@ export async function deleteRule(ruleId: string): Promise<{
             return { success: false, error: "Employee not found" };
         }
 
-        if (!['hr_manager', 'admin', 'super_admin'].includes(employee.role)) {
+        if (!hasPolicyAccess(employee.role)) {
             return { success: false, error: "Insufficient permissions" };
         }
 
@@ -468,7 +474,7 @@ export async function resetToDefaultRules(): Promise<{
             return { success: false, error: "Employee not found" };
         }
 
-        if (!['hr_manager', 'admin', 'super_admin'].includes(employee.role)) {
+        if (!hasPolicyAccess(employee.role)) {
             return { success: false, error: "Insufficient permissions" };
         }
 
@@ -589,7 +595,7 @@ export async function bulkUpdateRuleStatus(
             return { success: false, error: "Employee not found" };
         }
 
-        if (!['hr_manager', 'admin', 'super_admin'].includes(employee.role)) {
+        if (!hasPolicyAccess(employee.role)) {
             return { success: false, error: "Insufficient permissions" };
         }
 

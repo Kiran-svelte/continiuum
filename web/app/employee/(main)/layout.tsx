@@ -67,22 +67,19 @@ export default async function DashboardLayout({
         return redirect("/employee/rejected");
     }
 
-    // Check if pending approval - redirect to pending page
-    // This MUST come after org_id check
-    if (employee.onboarding_status === "pending_approval" || 
-        employee.approval_status === "pending" ||
-        employee.approval_status !== "approved") {
+    // If not approved yet (or in explicit pending flow), keep them on the pending page.
+    // This MUST come after org_id check.
+    if (employee.onboarding_status === "pending_approval" || employee.approval_status !== "approved") {
         return redirect("/employee/pending");
     }
 
-    // Final check: Must have completed onboarding AND be approved
-    const isOnboardingComplete = 
-        (employee.onboarding_status === "completed" || employee.onboarding_status === "approved") &&
-        employee.onboarding_completed === true &&
-        employee.approval_status === "approved";
+    // Final check: tolerate legacy records where onboarding_completed may not be flipped,
+    // as long as approval + onboarding_status indicate completion.
+    const isOnboardingComplete =
+        employee.approval_status === "approved" &&
+        (employee.onboarding_completed === true || employee.onboarding_status === "completed" || employee.onboarding_status === "approved");
 
     if (!isOnboardingComplete) {
-        // Has org but not fully approved - they're pending
         return redirect("/employee/pending");
     }
 

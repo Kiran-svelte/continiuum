@@ -3,6 +3,8 @@
 import { prisma } from "@/lib/prisma";
 import { currentUser } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
+import { fetchCalendarificHolidays } from "@/lib/holidays/calendarific";
+import { cachePublicHolidaysForYear, ensurePublicHolidaysCached } from "@/lib/holidays/cache";
 
 // Types
 interface Holiday {
@@ -411,71 +413,24 @@ export async function refreshHolidays(year: number, countryCode: string = 'IN') 
     if (!authResult.success) return authResult;
     
     try {
-        // Create AbortController for timeout (10 second timeout)
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000);
-        
-        // Fetch fresh data from Nager.Date API FIRST (before deleting)
-        let response;
-        try {
-            response = await fetch(`https://date.nager.at/api/v3/PublicHolidays/${year}/${countryCode}`, {
-                signal: controller.signal
-            });
-            clearTimeout(timeoutId);
-        } catch (fetchError: any) {
-            clearTimeout(timeoutId);
-            if (fetchError.name === 'AbortError') {
-                return { success: false, error: 'Holiday API timed out. Your existing holidays are preserved. Please try again.' };
-            }
-            throw fetchError;
+        // Fetch from Calendarific first (before touching cache)
+        const fetched = await fetchCalendarificHolidays({ year, countryCode });
+        if (!fetched.success) {
+            return { success: false, error: `Failed to fetch holidays: ${fetched.error}. Your existing holidays are preserved.` };
         }
-        
-        if (!response.ok) {
-            return { success: false, error: `Failed to fetch holidays: API returned ${response.status}. Your existing holidays are preserved.` };
-        }
-        
-        const holidays = await response.json();
-        
-        if (!holidays || !Array.isArray(holidays) || holidays.length === 0) {
-            return { success: false, error: 'No holidays returned from API. Your existing holidays are preserved.' };
-        }
-        
-        // Only NOW delete existing cached holidays and insert new ones (transactionally)
-        const cached = await prisma.$transaction(async (tx) => {
-            // Delete existing cached holidays for this year/country
-            await tx.publicHoliday.deleteMany({
-                where: {
-                    year,
-                    country_code: countryCode
-                }
-            });
-            
-            // Cache new holidays in database
-            const results = await Promise.all(
-                holidays.map(async (h: any) => {
-                    return tx.publicHoliday.create({
-                        data: {
-                            date: new Date(h.date),
-                            name: h.name,
-                            local_name: h.localName,
-                            country_code: countryCode,
-                            year,
-                            is_global: h.global,
-                            types: h.types
-                        }
-                    });
-                })
-            );
-            
-            return results;
+
+        const cachedCount = await cachePublicHolidaysForYear({
+            year,
+            countryCode,
+            holidays: fetched.holidays,
         });
         
         revalidatePath('/hr/holiday-settings');
         
         return {
             success: true,
-            message: `Refreshed ${cached.length} holidays for ${countryCode} ${year}`,
-            count: cached.length
+            message: `Refreshed ${cachedCount} holidays for ${countryCode} ${year}`,
+            count: cachedCount
         };
         
     } catch (error: any) {
@@ -510,13 +465,25 @@ export async function getAllHolidays(year: number) {
         const countryCode = settings?.country_code || 'IN';
         
         // Get public holidays from cache
-        const publicHolidays = await prisma.publicHoliday.findMany({
+        let publicHolidays = await prisma.publicHoliday.findMany({
             where: {
                 year,
                 country_code: countryCode
             },
             orderBy: { date: 'asc' }
         });
+
+        // If we're in auto mode and cache is empty, try to warm the cache once.
+        // This avoids the "0 holidays" first-load experience when the HR hasn't pressed refresh yet.
+        if ((settings?.holiday_mode || 'auto') === 'auto' && publicHolidays.length === 0) {
+            const ensured = await ensurePublicHolidaysCached({ year, countryCode });
+            if (ensured.success && ensured.count > 0) {
+                publicHolidays = await prisma.publicHoliday.findMany({
+                    where: { year, country_code: countryCode },
+                    orderBy: { date: 'asc' },
+                });
+            }
+        }
         
         // Get custom holidays from settings
         const customHolidays = ((settings?.custom_holidays as any[]) || [])

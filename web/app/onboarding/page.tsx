@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { syncUser } from "@/app/actions/onboarding";
 import { OnboardingFlow } from "@/components/onboarding/onboarding-flow";
 import { RefreshCw, AlertTriangle, Home } from "lucide-react";
+import { shouldRedirectToEmployeePending } from "@/lib/onboarding/routing";
 
 // Error component with better UX
 function OnboardingError({ error, canRetry = true }: { error?: string; canRetry?: boolean }) {
@@ -61,9 +62,13 @@ export default async function OnboardingPage(props: { searchParams: Promise<{ in
 
     const employee = syncRes.employee;
 
-    // If employee is pending HR approval AND has org_id, redirect to pending page
-    // Don't redirect to pending if they haven't joined a company yet
-    if ((employee as any).onboarding_status === "pending_approval" && employee.org_id) {
+    // Only employee flows should ever land on /employee/pending.
+    if (
+        shouldRedirectToEmployeePending({
+            employee: employee as any,
+            intent: searchParams.intent,
+        })
+    ) {
         return redirect("/employee/pending");
     }
 

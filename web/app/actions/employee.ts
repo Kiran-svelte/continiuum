@@ -696,10 +696,30 @@ export async function checkOut() {
 
 export async function getHolidays(year?: number) {
     try {
+        const user = await currentUser();
+        if (!user) return { success: false, error: "Unauthorized", holidays: [] };
+
         const targetYear = year || new Date().getFullYear();
-        
+
+        const employee = await prisma.employee.findUnique({
+            where: { clerk_id: user.id },
+            select: { org_id: true }
+        });
+
+        if (!employee) return { success: false, error: "Employee not found", holidays: [] };
+
+        const settings = await prisma.companySettings.findUnique({
+            where: { company_id: employee.org_id || 'default' }
+        });
+
+        const countryCode = settings?.country_code || 'IN';
+
+        // Warm cache if empty
+        const { ensurePublicHolidaysCached } = await import("@/lib/holidays/cache");
+        await ensurePublicHolidaysCached({ year: targetYear, countryCode }).catch(() => null);
+
         const holidays = await prisma.publicHoliday.findMany({
-            where: { year: targetYear },
+            where: { year: targetYear, country_code: countryCode },
             orderBy: { date: 'asc' }
         });
 

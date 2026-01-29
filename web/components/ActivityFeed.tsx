@@ -1,16 +1,17 @@
 'use client';
 
 import { getCompanyActivity } from "@/app/actions/hr";
-import { useState, useEffect } from 'react';
-import { useAuth } from '@clerk/nextjs';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { getPusherClient } from "@/lib/realtime/pusher-client";
 import { Activity, LogIn, Plane, Check, X, UserPlus, FileText, RefreshCw } from 'lucide-react';
 
 export default function ActivityFeed() {
-    const { getToken } = useAuth();
     const [activities, setActivities] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [realtimeConnected, setRealtimeConnected] = useState(false);
+    const pusherChannelRef = useRef<any>(null);
 
-    const fetchActivity = async () => {
+    const fetchActivity = useCallback(async () => {
         try {
             const res = await getCompanyActivity();
             if (res.success && res.activities) {
@@ -21,13 +22,61 @@ export default function ActivityFeed() {
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
 
     useEffect(() => {
         fetchActivity();
-        const interval = setInterval(fetchActivity, 30000); // Refresh every 30s
-        return () => clearInterval(interval);
-    }, [getToken]);
+
+        let cancelled = false;
+        const pusher = getPusherClient();
+        if (!pusher) return;
+
+        (async () => {
+            try {
+                const res = await fetch('/api/realtime/hr-channel');
+                if (!res.ok) throw new Error('Failed to get realtime channel');
+                const data = await res.json();
+                const channelName = data?.channelName as string | undefined;
+                if (!channelName) throw new Error('Missing channelName');
+                if (cancelled) return;
+
+                const channel = pusher.subscribe(channelName);
+                pusherChannelRef.current = channel;
+
+                channel.bind('pusher:subscription_succeeded', () => {
+                    if (!cancelled) setRealtimeConnected(true);
+                });
+                channel.bind('pusher:subscription_error', () => {
+                    if (!cancelled) setRealtimeConnected(false);
+                });
+
+                channel.bind('audit_log.created', (payload: any) => {
+                    const incoming = payload?.activity;
+                    if (!incoming?.id) return;
+                    setActivities(prev => {
+                        if (prev.some(a => a.id === incoming.id)) return prev;
+                        return [incoming, ...prev].slice(0, 20);
+                    });
+                });
+            } catch (e) {
+                console.warn('Realtime setup error:', e);
+                if (!cancelled) setRealtimeConnected(false);
+            }
+        })();
+
+        return () => {
+            cancelled = true;
+            try {
+                if (pusherChannelRef.current) {
+                    pusherChannelRef.current.unbind_all();
+                    pusher.unsubscribe(pusherChannelRef.current.name);
+                }
+            } catch {
+                // ignore
+            }
+            pusherChannelRef.current = null;
+        };
+    }, [fetchActivity]);
 
     const getActivityConfig = (action: string) => {
         if (action.includes('login')) return { icon: LogIn, color: 'cyan', bg: 'bg-cyan-500/10', border: 'border-cyan-500/20' };
@@ -59,7 +108,7 @@ export default function ActivityFeed() {
                         </div>
                         <div>
                             <h3 className="text-base font-semibold text-white">Live Activity</h3>
-                            <p className="text-xs text-white/40">Real-time updates</p>
+                            <p className="text-xs text-white/40">{realtimeConnected ? 'Real-time updates' : 'Updates'}</p>
                         </div>
                     </div>
                     <button 

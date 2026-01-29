@@ -35,10 +35,15 @@ export default async function DashboardLayout({
         return redirect("/onboarding?intent=hr");
     }
 
-    // FIRST: Check if user has HR role - redirect non-HR users BEFORE other checks
+    // If user is not HR/Admin, only redirect to employee dashboard when they are
+    // actually an approved employee in a company. Otherwise keep them in HR onboarding
+    // (common right after /hr/sign-up, before company registration completes).
     if (employee.role !== "hr" && employee.role !== "admin") {
-        // Not an HR user - redirect to employee dashboard (will be handled there)
-        return redirect("/employee/dashboard");
+        const isApprovedEmployee = employee.org_id && employee.approval_status === "approved";
+        if (isApprovedEmployee) {
+            return redirect("/employee/dashboard");
+        }
+        return redirect("/onboarding?intent=hr");
     }
 
     // CRITICAL: HR MUST have registered a company (org_id)

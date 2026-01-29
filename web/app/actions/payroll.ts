@@ -105,7 +105,8 @@ export async function calculatePayroll(month: number, year: number) {
         const employees = await prisma.employee.findMany({
             where: {
                 org_id: hrEmployee!.org_id,
-                is_active: true
+                is_active: true,
+                approval_status: 'approved'
             },
             include: {
                 attendances: {

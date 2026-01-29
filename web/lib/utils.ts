@@ -64,6 +64,26 @@ export function capitalize(str: string): string {
 }
 
 /**
+ * Format a display name safely when last name may be missing.
+ */
+export function formatDisplayName(name?: string | null, fallback = "User"): string {
+    if (!name) return fallback;
+    const trimmed = name.replace(/\s+/g, " ").trim();
+    return trimmed || fallback;
+}
+
+/**
+ * Get initials from a display name.
+ */
+export function getInitials(name?: string | null, fallback = "U"): string {
+    const clean = formatDisplayName(name, "").trim();
+    if (!clean) return fallback;
+    const parts = clean.split(" ").filter(Boolean);
+    if (parts.length === 1) return parts[0][0].toUpperCase();
+    return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+}
+
+/**
  * Check if we're running on the client side
  */
 export const isClient = typeof window !== 'undefined';

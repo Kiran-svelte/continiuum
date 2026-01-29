@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { sendWelcomeEmail, sendRegistrationApprovalEmail, sendRegistrationRejectionEmail, sendHRNewRegistrationEmail } from "@/lib/email-service";
 import { logAudit, AuditAction } from "@/lib/audit";
+import { DEFAULT_CONSTRAINT_RULES } from "@/lib/constraint-rules-config";
 
 // Types for onboarding data
 interface OnboardingData {
@@ -60,7 +61,17 @@ export async function syncUser() {
             });
 
             if (existingByEmail) {
-                // Link this clerk_id to the existing employee record
+                // Only link if the existing record is not already bound to a different Clerk user.
+                // This prevents one account from taking over another account's employee record.
+                if (existingByEmail.clerk_id && existingByEmail.clerk_id !== user.id) {
+                    return {
+                        success: false,
+                        error:
+                            "This email is already registered to a different account. Please sign in with the original account (or contact support to recover access).",
+                        employee: null,
+                    };
+                }
+
                 employee = await prisma.employee.update({
                     where: { email: email },
                     data: { clerk_id: user.id },
@@ -238,17 +249,26 @@ export async function registerCompany(companyName: string, industry: string, siz
             });
 
             // 4. Seed Default Policies
-            const defaultRules = {
-                noticePeriod: 14,
-                maxConsecutive: 10,
-                blackoutDates: [],
-            };
+            const nowIso = new Date().toISOString();
+            const seededRules = Object.entries(DEFAULT_CONSTRAINT_RULES).reduce(
+                (acc, [ruleId, rule]) => {
+                    acc[ruleId] = {
+                        ...rule,
+                        is_active: true,
+                        is_custom: false,
+                        created_at: nowIso,
+                        updated_at: nowIso
+                    };
+                    return acc;
+                },
+                {} as Record<string, any>
+            );
 
             await tx.constraintPolicy.create({
                 data: {
                     org_id: newCompany.id,
                     name: "Default Enterprise Policy",
-                    rules: defaultRules,
+                    rules: seededRules,
                     is_active: true,
                 }
             });
@@ -788,6 +808,64 @@ export async function rejectEmployee(empId: string, reason: string) {
             return { success: false, error: "Employee not found." };
         }
         return { success: false, error: `Failed to reject employee: ${error?.message || 'Unknown error'}` };
+    }
+}
+
+/* =========================================================================
+   7b. GET ALL ONBOARDING EMPLOYEES
+   Returns all employees (pending, approved, rejected) for HR onboarding view
+   ========================================================================= */
+export async function getOnboardingEmployees() {
+    const user = await currentUser();
+    if (!user) return { success: false, error: "Unauthorized" };
+
+    try {
+        const hrEmployee = await prisma.employee.findUnique({
+            where: { clerk_id: user.id },
+            select: { org_id: true, role: true }
+        });
+
+        if (!hrEmployee || !["hr", "admin"].includes(hrEmployee.role || "")) {
+            return { success: false, error: "Access denied" };
+        }
+
+        if (!hrEmployee.org_id) {
+            return { success: false, error: "No organization found" };
+        }
+
+        // Get ALL employees for this org (not just pending)
+        const employees = await prisma.employee.findMany({
+            where: {
+                org_id: hrEmployee.org_id,
+                role: "employee", // Only regular employees, not HR/admin
+            },
+            select: {
+                emp_id: true,
+                full_name: true,
+                email: true,
+                department: true,
+                position: true,
+                work_location: true,
+                approval_status: true,
+                onboarding_status: true,
+                onboarding_completed: true,
+                terms_accepted_at: true,
+                approved_at: true,
+                rejection_reason: true,
+            },
+            orderBy: [
+                { approval_status: 'asc' }, // pending first
+                { terms_accepted_at: 'desc' }
+            ]
+        });
+
+        return { success: true, employees };
+    } catch (error: any) {
+        console.error("[getOnboardingEmployees] Database error:", error?.message || error);
+        if (error?.code === 'P1001' || error?.code === 'P1002') {
+            return { success: false, error: "Database connection failed. Please try again." };
+        }
+        return { success: false, error: `Failed to fetch employees: ${error?.message || 'Unknown error'}` };
     }
 }
 

@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { WelcomeAnimation } from "@/components/onboarding/welcome-animation";
+import { formatDisplayName } from "@/lib/utils";
 import { TutorialGuide } from "@/components/onboarding/tutorial-guide";
 import { checkFeatureAccess } from "@/app/actions/onboarding";
 
@@ -48,7 +49,7 @@ export default function HRWelcomePage() {
         router.push("/hr/dashboard");
     };
 
-    const userName = user?.firstName || user?.fullName || "there";
+    const userName = formatDisplayName(user?.fullName || user?.firstName || user?.emailAddresses?.[0]?.emailAddress, "there");
 
     return (
         <>

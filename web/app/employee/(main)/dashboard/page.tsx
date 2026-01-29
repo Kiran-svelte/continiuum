@@ -5,6 +5,7 @@ import { useUser } from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
 import { Clock, Calendar, FileText, Activity, LogIn, LogOut, CheckCircle2, Sparkles, Lock, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { cn, formatDisplayName } from "@/lib/utils";
 import { getEmployeeDashboardStats, analyzeLeaveRequest, getTodayAttendance, checkIn, checkOut } from '@/app/actions/employee';
 import { checkFeatureAccess } from '@/app/actions/onboarding';
 
@@ -264,7 +265,7 @@ export default function EmployeeDashboard() {
                     animate={{ opacity: 1, y: 0 }}
                     className="text-4xl font-bold text-white mb-2"
                 >
-                    Welcome back, {user?.firstName}
+                    Welcome back, {formatDisplayName(user?.fullName || user?.firstName || user?.emailAddresses?.[0]?.emailAddress, "there")}
                 </motion.h1>
                 <motion.p
                     initial={{ opacity: 0 }}

@@ -11,6 +11,7 @@
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
+    "test": "tsx --test tests/**/*.test.ts",
     "test:e2e": "playwright test",
     "prisma:generate": "prisma generate",
     "prisma:push": "prisma db push"
@@ -36,6 +37,8 @@
     "next": "16.1.1",
     "nodemailer": "^7.0.12",
     "peer": "^1.0.2",
+    "pusher": "^5.2.0",
+    "pusher-js": "^8.4.0",
     "prisma": "^6.19.1",
     "razorpay": "^2.9.6",
     "react": "19.2.3",
@@ -55,6 +58,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.1.1",
     "tailwindcss": "^4",
+    "tsx": "^4.19.2",
     "typescript": "^5"
   }
 }

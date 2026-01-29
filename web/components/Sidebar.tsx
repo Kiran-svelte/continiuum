@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { SignOutButton } from "@clerk/nextjs";
 import { useState } from "react";
+import { formatDisplayName, getInitials } from "@/lib/utils";
 
 export default function Sidebar() {
     const { user } = useUser();
@@ -192,11 +193,11 @@ export default function Sidebar() {
                 {/* User Info */}
                 <div className="flex items-center gap-3 px-3 py-2.5 mb-2">
                     <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-white/10 to-white/5 flex items-center justify-center text-white/60 text-sm font-semibold">
-                        {user?.firstName?.[0] || user?.emailAddresses?.[0]?.emailAddress?.[0]?.toUpperCase() || '?'}
+                        {getInitials(user?.fullName || user?.firstName || user?.emailAddresses?.[0]?.emailAddress)}
                     </div>
                     <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-white truncate">
-                            {user?.firstName || 'User'}
+                            {formatDisplayName(user?.fullName || user?.firstName || user?.emailAddresses?.[0]?.emailAddress)}
                         </p>
                         <p className="text-[11px] text-white/30 truncate">
                             {user?.emailAddresses?.[0]?.emailAddress || ''}

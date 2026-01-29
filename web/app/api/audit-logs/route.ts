@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import crypto from "crypto";
+import { getPusherServer } from "@/lib/realtime/pusher-server";
+import { hrOrgChannelName } from "@/lib/realtime/channels";
 
 // Helper to extract enhanced fields from details JSON (backward compatible)
 function extractFromDetails(details: any) {
@@ -122,18 +124,13 @@ export async function GET(request: NextRequest) {
             const enhanced = extractFromDetails(details);
             const actor = actorMap.get(log.actor_id);
             
-            // Determine actor type from details
-            const actorType = enhanced.actor_type || 'user';
+            // Prefer DB columns, fallback to legacy details JSON
+            const actorType = (log as any).actor_type || enhanced.actor_type || 'user';
             
             // Get actor name - from details for AI/system, from employee for users
-            let actorName = actor?.full_name || "Unknown";
-            if (details.actor_name) {
-                actorName = details.actor_name; // Use stored name for AI/system
-            } else if (actorType === 'ai') {
-                actorName = "Constraint Engine";
-            } else if (actorType === 'system') {
-                actorName = "System Scheduler";
-            }
+            let actorName = actor?.full_name || details.actor_name || "Unknown";
+            if (actorType === 'ai') actorName = details.actor_name || actorName || "Constraint Engine";
+            if (actorType === 'system') actorName = details.actor_name || actorName || "System Scheduler";
             
             return {
                 id: log.id,
@@ -141,21 +138,22 @@ export async function GET(request: NextRequest) {
                 actor_type: actorType,
                 actor_id: log.actor_id,
                 actor_name: actorName,
-                actor_role: enhanced.actor_role || actor?.role || "system",
+                actor_role: (log as any).actor_role || enhanced.actor_role || actor?.role || "system",
                 action: log.action,
                 resource_type: log.entity_type,
                 resource_id: log.entity_id,
-                resource_name: enhanced.resource_name,
-                previous_state: enhanced.previous_state,
-                new_state: enhanced.new_state,
-                decision: enhanced.decision,
-                decision_reason: enhanced.decision_reason,
-                confidence_score: enhanced.confidence_score,
-                model_version: enhanced.model_version,
-                ip_address: enhanced.ip_address,
-                user_agent: enhanced.user_agent,
-                request_id: enhanced.request_id,
-                integrity_hash: enhanced.integrity_hash,
+                resource_name: (log as any).resource_name || enhanced.resource_name,
+                previous_state: (log as any).previous_state ?? enhanced.previous_state,
+                new_state: (log as any).new_state ?? enhanced.new_state,
+                decision: (log as any).decision ?? enhanced.decision,
+                decision_reason: (log as any).decision_reason ?? enhanced.decision_reason,
+                confidence_score: (log as any).confidence_score ?? enhanced.confidence_score,
+                model_version: (log as any).model_version ?? enhanced.model_version,
+                ip_address: (log as any).ip_address ?? enhanced.ip_address,
+                user_agent: (log as any).user_agent ?? enhanced.user_agent,
+                request_id: (log as any).request_id || enhanced.request_id,
+                integrity_hash: (log as any).integrity_hash || enhanced.integrity_hash,
+                org_id: log.target_org,
                 details: details
             };
         });
@@ -289,6 +287,56 @@ export async function POST(request: NextRequest) {
                 details: enhancedDetails
             }
         });
+
+        // Best-effort realtime broadcast
+        try {
+            const pusher = getPusherServer();
+            if (pusher) {
+                let actorName = typeof enhancedDetails.actor_name === "string" ? enhancedDetails.actor_name : "System";
+                if ((enhancedDetails.actor_type || "user") === "user" && actor_id) {
+                    const actor = await prisma.employee.findUnique({
+                        where: { emp_id: actor_id },
+                        select: { full_name: true },
+                    });
+                    actorName = actor?.full_name || actorName;
+                }
+
+                await pusher.trigger(hrOrgChannelName(target_org), "audit_log.created", {
+                    log: {
+                        id: auditLog.id,
+                        timestamp: auditLog.created_at.toISOString(),
+                        actor_type: enhancedDetails.actor_type || "system",
+                        actor_id: actor_id || "system",
+                        actor_name: actorName,
+                        actor_role: enhancedDetails.actor_role || "system",
+                        action,
+                        resource_type: entity_type,
+                        resource_id: entity_id,
+                        resource_name: resource_name,
+                        previous_state,
+                        new_state,
+                        decision,
+                        decision_reason,
+                        confidence_score,
+                        model_version,
+                        ip_address,
+                        user_agent,
+                        request_id,
+                        integrity_hash,
+                        org_id: target_org,
+                    },
+                    activity: {
+                        id: auditLog.id,
+                        action,
+                        created_at: auditLog.created_at,
+                        actor_name: actorName,
+                        change_summary: (typeof (enhancedDetails as Record<string, unknown>)["summary"] === "string" ? ((enhancedDetails as Record<string, unknown>)["summary"] as string) : action),
+                    }
+                });
+            }
+        } catch (realtimeError) {
+            console.warn("Audit log realtime broadcast error (POST):", realtimeError);
+        }
 
         return NextResponse.json({
             success: true,
