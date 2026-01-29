@@ -7,12 +7,26 @@
 
 import Stripe from 'stripe';
 import { prisma } from '@/lib/prisma';
+import { sendSubscriptionCancelledEmail, sendPaymentFailedEmail, sendPaymentSuccessEmail } from '@/lib/email-service';
 
-// Initialize Stripe
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-    apiVersion: '2023-10-16',
-    typescript: true,
-});
+// Initialize Stripe (lazy - only when needed)
+let _stripe: Stripe | null = null;
+
+function getStripe(): Stripe | null {
+    if (_stripe) return _stripe;
+    if (!process.env.STRIPE_SECRET_KEY) {
+        console.warn('[Billing] STRIPE_SECRET_KEY not configured - Stripe payments disabled');
+        return null;
+    }
+    _stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+        apiVersion: '2023-10-16',
+        typescript: true,
+    });
+    return _stripe;
+}
+
+// For backward compatibility
+const stripe = getStripe();
 
 // ============================================================
 // PRICING TIERS - The Money Maker
@@ -450,6 +464,16 @@ async function handleSubscriptionCanceled(subscription: Stripe.Subscription) {
     const orgId = subscription.metadata?.orgId;
     if (!orgId) return;
 
+    const org = await prisma.company.findFirst({
+        where: { id: orgId },
+        include: { 
+            employees: { 
+                where: { role: { in: ['hr', 'admin'] } },
+                take: 1 
+            } 
+        }
+    });
+
     await prisma.subscription.updateMany({
         where: { 
             org_id: orgId,
@@ -461,7 +485,22 @@ async function handleSubscriptionCanceled(subscription: Stripe.Subscription) {
         },
     });
 
-    // TODO: Send cancellation email, schedule data export
+    // Send cancellation email
+    if (org?.billing_email || org?.employees[0]?.email) {
+        const adminEmail = org.billing_email || org.employees[0]?.email;
+        const adminName = org.employees[0]?.full_name || 'Admin';
+        const endDate = new Date(subscription.current_period_end * 1000).toLocaleDateString('en-US', {
+            year: 'numeric', month: 'long', day: 'numeric'
+        });
+        
+        await sendSubscriptionCancelledEmail(adminEmail!, {
+            companyName: org.name,
+            adminName,
+            tier: subscription.metadata?.tier || 'Subscription',
+            endDate
+        }).catch(err => console.error('Cancellation email failed:', err));
+    }
+    
     console.log(`⚠️ Subscription canceled: ${orgId}`);
 }
 
@@ -470,10 +509,30 @@ async function handlePaymentFailed(invoice: Stripe.Invoice) {
     
     const org = await prisma.company.findFirst({
         where: { stripe_customer_id: customerId },
+        include: { 
+            employees: { 
+                where: { role: { in: ['hr', 'admin'] } },
+                take: 1 
+            } 
+        }
     });
 
     if (org) {
-        // TODO: Send payment failed email with retry link
+        const adminEmail = org.billing_email || org.employees[0]?.email;
+        const adminName = org.employees[0]?.full_name || 'Admin';
+        
+        if (adminEmail) {
+            await sendPaymentFailedEmail(adminEmail, {
+                companyName: org.name,
+                adminName,
+                amount: `${invoice.currency?.toUpperCase()} ${(invoice.amount_due / 100).toFixed(2)}`,
+                tier: 'Subscription',
+                retryDate: invoice.next_payment_attempt 
+                    ? new Date(invoice.next_payment_attempt * 1000).toLocaleDateString() 
+                    : undefined
+            }).catch(err => console.error('Payment failed email error:', err));
+        }
+        
         console.log(`❌ Payment failed: ${org.name}`);
     }
 }

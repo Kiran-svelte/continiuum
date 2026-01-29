@@ -109,7 +109,7 @@ const SERVICES = [
             try {
                 // Check if AI backend is running
                 const res = await fetch(
-                    `${process.env.AI_SERVICE_URL || 'http://localhost:8000'}/health`,
+                    `${process.env.AI_SERVICE_URL || 'http://localhost:8001'}/health`,
                     { signal: AbortSignal.timeout(5000) }
                 );
                 return { 

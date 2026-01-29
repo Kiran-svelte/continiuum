@@ -10,12 +10,26 @@
 import Razorpay from 'razorpay';
 import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
+import { sendSubscriptionCancelledEmail, sendPaymentFailedEmail, sendPaymentSuccessEmail } from '@/lib/email-service';
 
-// Initialize Razorpay
-const razorpay = new Razorpay({
-    key_id: process.env.RAZORPAY_KEY_ID!,
-    key_secret: process.env.RAZORPAY_KEY_SECRET!,
-});
+// Initialize Razorpay (lazy - only when needed)
+let _razorpay: Razorpay | null = null;
+
+function getRazorpay(): Razorpay | null {
+    if (_razorpay) return _razorpay;
+    if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+        console.warn('[Billing] RAZORPAY_KEY_ID or RAZORPAY_KEY_SECRET not configured - Razorpay payments disabled');
+        return null;
+    }
+    _razorpay = new Razorpay({
+        key_id: process.env.RAZORPAY_KEY_ID,
+        key_secret: process.env.RAZORPAY_KEY_SECRET,
+    });
+    return _razorpay;
+}
+
+// For backward compatibility
+const razorpay = getRazorpay();
 
 // ============================================================
 // PRICING TIERS - The Money Maker (₹ INR)
@@ -708,6 +722,16 @@ async function handleSubscriptionCancelled(subscription: any) {
     const orgId = subscription.notes?.orgId;
     if (!orgId) return;
 
+    const org = await prisma.company.findFirst({
+        where: { id: orgId },
+        include: { 
+            employees: { 
+                where: { role: { in: ['hr', 'admin'] } },
+                take: 1 
+            } 
+        }
+    });
+
     await prisma.subscription.updateMany({
         where: { razorpay_subscription_id: subscription.id },
         data: {
@@ -716,7 +740,24 @@ async function handleSubscriptionCancelled(subscription: any) {
         },
     });
 
-    // TODO: Send cancellation email
+    // Send cancellation email
+    if (org?.billing_email || org?.employees[0]?.email) {
+        const adminEmail = org.billing_email || org.employees[0]?.email;
+        const adminName = org.employees[0]?.full_name || 'Admin';
+        const endDate = subscription.current_end 
+            ? new Date(subscription.current_end * 1000).toLocaleDateString('en-IN', {
+                year: 'numeric', month: 'long', day: 'numeric'
+            })
+            : 'End of billing period';
+        
+        await sendSubscriptionCancelledEmail(adminEmail!, {
+            companyName: org.name,
+            adminName,
+            tier: subscription.notes?.tier || 'Subscription',
+            endDate
+        }).catch(err => console.error('Cancellation email failed:', err));
+    }
+    
     console.log(`⚠️ Subscription cancelled: ${orgId}`);
 }
 
@@ -724,12 +765,34 @@ async function handleSubscriptionHalted(subscription: any) {
     const orgId = subscription.notes?.orgId;
     if (!orgId) return;
 
+    const org = await prisma.company.findFirst({
+        where: { id: orgId },
+        include: { 
+            employees: { 
+                where: { role: { in: ['hr', 'admin'] } },
+                take: 1 
+            } 
+        }
+    });
+
     await prisma.subscription.updateMany({
         where: { razorpay_subscription_id: subscription.id },
         data: { status: 'halted' },
     });
 
-    // TODO: Send payment retry email
+    // Send payment retry email
+    if (org?.billing_email || org?.employees[0]?.email) {
+        const adminEmail = org.billing_email || org.employees[0]?.email;
+        const adminName = org.employees[0]?.full_name || 'Admin';
+        
+        await sendPaymentFailedEmail(adminEmail!, {
+            companyName: org.name,
+            adminName,
+            amount: `₹${(subscription.plan_amount || 0) / 100}`,
+            tier: subscription.notes?.tier || 'Subscription'
+        }).catch(err => console.error('Payment halted email failed:', err));
+    }
+    
     console.log(`❌ Subscription halted (payment failed): ${orgId}`);
 }
 
@@ -741,6 +804,29 @@ async function handlePaymentCaptured(payment: any) {
         where: { razorpay_payment_id: payment.id },
         data: { status: 'captured' },
     });
+    
+    // Send payment success email
+    const org = await prisma.company.findFirst({
+        where: { id: orgId },
+        include: { 
+            employees: { 
+                where: { role: { in: ['hr', 'admin'] } },
+                take: 1 
+            } 
+        }
+    });
+    
+    if (org?.billing_email || org?.employees[0]?.email) {
+        const adminEmail = org.billing_email || org.employees[0]?.email;
+        const adminName = org.employees[0]?.full_name || 'Admin';
+        
+        await sendPaymentSuccessEmail(adminEmail!, {
+            companyName: org.name,
+            adminName,
+            amount: `₹${(payment.amount || 0) / 100}`,
+            tier: payment.notes?.tier || 'Subscription'
+        }).catch(err => console.error('Payment success email failed:', err));
+    }
 }
 
 async function handlePaymentFailed(payment: any) {
@@ -756,7 +842,29 @@ async function handlePaymentFailed(payment: any) {
         },
     });
 
-    // TODO: Send payment failed email with retry link
+    // Send payment failed email
+    const org = await prisma.company.findFirst({
+        where: { id: orgId },
+        include: { 
+            employees: { 
+                where: { role: { in: ['hr', 'admin'] } },
+                take: 1 
+            } 
+        }
+    });
+    
+    if (org?.billing_email || org?.employees[0]?.email) {
+        const adminEmail = org.billing_email || org.employees[0]?.email;
+        const adminName = org.employees[0]?.full_name || 'Admin';
+        
+        await sendPaymentFailedEmail(adminEmail!, {
+            companyName: org.name,
+            adminName,
+            amount: `₹${(payment.amount || 0) / 100}`,
+            tier: payment.notes?.tier || 'Subscription'
+        }).catch(err => console.error('Payment failed email error:', err));
+    }
+    
     console.log(`❌ Payment failed: ${orgId} - ${payment.error_description}`);
 }
 

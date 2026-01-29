@@ -864,7 +864,142 @@ export const EmailTemplates = {
                 </div>
             `
         };
-    }
+    },
+
+    /**
+     * Subscription Cancelled Email
+     */
+    subscriptionCancelled: (params: {
+        companyName: string;
+        adminName: string;
+        tier: string;
+        endDate: string;
+    }) => ({
+        subject: `⚠️ Subscription Cancelled - ${params.tier}`,
+        html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <div style="background: linear-gradient(135deg, #f59e0b, #d97706); padding: 20px; text-align: center;">
+                    <h1 style="color: white; margin: 0;">⚠️ Subscription Cancelled</h1>
+                </div>
+                <div style="padding: 30px; background: #1e293b; color: #e2e8f0;">
+                    <h2 style="color: white;">Hello ${params.adminName},</h2>
+                    <p>Your ${params.tier} subscription for <strong>${params.companyName}</strong> has been cancelled.</p>
+                    
+                    <div style="background: #422006; padding: 20px; border-radius: 8px; border-left: 4px solid #f59e0b; margin: 20px 0;">
+                        <p style="margin: 0; color: #fcd34d;"><strong>Your access will end on:</strong></p>
+                        <p style="margin: 5px 0 0; color: white; font-size: 18px;">${params.endDate}</p>
+                    </div>
+                    
+                    <p style="color: #94a3b8;">After this date, your account will revert to the Free plan. You can resubscribe anytime to restore full access.</p>
+                    
+                    <div style="text-align: center; margin-top: 20px;">
+                        <a href="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/hr/settings/billing" style="display: inline-block; background: #f59e0b; color: white; padding: 12px 30px; border-radius: 8px; text-decoration: none; font-weight: bold;">Resubscribe</a>
+                    </div>
+                </div>
+                <div style="padding: 15px; background: #0f172a; text-align: center;">
+                    <p style="color: #64748b; margin: 0; font-size: 12px;">Continuum HR Management System</p>
+                </div>
+            </div>
+        `
+    }),
+
+    /**
+     * Payment Failed Email
+     */
+    paymentFailed: (params: {
+        companyName: string;
+        adminName: string;
+        amount: string;
+        tier: string;
+        retryDate?: string;
+    }) => ({
+        subject: `❌ Payment Failed - Action Required`,
+        html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <div style="background: linear-gradient(135deg, #ef4444, #b91c1c); padding: 20px; text-align: center;">
+                    <h1 style="color: white; margin: 0;">❌ Payment Failed</h1>
+                </div>
+                <div style="padding: 30px; background: #1e293b; color: #e2e8f0;">
+                    <h2 style="color: white;">Hello ${params.adminName},</h2>
+                    <p>We were unable to process your payment for the ${params.tier} subscription.</p>
+                    
+                    <div style="background: #7f1d1d; padding: 20px; border-radius: 8px; border-left: 4px solid #ef4444; margin: 20px 0;">
+                        <table style="width: 100%; color: #e2e8f0;">
+                            <tr>
+                                <td style="padding: 8px 0; color: #fca5a5;">Amount:</td>
+                                <td style="padding: 8px 0; color: white; font-weight: bold;">${params.amount}</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 8px 0; color: #fca5a5;">Company:</td>
+                                <td style="padding: 8px 0; color: white;">${params.companyName}</td>
+                            </tr>
+                            ${params.retryDate ? `
+                            <tr>
+                                <td style="padding: 8px 0; color: #fca5a5;">Retry Date:</td>
+                                <td style="padding: 8px 0; color: white;">${params.retryDate}</td>
+                            </tr>
+                            ` : ''}
+                        </table>
+                    </div>
+                    
+                    <p style="color: #94a3b8;">Please update your payment method to avoid service interruption.</p>
+                    
+                    <div style="text-align: center; margin-top: 20px;">
+                        <a href="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/hr/settings/billing" style="display: inline-block; background: #ef4444; color: white; padding: 12px 30px; border-radius: 8px; text-decoration: none; font-weight: bold;">Update Payment Method</a>
+                    </div>
+                </div>
+                <div style="padding: 15px; background: #0f172a; text-align: center;">
+                    <p style="color: #64748b; margin: 0; font-size: 12px;">Continuum HR Management System</p>
+                </div>
+            </div>
+        `
+    }),
+
+    /**
+     * Payment Successful Email
+     */
+    paymentSuccess: (params: {
+        companyName: string;
+        adminName: string;
+        amount: string;
+        tier: string;
+        invoiceUrl?: string;
+    }) => ({
+        subject: `✅ Payment Successful - ${params.tier} Plan`,
+        html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <div style="background: linear-gradient(135deg, #10b981, #059669); padding: 20px; text-align: center;">
+                    <h1 style="color: white; margin: 0;">✅ Payment Successful</h1>
+                </div>
+                <div style="padding: 30px; background: #1e293b; color: #e2e8f0;">
+                    <h2 style="color: white;">Thank you, ${params.adminName}!</h2>
+                    <p>Your payment for ${params.companyName}'s ${params.tier} plan has been processed successfully.</p>
+                    
+                    <div style="background: #065f46; padding: 20px; border-radius: 8px; border-left: 4px solid #10b981; margin: 20px 0;">
+                        <table style="width: 100%; color: #e2e8f0;">
+                            <tr>
+                                <td style="padding: 8px 0; color: #a7f3d0;">Amount Paid:</td>
+                                <td style="padding: 8px 0; color: white; font-weight: bold;">${params.amount}</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 8px 0; color: #a7f3d0;">Plan:</td>
+                                <td style="padding: 8px 0; color: white;">${params.tier}</td>
+                            </tr>
+                        </table>
+                    </div>
+                    
+                    ${params.invoiceUrl ? `
+                    <div style="text-align: center; margin-top: 20px;">
+                        <a href="${params.invoiceUrl}" style="display: inline-block; background: #10b981; color: white; padding: 12px 30px; border-radius: 8px; text-decoration: none; font-weight: bold;">Download Invoice</a>
+                    </div>
+                    ` : ''}
+                </div>
+                <div style="padding: 15px; background: #0f172a; text-align: center;">
+                    <p style="color: #64748b; margin: 0; font-size: 12px;">Continuum HR Management System</p>
+                </div>
+            </div>
+        `
+    })
 };
 
 /**
@@ -1159,6 +1294,56 @@ export async function sendHRNewLeaveRequestEmail(
     return sendEmail(hrEmail, template.subject, template.html);
 }
 
+/**
+ * Send subscription cancelled email
+ */
+export async function sendSubscriptionCancelledEmail(
+    adminEmail: string,
+    params: {
+        companyName: string;
+        adminName: string;
+        tier: string;
+        endDate: string;
+    }
+) {
+    const template = EmailTemplates.subscriptionCancelled(params);
+    return sendEmail(adminEmail, template.subject, template.html);
+}
+
+/**
+ * Send payment failed email
+ */
+export async function sendPaymentFailedEmail(
+    adminEmail: string,
+    params: {
+        companyName: string;
+        adminName: string;
+        amount: string;
+        tier: string;
+        retryDate?: string;
+    }
+) {
+    const template = EmailTemplates.paymentFailed(params);
+    return sendEmail(adminEmail, template.subject, template.html);
+}
+
+/**
+ * Send payment success email
+ */
+export async function sendPaymentSuccessEmail(
+    adminEmail: string,
+    params: {
+        companyName: string;
+        adminName: string;
+        amount: string;
+        tier: string;
+        invoiceUrl?: string;
+    }
+) {
+    const template = EmailTemplates.paymentSuccess(params);
+    return sendEmail(adminEmail, template.subject, template.html);
+}
+
 export default {
     sendEmail,
     sendCheckInReminderEmail,
@@ -1174,5 +1359,8 @@ export default {
     sendRegistrationRejectionEmail,
     sendHRNewRegistrationEmail,
     sendHRNewLeaveRequestEmail,
+    sendSubscriptionCancelledEmail,
+    sendPaymentFailedEmail,
+    sendPaymentSuccessEmail,
     EmailTemplates
 };
