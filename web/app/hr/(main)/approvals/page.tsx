@@ -24,7 +24,7 @@ export default function ApprovalsPage() {
     const fetchRequests = async () => {
         try {
             const token = await getToken();
-            const res = await fetch('http://localhost:5000/api/leaves/pending', {
+            const res = await fetch('/api/leaves/pending', {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -52,8 +52,8 @@ export default function ApprovalsPage() {
             try {
                 const token = await getToken();
                 const endpoint = action === 'approve'
-                    ? `http://localhost:5000/api/leaves/approve/${requestId}`
-                    : `http://localhost:5000/api/leaves/reject/${requestId}`;
+                    ? `/api/leaves/approve/${requestId}`
+                    : `/api/leaves/reject/${requestId}`;
 
                 const res = await fetch(endpoint, {
                     method: 'POST',

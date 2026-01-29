@@ -101,11 +101,11 @@ export class GlobalErrorBoundary extends Component<Props, State> {
                             We apologize for the inconvenience. The error has been logged and our team will look into it.
                         </p>
 
-                        {/* Error details (collapsible) */}
-                        {this.state.error && (
+                        {/* Error details (only in development) */}
+                        {process.env.NODE_ENV === 'development' && this.state.error && (
                             <details className="mb-6 text-left">
                                 <summary className="text-sm text-slate-500 cursor-pointer hover:text-slate-400">
-                                    Technical details
+                                    Technical details (dev only)
                                 </summary>
                                 <div className="mt-2 p-4 bg-black/50 rounded-lg border border-white/5 text-xs font-mono text-red-400 overflow-auto max-h-40">
                                     <p className="font-bold mb-2">{this.state.error.message}</p>

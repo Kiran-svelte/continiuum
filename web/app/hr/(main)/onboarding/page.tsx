@@ -4,6 +4,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import DashboardLayout from '@/components/hr/DashboardLayout';
 import { Users, UserCheck, UserX, Clock, CheckCircle, AlertCircle, Search, Filter, RefreshCw, Mail } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from 'sonner';
 import { getOnboardingEmployees, approveEmployee, rejectEmployee } from '@/app/actions/onboarding';
 
 type Employee = {
@@ -67,12 +68,14 @@ export default function OnboardingPage() {
         try {
             const result = await approveEmployee(empId);
             if (result.success) {
+                toast.success('Employee approved successfully');
                 await loadEmployees();
             } else {
-                alert(result.error || 'Failed to approve employee');
+                toast.error(result.error || 'Failed to approve employee');
             }
         } catch (error) {
             console.error('Approval failed:', error);
+            toast.error('An unexpected error occurred');
         } finally {
             setProcessingId(null);
         }
@@ -84,13 +87,15 @@ export default function OnboardingPage() {
         try {
             const result = await rejectEmployee(rejectModal.empId, rejectModal.reason);
             if (result.success) {
+                toast.success('Employee registration rejected');
                 setRejectModal({ open: false, empId: null, reason: '' });
                 await loadEmployees();
             } else {
-                alert(result.error || 'Failed to reject employee');
+                toast.error(result.error || 'Failed to reject employee');
             }
         } catch (error) {
             console.error('Rejection failed:', error);
+            toast.error('An unexpected error occurred');
         } finally {
             setProcessingId(null);
         }

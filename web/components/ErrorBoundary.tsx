@@ -205,15 +205,15 @@ Time: ${new Date().toISOString()}
                                 </button>
                             </div>
 
-                            {/* Technical Details Toggle */}
-                            {showDetails && (
+                            {/* Technical Details Toggle (dev only) */}
+                            {showDetails && process.env.NODE_ENV === 'development' && (
                                 <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
                                     <button
                                         onClick={this.toggleStack}
                                         className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
                                     >
                                         <Bug className="w-4 h-4" />
-                                        Technical Details
+                                        Technical Details (dev only)
                                         {showStack ? (
                                             <ChevronUp className="w-4 h-4" />
                                         ) : (

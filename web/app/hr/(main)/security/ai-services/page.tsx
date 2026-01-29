@@ -32,7 +32,7 @@ const AI_SERVICES: Omit<AIServiceStatus, 'status' | 'lastCheck' | 'responseTime'
     {
         name: "Leave Constraint Engine",
         description: "Evaluates leave requests against company policies and team constraints",
-        endpoint: "http://127.0.0.1:8001/health"
+        endpoint: "/api/ai/constraint-engine/health"
     },
     {
         name: "Attendance Reminder Service",

@@ -48,6 +48,7 @@ export default function HolidaySettingsPage() {
     // Modal states
     const [showAddHoliday, setShowAddHoliday] = useState(false);
     const [showBlockDate, setShowBlockDate] = useState(false);
+    const [deletingHolidayId, setDeletingHolidayId] = useState<string | null>(null);
     const [newHoliday, setNewHoliday] = useState({ date: '', name: '', local_name: '' });
     const [newBlockedDate, setNewBlockedDate] = useState({ date: '', reason: '' });
 
@@ -150,10 +151,13 @@ export default function HolidaySettingsPage() {
     };
 
     const handleDeleteHoliday = async (holidayId: string) => {
-        if (!confirm("Delete this custom holiday?")) return;
-        
+        setDeletingHolidayId(holidayId);
+    };
+    
+    const confirmDeleteHoliday = async () => {
+        if (!deletingHolidayId) return;
         try {
-            const result = await deleteCustomHoliday(holidayId);
+            const result = await deleteCustomHoliday(deletingHolidayId);
             if (result.success) {
                 toast.success("Holiday deleted");
                 await fetchData();
@@ -162,6 +166,8 @@ export default function HolidaySettingsPage() {
             }
         } catch (error) {
             toast.error("Failed to delete holiday");
+        } finally {
+            setDeletingHolidayId(null);
         }
     };
 
@@ -363,6 +369,7 @@ export default function HolidaySettingsPage() {
                             <button
                                 onClick={() => setShowBlockDate(true)}
                                 className="p-2 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-400 transition-colors"
+                                aria-label="Add blocked date"
                             >
                                 <Plus className="w-4 h-4" />
                             </button>
@@ -379,6 +386,7 @@ export default function HolidaySettingsPage() {
                                         <button
                                             onClick={() => handleRemoveBlockedDate(blocked.id)}
                                             className="p-1 hover:bg-rose-500/30 rounded text-rose-400"
+                                            aria-label="Remove blocked date"
                                         >
                                             <Trash2 className="w-4 h-4" />
                                         </button>
@@ -400,6 +408,7 @@ export default function HolidaySettingsPage() {
                             <button
                                 onClick={() => setShowAddHoliday(true)}
                                 className="p-2 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 transition-colors"
+                                aria-label="Add custom holiday"
                             >
                                 <Plus className="w-4 h-4" />
                             </button>
@@ -416,6 +425,7 @@ export default function HolidaySettingsPage() {
                                         <button
                                             onClick={() => handleDeleteHoliday(holiday.id)}
                                             className="p-1 hover:bg-emerald-500/30 rounded text-emerald-400"
+                                            aria-label="Delete holiday"
                                         >
                                             <Trash2 className="w-4 h-4" />
                                         </button>
@@ -441,6 +451,7 @@ export default function HolidaySettingsPage() {
                                     value={selectedYear}
                                     onChange={(e) => setSelectedYear(parseInt(e.target.value))}
                                     className="px-3 py-1 rounded bg-slate-800 border border-white/10 text-white text-sm"
+                                    aria-label="Select year"
                                 >
                                     {[2024, 2025, 2026, 2027].map(year => (
                                         <option key={year} value={year}>{year}</option>
@@ -450,6 +461,7 @@ export default function HolidaySettingsPage() {
                                     onClick={handleRefreshHolidays}
                                     disabled={refreshing}
                                     className="p-2 rounded-lg bg-slate-800 border border-white/10 hover:bg-slate-700 transition-colors"
+                                    aria-label="Refresh holidays"
                                 >
                                     <RefreshCw className={`w-4 h-4 text-slate-400 ${refreshing ? 'animate-spin' : ''}`} />
                                 </button>
@@ -529,7 +541,7 @@ export default function HolidaySettingsPage() {
                                     <Calendar className="w-5 h-5 text-emerald-400" />
                                     Add Custom Holiday
                                 </h3>
-                                <button onClick={() => setShowAddHoliday(false)} className="text-slate-400 hover:text-white">
+                                <button onClick={() => setShowAddHoliday(false)} className="text-slate-400 hover:text-white" aria-label="Close modal">
                                     <X className="w-5 h-5" />
                                 </button>
                             </div>
@@ -542,6 +554,7 @@ export default function HolidaySettingsPage() {
                                         value={newHoliday.date}
                                         onChange={e => setNewHoliday({ ...newHoliday, date: e.target.value })}
                                         className="w-full px-4 py-2 bg-slate-800 border border-white/10 rounded-lg text-white"
+                                        aria-label="Holiday date"
                                     />
                                 </div>
                                 <div>
@@ -609,7 +622,7 @@ export default function HolidaySettingsPage() {
                                     <Ban className="w-5 h-5 text-rose-400" />
                                     Block Date
                                 </h3>
-                                <button onClick={() => setShowBlockDate(false)} className="text-slate-400 hover:text-white">
+                                <button onClick={() => setShowBlockDate(false)} className="text-slate-400 hover:text-white" aria-label="Close modal">
                                     <X className="w-5 h-5" />
                                 </button>
                             </div>
@@ -627,6 +640,7 @@ export default function HolidaySettingsPage() {
                                         onChange={e => setNewBlockedDate({ ...newBlockedDate, date: e.target.value })}
                                         min={new Date().toISOString().split('T')[0]}
                                         className="w-full px-4 py-2 bg-slate-800 border border-white/10 rounded-lg text-white"
+                                        aria-label="Blocked date"
                                     />
                                 </div>
                                 <div>
@@ -655,6 +669,52 @@ export default function HolidaySettingsPage() {
                                 >
                                     {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Ban className="w-4 h-4" />}
                                     Block Date
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Delete Holiday Confirmation Modal */}
+            <AnimatePresence>
+                {deletingHolidayId && (
+                    <motion.div 
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                        onClick={() => setDeletingHolidayId(null)}
+                    >
+                        <motion.div 
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            className="bg-slate-900 rounded-2xl border border-white/10 p-6 w-full max-w-md"
+                            onClick={e => e.stopPropagation()}
+                        >
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="p-2 bg-rose-500/20 rounded-lg">
+                                    <Trash2 className="w-6 h-6 text-rose-400" />
+                                </div>
+                                <h3 className="text-xl font-bold text-white">Delete Holiday</h3>
+                            </div>
+                            <p className="text-slate-400 mb-6">
+                                Are you sure you want to delete this holiday? This action cannot be undone.
+                            </p>
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => setDeletingHolidayId(null)}
+                                    className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={confirmDeleteHoliday}
+                                    className="flex-1 px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
+                                >
+                                    <Trash2 className="w-4 h-4" />
+                                    Delete
                                 </button>
                             </div>
                         </motion.div>
