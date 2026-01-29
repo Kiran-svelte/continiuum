@@ -48,6 +48,23 @@ export interface LeaveRecordSummary {
     year: number;
 }
 
+// Helper: Count early departures by comparing check_out with company work_end_time
+function countEarlyDepartures(
+    attendances: Array<{ check_out: Date | null; date: Date }>,
+    workEndTime: string = "18:00"
+): number {
+    const [endHour, endMinute] = workEndTime.split(':').map(Number);
+    const endMinutes = endHour * 60 + endMinute;
+    
+    return attendances.filter(a => {
+        if (!a.check_out) return false;
+        const checkout = new Date(a.check_out);
+        const checkoutMinutes = checkout.getHours() * 60 + checkout.getMinutes();
+        // Early if checked out more than 15 mins before end time
+        return checkoutMinutes < (endMinutes - 15);
+    }).length;
+}
+
 // Verify access with role check
 async function verifyAccess(requiredRoles: string[] = ['hr', 'admin', 'manager']) {
     const user = await currentUser();
@@ -158,6 +175,15 @@ export async function getAllLeaveRecords(month: number, year: number) {
     const { employee: hrEmployee } = authResult;
 
     try {
+        // Get company settings for work end time
+        const company = await prisma.company.findFirst({
+            where: { 
+                employees: { some: { emp_id: hrEmployee!.emp_id } }
+            },
+            select: { work_end_time: true }
+        });
+        const workEndTime = company?.work_end_time || "18:00";
+
         // Get all employees in the organization
         const employees = await prisma.employee.findMany({
             where: {
@@ -268,7 +294,7 @@ export async function getAllLeaveRecords(month: number, year: number) {
                 days_present: presentDays,
                 days_absent: absentDays,
                 late_arrivals: lateDays,
-                early_departures: 0, // TODO: Track this
+                early_departures: countEarlyDepartures(emp.attendances, workEndTime),
                 // Balance
                 total_leave_balance: totalBalance,
                 leave_used_this_year: usedDays,

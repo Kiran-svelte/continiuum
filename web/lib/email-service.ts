@@ -999,6 +999,43 @@ export const EmailTemplates = {
                 </div>
             </div>
         `
+    }),
+
+    /**
+     * Waitlist Confirmation Email - Sent when someone joins the waitlist
+     */
+    waitlistConfirmation: (params: {
+        email: string;
+        companyName?: string;
+    }) => ({
+        subject: `🚀 You're on the Continuum Waitlist!`,
+        html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <div style="background: linear-gradient(135deg, #0ea5e9, #6366f1); padding: 30px; text-align: center;">
+                    <h1 style="color: white; margin: 0;">🚀 You're In!</h1>
+                    <p style="color: #e0f2fe; margin: 10px 0 0;">Welcome to the Continuum waitlist</p>
+                </div>
+                <div style="padding: 30px; background: #1e293b; color: #e2e8f0;">
+                    <p style="font-size: 18px;">Thanks for signing up${params.companyName ? ` from <strong>${params.companyName}</strong>` : ''}!</p>
+                    
+                    <p>You're now on our priority waitlist for Continuum - the AI-powered leave management platform that transforms how businesses handle employee time-off.</p>
+                    
+                    <div style="background: #334155; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                        <h3 style="color: #0ea5e9; margin: 0 0 15px;">What's Next?</h3>
+                        <ul style="color: #cbd5e1; padding-left: 20px;">
+                            <li style="margin-bottom: 10px;">We'll notify you as soon as early access opens</li>
+                            <li style="margin-bottom: 10px;">Priority onboarding support for waitlist members</li>
+                            <li style="margin-bottom: 10px;">Exclusive founding member pricing</li>
+                        </ul>
+                    </div>
+                    
+                    <p style="color: #94a3b8;">In the meantime, follow us for updates on our progress.</p>
+                </div>
+                <div style="padding: 15px; background: #0f172a; text-align: center;">
+                    <p style="color: #64748b; margin: 0; font-size: 12px;">Continuum HR Management System</p>
+                </div>
+            </div>
+        `
     })
 };
 
@@ -1344,6 +1381,17 @@ export async function sendPaymentSuccessEmail(
     return sendEmail(adminEmail, template.subject, template.html);
 }
 
+/**
+ * Send waitlist confirmation email
+ */
+export async function sendWaitlistConfirmationEmail(
+    email: string,
+    companyName?: string
+) {
+    const template = EmailTemplates.waitlistConfirmation({ email, companyName });
+    return sendEmail(email, template.subject, template.html);
+}
+
 export default {
     sendEmail,
     sendCheckInReminderEmail,
@@ -1362,5 +1410,6 @@ export default {
     sendSubscriptionCancelledEmail,
     sendPaymentFailedEmail,
     sendPaymentSuccessEmail,
+    sendWaitlistConfirmationEmail,
     EmailTemplates
 };

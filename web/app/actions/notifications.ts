@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { currentUser } from "@clerk/nextjs/server";
 import { logAudit, AuditAction } from "@/lib/audit";
+import { sendEmail } from "@/lib/email-service";
 
 // Resend client - dynamically imported only when needed
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -14,7 +15,7 @@ async function getResend() {
             const { Resend } = await import('resend');
             resendClient = new Resend(process.env.RESEND_API_KEY);
         } catch {
-            console.log('Resend module not available, using mock email');
+            console.log('Resend module not available, will use Gmail OAuth fallback');
         }
     }
     return resendClient;
@@ -27,7 +28,7 @@ const EMAIL_TEMPLATES = {
     leaveApproved: (data: { employeeName: string; leaveType: string; startDate: string; endDate: string; days: number }) => ({
         subject: `Leave Request Approved - ${data.leaveType}`,
         html: `
-            <!DOCTYPE html>
+            <!DOCTYPE html>>
             <html>
             <head>
                 <style>
@@ -283,21 +284,31 @@ export async function sendLeaveNotification(
                 break;
         }
 
-        // Send email if Resend is configured
+        // Send email - try Resend first, fall back to Gmail OAuth
         const resend = await getResend();
+        let emailSent = false;
+        
         if (resend) {
-            await resend.emails.send({
-                from: 'Continuum <noreply@continuum.hr>',
-                to: employee.email,
-                subject: emailData.subject,
-                html: emailData.html
-            });
-        } else {
-            // Log email in development
-            console.log('[Email Mock]', {
-                to: employee.email,
-                subject: emailData.subject
-            });
+            try {
+                await resend.emails.send({
+                    from: 'Continuum <noreply@continuum.hr>',
+                    to: employee.email,
+                    subject: emailData.subject,
+                    html: emailData.html
+                });
+                emailSent = true;
+            } catch (resendError) {
+                console.warn('[Resend failed, trying Gmail OAuth]:', resendError);
+            }
+        }
+        
+        // Fallback to Gmail OAuth via email-service
+        if (!emailSent) {
+            const result = await sendEmail(employee.email, emailData.subject, emailData.html);
+            emailSent = result.success;
+            if (!result.success) {
+                console.error('[Gmail OAuth fallback also failed]:', result.error);
+            }
         }
 
         // Log audit
@@ -309,11 +320,11 @@ export async function sendLeaveNotification(
             actorType: 'system',
             entityType: 'LeaveRequest',
             entityId: leaveRequestId,
-            details: { emailSent: true, type },
+            details: { emailSent, type },
             orgId: employee.org_id || 'default'
         });
 
-        return { success: true, message: "Notification sent" };
+        return { success: true, message: emailSent ? "Notification sent" : "Notification logged (email unavailable)" };
 
     } catch (error: any) {
         console.error("[sendLeaveNotification] Error:", error?.message || error);
@@ -401,23 +412,31 @@ export async function sendMonthlySummary(empId: string, month: number, year: num
             attendanceRate
         });
 
-        // Send email
+        // Send email - try Resend first, fall back to Gmail OAuth
         const resend = await getResend();
+        let emailSent = false;
+        
         if (resend) {
-            await resend.emails.send({
-                from: 'Continuum <noreply@continuum.hr>',
-                to: employee.email,
-                subject: emailData.subject,
-                html: emailData.html
-            });
-        } else {
-            console.log('[Email Mock] Monthly Summary', {
-                to: employee.email,
-                month: monthName
-            });
+            try {
+                await resend.emails.send({
+                    from: 'Continuum <noreply@continuum.hr>',
+                    to: employee.email,
+                    subject: emailData.subject,
+                    html: emailData.html
+                });
+                emailSent = true;
+            } catch (resendError) {
+                console.warn('[Resend failed in monthly summary, trying Gmail OAuth]:', resendError);
+            }
+        }
+        
+        // Fallback to Gmail OAuth
+        if (!emailSent) {
+            const result = await sendEmail(employee.email, emailData.subject, emailData.html);
+            emailSent = result.success;
         }
 
-        return { success: true, message: "Monthly summary sent" };
+        return { success: true, message: emailSent ? "Monthly summary sent" : "Summary logged (email unavailable)" };
 
     } catch (error: any) {
         console.error("[sendMonthlySummary] Error:", error?.message || error);

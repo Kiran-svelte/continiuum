@@ -26,7 +26,7 @@ export async function cachePublicHolidaysForYear(params: {
                         country_code: countryCode,
                         year,
                         is_global: h.is_global,
-                        types: h.types,
+                        types: h.types ?? undefined,
                     },
                 })
             )

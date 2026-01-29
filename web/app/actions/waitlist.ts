@@ -1,6 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { sendWaitlistConfirmationEmail } from "@/lib/email-service";
 
 export async function joinWaitlist(email: string, companyName?: string, employeeCount?: string) {
     try {
@@ -23,8 +24,10 @@ export async function joinWaitlist(email: string, companyName?: string, employee
             }
         });
 
-        // TODO: Send confirmation email
-        // await sendWaitlistConfirmationEmail(email);
+        // Send confirmation email (non-blocking)
+        sendWaitlistConfirmationEmail(email, companyName).catch(err => {
+            console.error("[joinWaitlist] Failed to send confirmation email:", err);
+        });
 
         return { success: true, message: "Welcome to the waitlist!" };
     } catch (error: any) {
