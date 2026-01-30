@@ -234,7 +234,7 @@ export function PendingApprovalStatus({ employeeName, companyName }: PendingAppr
                         </p>
 
                         <button
-                            onClick={() => router.push("/employee/auth")}
+                            onClick={() => router.push("/employee/rejected")}
                             className="w-full py-3 rounded-xl bg-white/10 text-white font-medium hover:bg-white/20 transition-all"
                         >
                             Back to Home

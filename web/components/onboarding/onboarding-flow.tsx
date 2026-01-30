@@ -229,12 +229,12 @@ export function OnboardingFlow({ user, intent, savedData }: { user: any; intent:
         setLoading(true);
         const res = await joinCompany(companyCode);
         if (res.success) {
-            // Employee needs to wait for approval - show pending screen
-            setStep("pending_approval" as any);
+            // Redirect to pending approval page
+            router.push("/employee/pending");
         } else {
             setError(res.error || "Failed");
+            setLoading(false);
         }
-        setLoading(false);
     };
 
     return (

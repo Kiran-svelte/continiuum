@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { analyzeLeaveRequest } from "@/app/actions/employee";
 import { CalendarDays, Sparkles, CheckCircle2, XCircle, AlertTriangle, Loader2, ChevronLeft, ChevronRight, AlertCircle, Calendar } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";

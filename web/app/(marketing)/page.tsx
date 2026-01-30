@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
 import { 
     Sparkles, 
     Users, 
@@ -160,10 +161,11 @@ export default function LandingPage() {
             const result = await joinWaitlist(email);
             if (result.success) {
                 setSubmitted(true);
+            } else {
+                toast.error(result.error || "Failed to join waitlist");
             }
-        } catch {
-            // Still show success for UX
-            setSubmitted(true);
+        } catch (error) {
+            toast.error("Failed to join waitlist. Please try again.");
         } finally {
             setLoading(false);
         }
