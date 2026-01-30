@@ -8,34 +8,65 @@ export async function cachePublicHolidaysForYear(params: {
 }): Promise<number> {
     const { year, countryCode, holidays } = params;
 
-    const cached = await prisma.$transaction(async (tx) => {
-        await tx.publicHoliday.deleteMany({
-            where: {
-                year,
-                country_code: countryCode,
-            },
-        });
-
-        const results = await Promise.all(
-            holidays.map((h) =>
-                tx.publicHoliday.create({
-                    data: {
-                        date: new Date(h.date),
-                        name: h.name,
-                        local_name: h.local_name,
-                        country_code: countryCode,
-                        year,
-                        is_global: h.is_global,
-                        types: h.types ?? undefined,
-                    },
-                })
-            )
-        );
-
-        return results.length;
+    // First, delete existing holidays for this year/country
+    await prisma.publicHoliday.deleteMany({
+        where: {
+            year,
+            country_code: countryCode,
+        },
     });
 
-    return cached;
+    // Deduplicate holidays by date (some APIs return multiple holidays on same date)
+    const uniqueHolidays = new Map<string, NormalizedHoliday>();
+    for (const h of holidays) {
+        const dateKey = new Date(h.date).toISOString().split('T')[0];
+        // Keep the first one or merge names if same date
+        if (!uniqueHolidays.has(dateKey)) {
+            uniqueHolidays.set(dateKey, h);
+        } else {
+            // Append name if different holiday on same date
+            const existing = uniqueHolidays.get(dateKey)!;
+            if (!existing.name.includes(h.name)) {
+                existing.name = `${existing.name} / ${h.name}`;
+            }
+        }
+    }
+
+    // Insert holidays one by one to handle any remaining conflicts
+    let count = 0;
+    for (const h of uniqueHolidays.values()) {
+        try {
+            await prisma.publicHoliday.upsert({
+                where: {
+                    date_country_code: {
+                        date: new Date(h.date),
+                        country_code: countryCode,
+                    },
+                },
+                update: {
+                    name: h.name,
+                    local_name: h.local_name,
+                    year,
+                    is_global: h.is_global,
+                    types: h.types ?? undefined,
+                },
+                create: {
+                    date: new Date(h.date),
+                    name: h.name,
+                    local_name: h.local_name,
+                    country_code: countryCode,
+                    year,
+                    is_global: h.is_global,
+                    types: h.types ?? undefined,
+                },
+            });
+            count++;
+        } catch (err) {
+            console.error(`[cachePublicHolidaysForYear] Failed to upsert holiday ${h.name}:`, err);
+        }
+    }
+
+    return count;
 }
 
 export async function ensurePublicHolidaysCached(params: {
