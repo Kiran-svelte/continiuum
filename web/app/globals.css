@@ -132,7 +132,11 @@
     .delay-1000 { animation-delay: 1000ms; }
 }
 
-:root {
+/* ==================== THEME SYSTEM ==================== */
+/* Default/Dark Theme - Premium Continuum aesthetic */
+:root,
+:root.dark,
+.dark-theme {
   /* Premium Palette - Refined */
   --bg-dark: #030305;
   --bg-card: rgba(15, 15, 25, 0.8);
@@ -144,6 +148,7 @@
   --success: #10b981;
   --warning: #f59e0b;
   --danger: #ef4444;
+  --info: #3b82f6;
   --text-main: #f8fafc;
   --text-muted: #64748b;
   --text-dim: #475569;
@@ -153,6 +158,7 @@
   --glass-border-hover: 1px solid rgba(255, 255, 255, 0.12);
   --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255,255,255,0.05) inset;
   --glow-shadow: 0 0 60px rgba(168, 85, 247, 0.15), 0 0 100px rgba(168, 85, 247, 0.05);
+  --card-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
   --backdrop: blur(20px) saturate(180%);
   --transition-fast: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
   --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -183,6 +189,65 @@
   --radius: 0.75rem;
 }
 
+/* Light Theme - SmartHR Japan inspired: Clean, Professional, Trustworthy */
+:root.light,
+.light-theme {
+  /* SmartHR-style palette */
+  --bg-dark: #ffffff;
+  --bg-card: #f8f9fa;
+  --bg-elevated: #ffffff;
+  --primary: #0066cc;
+  --primary-glow: rgba(0, 102, 204, 0.2);
+  --secondary: #00a3a3;
+  --accent: #0066cc;
+  --success: #00875a;
+  --warning: #ffab00;
+  --danger: #de350b;
+  --info: #0066cc;
+  --text-main: #1a1a1a;
+  --text-muted: #5c5c5c;
+  --text-dim: #8c8c8c;
+
+  /* Light mode effects */
+  --glass-border: 1px solid #e1e4e8;
+  --glass-border-hover: 1px solid #c4c9cf;
+  --glass-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
+  --glow-shadow: 0 4px 14px rgba(0, 102, 204, 0.1);
+  --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 10px 15px rgba(0, 0, 0, 0.03);
+  --backdrop: blur(20px) saturate(180%);
+  
+  /* Next.js defaults mapped */
+  --background: var(--bg-dark);
+  --foreground: var(--text-main);
+
+  /* shadcn/ui CSS Variables for light */
+  --card: 0 0% 98%;
+  --card-foreground: 0 0% 10%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 0 0% 10%;
+  --primary-hsl: 210 100% 40%;
+  --primary-foreground: 0 0% 100%;
+  --secondary-hsl: 180 100% 32%;
+  --secondary-foreground: 0 0% 10%;
+  --muted: 210 10% 96%;
+  --muted-foreground: 0 0% 36%;
+  --accent: 210 10% 96%;
+  --accent-foreground: 0 0% 10%;
+  --destructive: 0 84% 46%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 0 0% 88%;
+  --input: 0 0% 96%;
+  --ring: 210 100% 40%;
+}
+
+/* Theme transition for smooth switching */
+.theme-transition,
+.theme-transition *,
+.theme-transition *::before,
+.theme-transition *::after {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease !important;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -209,15 +274,29 @@ body {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     letter-spacing: -0.01em;
+    transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* Premium Selection */
+/* Light theme body adjustments */
+.light-theme body,
+:root.light body {
+    background: #ffffff;
+    color: #1a1a1a;
+}
+
+/* Premium Selection - Theme aware */
 ::selection {
-    background: rgba(168, 85, 247, 0.4);
-    color: white;
+    background: var(--primary-glow);
+    color: var(--text-main);
 }
 
-/* Custom Scrollbar - Minimal & Premium */
+.light-theme ::selection,
+:root.light ::selection {
+    background: rgba(0, 102, 204, 0.3);
+    color: #1a1a1a;
+}
+
+/* Custom Scrollbar - Theme aware */
 ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
@@ -228,11 +307,38 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-    background: rgba(168, 85, 247, 0.3);
+    background: var(--primary-glow);
     border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
+    background: var(--primary);
+}
+
+.light-theme ::-webkit-scrollbar-thumb,
+:root.light ::-webkit-scrollbar-thumb {
+    background: rgba(0, 102, 204, 0.3);
+}
+
+.light-theme ::-webkit-scrollbar-thumb:hover,
+:root.light ::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 102, 204, 0.5);
+}
+
+/* Sonner Toast - Theme adaptive */
+.toast-theme-adaptive {
+    background: var(--bg-card) !important;
+    border: var(--glass-border) !important;
+    color: var(--text-main) !important;
+}
+
+.light-theme .toast-theme-adaptive,
+:root.light .toast-theme-adaptive {
+    background: #ffffff !important;
+    border: 1px solid #e1e4e8 !important;
+    color: #1a1a1a !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+}
     background: rgba(168, 85, 247, 0.5);
 }
 

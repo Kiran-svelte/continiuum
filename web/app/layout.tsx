@@ -8,6 +8,7 @@ import { ConfirmProvider } from "@/components/ui/confirm-provider";
 import { GlobalErrorBoundary } from "@/components/ui/error-boundary";
 import { ScrollToTop } from "@/components/ui/scroll-to-top";
 import { ScreenReaderAnnouncer } from "@/lib/accessibility";
+import { ThemeProvider, ThemeScript } from "@/lib/theme/theme-provider";
 import "./globals.css";
 
 import { Inter } from "next/font/google";
@@ -47,30 +48,31 @@ export default async function RootLayout({
       signInFallbackRedirectUrl="/onboarding"
       signUpFallbackRedirectUrl="/onboarding"
     >
-      <html lang="en">
-        <body className={`${inter.variable} antialiased bg-black text-white selection:bg-[#00f2ff] selection:text-black`}>
-          <GlobalErrorBoundary>
-            <ConfirmProvider>
-              {children}
-              <ScrollToTop />
-              <ScreenReaderAnnouncer />
-            </ConfirmProvider>
-          </GlobalErrorBoundary>
-          <Analytics />
-          <SpeedInsights />
-          <Toaster 
-            theme="dark" 
-            position="top-right"
-            richColors
-            closeButton
-            toastOptions={{
-              style: {
-                background: '#1a1a2e',
-                border: '1px solid rgba(255,255,255,0.1)',
-                color: 'white'
-              }
-            }}
-          />
+      <html lang="en" suppressHydrationWarning>
+        <head>
+          <ThemeScript />
+          <meta name="theme-color" content="#030305" />
+        </head>
+        <body className={`${inter.variable} antialiased selection:bg-primary/40 selection:text-white`}>
+          <ThemeProvider defaultTheme="system" enableTransitions>
+            <GlobalErrorBoundary>
+              <ConfirmProvider>
+                {children}
+                <ScrollToTop />
+                <ScreenReaderAnnouncer />
+              </ConfirmProvider>
+            </GlobalErrorBoundary>
+            <Analytics />
+            <SpeedInsights />
+            <Toaster 
+              position="top-right"
+              richColors
+              closeButton
+              toastOptions={{
+                className: 'toast-theme-adaptive',
+              }}
+            />
+          </ThemeProvider>
         </body>
       </html>
     </ClerkProvider>
