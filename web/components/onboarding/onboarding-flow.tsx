@@ -297,8 +297,8 @@ export function OnboardingFlow({ user, intent, savedData }: { user: any; intent:
                         animate={{ opacity: 1, scale: 1 }}
                         className="z-10 grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-4xl"
                     >
-                        {/* HR Route */}
-                        {(safeIntent === 'hr' || !safeIntent || safeIntent === 'choice') && (
+                        {/* HR Route - Only show if NOT employee intent */}
+                        {safeIntent !== 'employee' && (
                             <div
                                 onClick={() => setStep("create")}
                                 className={`group cursor-pointer bg-white/5 hover:bg-white/10 backdrop-blur-xl border border-white/10 hover:border-purple-500/50 rounded-2xl p-8 transition-all duration-300 relative overflow-hidden ${safeIntent === 'hr' ? 'col-span-2 max-w-md mx-auto' : ''}`}
@@ -310,8 +310,8 @@ export function OnboardingFlow({ user, intent, savedData }: { user: any; intent:
                             </div>
                         )}
 
-                        {/* Employee Route */}
-                        {(safeIntent === 'employee' || !safeIntent || safeIntent === 'choice') && (
+                        {/* Employee Route - Only show if NOT hr intent */}
+                        {safeIntent !== 'hr' && (
                             <div
                                 onClick={() => setStep("details")}
                                 className={`group cursor-pointer bg-white/5 hover:bg-white/10 backdrop-blur-xl border border-white/10 hover:border-[#00f2ff]/50 rounded-2xl p-8 transition-all duration-300 relative overflow-hidden ${safeIntent === 'employee' ? 'col-span-2 max-w-md mx-auto' : ''}`}

@@ -33,8 +33,12 @@ export async function getCompanyConstraintRules(): Promise<{
             include: { company: true }
         });
 
-        if (!employee?.org_id) {
-            return { success: false, error: "Employee not found" };
+        if (!employee) {
+            return { success: false, error: "Employee profile not found. Please complete onboarding first." };
+        }
+        
+        if (!employee.org_id) {
+            return { success: false, error: "No organization found. Please complete company setup in onboarding." };
         }
 
         // Get company's custom rules from ConstraintPolicy

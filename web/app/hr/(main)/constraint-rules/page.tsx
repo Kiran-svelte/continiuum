@@ -516,6 +516,7 @@ export default function ConstraintRulesPage() {
     }
 
     if (error) {
+        const isSetupRequired = error.includes("not found") || error.includes("organization") || error.includes("onboarding");
         return (
             <div className="p-8 max-w-7xl mx-auto">
                 <header className="mb-8">
@@ -525,17 +526,14 @@ export default function ConstraintRulesPage() {
                 <div className="glass-panel p-12 text-center">
                     <AlertTriangle className="w-16 h-16 text-amber-500 mx-auto mb-4" />
                     <h2 className="text-xl font-bold text-white dark:text-white mb-2">
-                        {error === "Employee not found" ? "Setup Required" : "Error Loading Rules"}
+                        {isSetupRequired ? "Setup Required" : "Error Loading Rules"}
                     </h2>
                     <p className="text-slate-400 mb-6">
-                        {error === "Employee not found" 
-                            ? "Please complete the onboarding process first to set up your organization and employee profile."
-                            : error
-                        }
+                        {error}
                     </p>
-                    {error === "Employee not found" ? (
+                    {isSetupRequired ? (
                         <a 
-                            href="/onboarding"
+                            href="/onboarding?intent=hr"
                             className="inline-block px-6 py-2 bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white rounded-lg transition-colors"
                         >
                             Complete Onboarding

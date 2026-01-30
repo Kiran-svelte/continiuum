@@ -711,6 +711,9 @@ export async function approveEmployee(empId: string) {
         }).catch(err => console.error('Registration approval email failed:', err));
 
         revalidatePath("/hr");
+        revalidatePath("/employee");
+        revalidatePath("/employee/pending");
+        revalidatePath("/employee/dashboard");
         return { 
             success: true, 
             employee,
