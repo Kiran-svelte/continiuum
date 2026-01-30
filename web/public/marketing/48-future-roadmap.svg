@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1350" viewBox="0 0 1080 1350">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#030508"/>
+      <stop offset="1" stop-color="#0a0f1a"/>
+    </linearGradient>
+    <linearGradient id="future" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0ea5e9"/>
+      <stop offset="0.5" stop-color="#6366f1"/>
+      <stop offset="1" stop-color="#a855f7"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="35%" r="50%">
+      <stop offset="0" stop-color="#6366f1" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#6366f1" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="blur"><feGaussianBlur stdDeviation="40"/></filter>
+  </defs>
+  
+  <rect width="1080" height="1350" fill="url(#bg)"/>
+  <circle cx="540" cy="400" r="400" fill="url(#glow)" filter="url(#blur)"/>
+  
+  <g transform="translate(270 80)">
+    <rect width="540" height="50" rx="25" fill="url(#future)"/>
+    <text x="270" y="34" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="18" font-weight="900" fill="#ffffff">🔮 COMING SOON</text>
+  </g>
+  
+  <text x="540" y="200" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="52" font-weight="900" fill="#ffffff">THE FUTURE</text>
+  <text x="540" y="280" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="52" font-weight="900" fill="url(#future)">ROADMAP</text>
+  <text x="540" y="335" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="22" font-weight="600" fill="#94a3b8">What's next for Continuum</text>
+  
+  <g transform="translate(120 400)">
+    <rect width="840" height="150" rx="24" fill="rgba(14,165,233,0.1)" stroke="#0ea5e9" stroke-width="2"/>
+    <g transform="translate(30 25)">
+      <rect width="100" height="30" rx="15" fill="#0ea5e9"/>
+      <text x="50" y="21" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="12" font-weight="900" fill="#ffffff">Q2 2025</text>
+    </g>
+    <g transform="translate(150 30)">
+      <text x="0" y="25" font-size="36">🧠</text>
+      <text x="55" y="20" font-family="Inter,system-ui,sans-serif" font-size="22" font-weight="900" fill="#ffffff">AI Agent V2</text>
+      <text x="55" y="48" font-family="Inter,system-ui,sans-serif" font-size="14" fill="#94a3b8">Next-gen AI with conversational interface</text>
+      <g transform="translate(55 60)">
+        <rect width="110" height="24" rx="12" fill="rgba(14,165,233,0.3)"/>
+        <text x="55" y="17" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="10" font-weight="700" fill="#0ea5e9">ChatGPT-style</text>
+        <rect x="125" width="100" height="24" rx="12" fill="rgba(14,165,233,0.3)"/>
+        <text x="175" y="17" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="10" font-weight="700" fill="#0ea5e9">Voice input</text>
+        <rect x="240" width="120" height="24" rx="12" fill="rgba(14,165,233,0.3)"/>
+        <text x="300" y="17" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="10" font-weight="700" fill="#0ea5e9">Predictive HR</text>
+      </g>
+    </g>
+  </g>
+  
+  <g transform="translate(120 580)">
+    <rect width="840" height="150" rx="24" fill="rgba(99,102,241,0.1)" stroke="#6366f1" stroke-width="2"/>
+    <g transform="translate(30 25)">
+      <rect width="100" height="30" rx="15" fill="#6366f1"/>
+      <text x="50" y="21" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="12" font-weight="900" fill="#ffffff">Q3 2025</text>
+    </g>
+    <g transform="translate(150 30)">
+      <text x="0" y="25" font-size="36">📱</text>
+      <text x="55" y="20" font-family="Inter,system-ui,sans-serif" font-size="22" font-weight="900" fill="#ffffff">Mobile Super App</text>
+      <text x="55" y="48" font-family="Inter,system-ui,sans-serif" font-size="14" fill="#94a3b8">Complete HR suite on iOS &amp; Android</text>
+      <g transform="translate(55 60)">
+        <rect width="100" height="24" rx="12" fill="rgba(99,102,241,0.3)"/>
+        <text x="50" y="17" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="10" font-weight="700" fill="#6366f1">Offline mode</text>
+        <rect x="115" width="100" height="24" rx="12" fill="rgba(99,102,241,0.3)"/>
+        <text x="165" y="17" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="10" font-weight="700" fill="#6366f1">Face ID/Touch</text>
+        <rect x="230" width="100" height="24" rx="12" fill="rgba(99,102,241,0.3)"/>
+        <text x="280" y="17" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="10" font-weight="700" fill="#6366f1">Widgets</text>
+      </g>
+    </g>
+  </g>
+  
+  <g transform="translate(120 760)">
+    <rect width="840" height="150" rx="24" fill="rgba(168,85,247,0.1)" stroke="#a855f7" stroke-width="2"/>
+    <g transform="translate(30 25)">
+      <rect width="100" height="30" rx="15" fill="#a855f7"/>
+      <text x="50" y="21" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="12" font-weight="900" fill="#ffffff">Q4 2025</text>
+    </g>
+    <g transform="translate(150 30)">
+      <text x="0" y="25" font-size="36">🌐</text>
+      <text x="55" y="20" font-family="Inter,system-ui,sans-serif" font-size="22" font-weight="900" fill="#ffffff">Global Expansion</text>
+      <text x="55" y="48" font-family="Inter,system-ui,sans-serif" font-size="14" fill="#94a3b8">200+ countries with local payroll</text>
+      <g transform="translate(55 60)">
+        <rect width="100" height="24" rx="12" fill="rgba(168,85,247,0.3)"/>
+        <text x="50" y="17" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="10" font-weight="700" fill="#a855f7">LATAM</text>
+        <rect x="115" width="100" height="24" rx="12" fill="rgba(168,85,247,0.3)"/>
+        <text x="165" y="17" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="10" font-weight="700" fill="#a855f7">Africa</text>
+        <rect x="230" width="100" height="24" rx="12" fill="rgba(168,85,247,0.3)"/>
+        <text x="280" y="17" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="10" font-weight="700" fill="#a855f7">Middle East</text>
+      </g>
+    </g>
+  </g>
+  
+  <g transform="translate(120 950)">
+    <rect width="840" height="130" rx="24" fill="rgba(255,255,255,0.03)" stroke="url(#future)" stroke-width="2"/>
+    <text x="420" y="40" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="20" font-weight="900" fill="#ffffff">🚀 2026 Vision</text>
+    
+    <g transform="translate(80 65)">
+      <rect width="150" height="40" rx="12" fill="rgba(16,185,129,0.2)"/>
+      <text x="75" y="27" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="12" font-weight="700" fill="#10b981">Workforce AI</text>
+    </g>
+    
+    <g transform="translate(260 65)">
+      <rect width="150" height="40" rx="12" fill="rgba(245,158,11,0.2)"/>
+      <text x="75" y="27" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="12" font-weight="700" fill="#f59e0b">Blockchain HR</text>
+    </g>
+    
+    <g transform="translate(440 65)">
+      <rect width="150" height="40" rx="12" fill="rgba(236,72,153,0.2)"/>
+      <text x="75" y="27" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="12" font-weight="700" fill="#ec4899">AR Onboarding</text>
+    </g>
+    
+    <g transform="translate(620 65)">
+      <rect width="150" height="40" rx="12" fill="rgba(6,182,212,0.2)"/>
+      <text x="75" y="27" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="12" font-weight="700" fill="#06b6d4">Metaverse Office</text>
+    </g>
+  </g>
+  
+  <g transform="translate(120 1120)">
+    <rect width="840" height="100" rx="24" fill="url(#future)" opacity="0.95"/>
+    <text x="420" y="40" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="24" font-weight="900" fill="#ffffff">🔮 The future of HR is being built now</text>
+    <text x="420" y="70" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="16" font-weight="700" fill="rgba(255,255,255,0.9)">Join our early adopter program for beta access</text>
+  </g>
+  
+  <g transform="translate(100 1260)">
+    <text x="0" y="40" font-family="Inter,system-ui,sans-serif" font-size="36" font-weight="900" fill="#ffffff">Continuum</text>
+    <text x="0" y="70" font-family="Inter,system-ui,sans-serif" font-size="18" font-weight="600" fill="#64748b">Enterprise HR • Payroll • Compliance</text>
+    <text x="780" y="55" font-size="40">🔮🚀✨</text>
+  </g>
+</svg>

@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1350" viewBox="0 0 1080 1350">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#030508"/>
+      <stop offset="1" stop-color="#0a0f1a"/>
+    </linearGradient>
+    <linearGradient id="emerald" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#047857"/>
+      <stop offset="1" stop-color="#10b981"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#10b981" stop-opacity="0.3"/>
+      <stop offset="1" stop-color="#10b981" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="blur"><feGaussianBlur stdDeviation="40"/></filter>
+  </defs>
+  
+  <rect width="1080" height="1350" fill="url(#bg)"/>
+  <circle cx="540" cy="650" r="500" fill="url(#glow)" filter="url(#blur)"/>
+  
+  <g transform="translate(300 80)">
+    <rect width="480" height="50" rx="25" fill="url(#emerald)"/>
+    <text x="240" y="34" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="18" font-weight="900" fill="#ffffff">📊 QUICK STATS</text>
+  </g>
+  
+  <text x="540" y="200" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="52" font-weight="900" fill="#ffffff">CONTINUUM</text>
+  <text x="540" y="280" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="52" font-weight="900" fill="url(#emerald)">BY THE NUMBERS</text>
+  <text x="540" y="330" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="20" font-weight="600" fill="#94a3b8">Real results from real customers</text>
+  
+  <g transform="translate(120 390)">
+    <g>
+      <rect width="260" height="160" rx="24" fill="rgba(16,185,129,0.1)" stroke="#10b981" stroke-width="2"/>
+      <text x="130" y="55" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="52" font-weight="900" fill="#10b981">500K+</text>
+      <text x="130" y="90" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="18" font-weight="700" fill="#ffffff">Employees</text>
+      <text x="130" y="115" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="13" fill="#94a3b8">Managed globally</text>
+      <text x="130" y="140" text-anchor="middle" font-size="24">👥</text>
+    </g>
+    
+    <g transform="translate(290 0)">
+      <rect width="260" height="160" rx="24" fill="rgba(59,130,246,0.1)" stroke="#3b82f6" stroke-width="2"/>
+      <text x="130" y="55" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="52" font-weight="900" fill="#3b82f6">2,500+</text>
+      <text x="130" y="90" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="18" font-weight="700" fill="#ffffff">Companies</text>
+      <text x="130" y="115" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="13" fill="#94a3b8">Trust Continuum</text>
+      <text x="130" y="140" text-anchor="middle" font-size="24">🏢</text>
+    </g>
+    
+    <g transform="translate(580 0)">
+      <rect width="260" height="160" rx="24" fill="rgba(168,85,247,0.1)" stroke="#a855f7" stroke-width="2"/>
+      <text x="130" y="55" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="52" font-weight="900" fill="#a855f7">150+</text>
+      <text x="130" y="90" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="18" font-weight="700" fill="#ffffff">Countries</text>
+      <text x="130" y="115" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="13" fill="#94a3b8">Payroll supported</text>
+      <text x="130" y="140" text-anchor="middle" font-size="24">🌍</text>
+    </g>
+  </g>
+  
+  <g transform="translate(120 590)">
+    <g>
+      <rect width="260" height="160" rx="24" fill="rgba(245,158,11,0.1)" stroke="#f59e0b" stroke-width="2"/>
+      <text x="130" y="55" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="52" font-weight="900" fill="#f59e0b">$2.5B+</text>
+      <text x="130" y="90" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="18" font-weight="700" fill="#ffffff">Payroll Processed</text>
+      <text x="130" y="115" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="13" fill="#94a3b8">Monthly</text>
+      <text x="130" y="140" text-anchor="middle" font-size="24">💰</text>
+    </g>
+    
+    <g transform="translate(290 0)">
+      <rect width="260" height="160" rx="24" fill="rgba(236,72,153,0.1)" stroke="#ec4899" stroke-width="2"/>
+      <text x="130" y="55" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="52" font-weight="900" fill="#ec4899">99.99%</text>
+      <text x="130" y="90" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="18" font-weight="700" fill="#ffffff">Uptime</text>
+      <text x="130" y="115" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="13" fill="#94a3b8">Enterprise SLA</text>
+      <text x="130" y="140" text-anchor="middle" font-size="24">⚡</text>
+    </g>
+    
+    <g transform="translate(580 0)">
+      <rect width="260" height="160" rx="24" fill="rgba(239,68,68,0.1)" stroke="#ef4444" stroke-width="2"/>
+      <text x="130" y="55" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="52" font-weight="900" fill="#ef4444">5</text>
+      <text x="130" y="90" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="18" font-weight="700" fill="#ffffff">AI Agents</text>
+      <text x="130" y="115" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="13" fill="#94a3b8">Automating HR</text>
+      <text x="130" y="140" text-anchor="middle" font-size="24">🤖</text>
+    </g>
+  </g>
+  
+  <g transform="translate(120 790)">
+    <g>
+      <rect width="260" height="160" rx="24" fill="rgba(6,182,212,0.1)" stroke="#06b6d4" stroke-width="2"/>
+      <text x="130" y="55" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="52" font-weight="900" fill="#06b6d4">4.9/5</text>
+      <text x="130" y="90" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="18" font-weight="700" fill="#ffffff">Rating</text>
+      <text x="130" y="115" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="13" fill="#94a3b8">G2 &amp; Capterra</text>
+      <text x="130" y="140" text-anchor="middle" font-size="24">⭐</text>
+    </g>
+    
+    <g transform="translate(290 0)">
+      <rect width="260" height="160" rx="24" fill="rgba(132,204,22,0.1)" stroke="#84cc16" stroke-width="2"/>
+      <text x="130" y="55" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="52" font-weight="900" fill="#84cc16">275%</text>
+      <text x="130" y="90" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="18" font-weight="700" fill="#ffffff">Average ROI</text>
+      <text x="130" y="115" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="13" fill="#94a3b8">Year 1</text>
+      <text x="130" y="140" text-anchor="middle" font-size="24">📈</text>
+    </g>
+    
+    <g transform="translate(580 0)">
+      <rect width="260" height="160" rx="24" fill="rgba(217,70,239,0.1)" stroke="#d946ef" stroke-width="2"/>
+      <text x="130" y="55" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="52" font-weight="900" fill="#d946ef">200+</text>
+      <text x="130" y="90" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="18" font-weight="700" fill="#ffffff">Integrations</text>
+      <text x="130" y="115" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="13" fill="#94a3b8">Apps connected</text>
+      <text x="130" y="140" text-anchor="middle" font-size="24">🔗</text>
+    </g>
+  </g>
+  
+  <g transform="translate(120 990)">
+    <rect width="840" height="130" rx="28" fill="rgba(255,255,255,0.03)" stroke="url(#emerald)" stroke-width="2"/>
+    
+    <text x="420" y="45" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="22" font-weight="900" fill="#ffffff">🏆 Industry Recognition</text>
+    
+    <g transform="translate(80 70)">
+      <rect width="140" height="40" rx="12" fill="rgba(16,185,129,0.2)"/>
+      <text x="70" y="27" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="12" font-weight="700" fill="#10b981">G2 Leader 2024</text>
+    </g>
+    
+    <g transform="translate(250 70)">
+      <rect width="140" height="40" rx="12" fill="rgba(59,130,246,0.2)"/>
+      <text x="70" y="27" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="12" font-weight="700" fill="#3b82f6">Gartner Cool</text>
+    </g>
+    
+    <g transform="translate(420 70)">
+      <rect width="140" height="40" rx="12" fill="rgba(168,85,247,0.2)"/>
+      <text x="70" y="27" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="12" font-weight="700" fill="#a855f7">SOC2 Type II</text>
+    </g>
+    
+    <g transform="translate(590 70)">
+      <rect width="140" height="40" rx="12" fill="rgba(236,72,153,0.2)"/>
+      <text x="70" y="27" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="12" font-weight="700" fill="#ec4899">GDPR Ready</text>
+    </g>
+  </g>
+  
+  <g transform="translate(120 1160)">
+    <rect width="840" height="70" rx="20" fill="url(#emerald)"/>
+    <text x="420" y="45" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="22" font-weight="900" fill="#ffffff">📊 Join 500K+ employees using Continuum today!</text>
+  </g>
+  
+  <g transform="translate(100 1270)">
+    <text x="0" y="35" font-family="Inter,system-ui,sans-serif" font-size="36" font-weight="900" fill="#ffffff">Continuum</text>
+    <text x="0" y="62" font-family="Inter,system-ui,sans-serif" font-size="16" font-weight="600" fill="#64748b">Enterprise HR • Payroll • Compliance</text>
+    <text x="780" y="50" font-size="40">📊🏆💎</text>
+  </g>
+</svg>

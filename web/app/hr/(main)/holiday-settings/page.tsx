@@ -512,7 +512,7 @@ export default function HolidaySettingsPage() {
                             </span>
                             <span className="text-slate-500 flex items-center gap-2">
                                 <Globe className="w-4 h-4" />
-                                Data from Nager.Date API
+                                Data from Calendarific API
                             </span>
                         </div>
                     </div>

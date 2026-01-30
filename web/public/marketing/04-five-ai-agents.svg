@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1350" viewBox="0 0 1080 1350">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#030508"/>
+      <stop offset="1" stop-color="#0a0f1a"/>
+    </linearGradient>
+    <linearGradient id="blue" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#3b82f6"/>
+      <stop offset="1" stop-color="#06b6d4"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="30%" r="50%">
+      <stop offset="0" stop-color="#3b82f6" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#3b82f6" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="blur"><feGaussianBlur stdDeviation="40"/></filter>
+  </defs>
+  
+  <rect width="1080" height="1350" fill="url(#bg)"/>
+  <circle cx="540" cy="380" r="400" fill="url(#glow)" filter="url(#blur)"/>
+  
+  <g transform="translate(360 80)">
+    <rect width="360" height="50" rx="25" fill="url(#blue)"/>
+    <text x="180" y="34" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="18" font-weight="900" fill="#0a0f1a">🤖 MEET YOUR AI TEAM</text>
+  </g>
+  
+  <text x="540" y="200" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="62" font-weight="900" fill="#ffffff">5 AI AGENTS</text>
+  <text x="540" y="270" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="62" font-weight="900" fill="url(#blue)">WORKING 24/7</text>
+  <text x="540" y="320" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="22" font-weight="600" fill="#94a3b8">Intelligent assistants that never sleep</text>
+  
+  <g transform="translate(120 380)">
+    <rect width="440" height="150" rx="24" fill="rgba(168,85,247,0.12)" stroke="#a855f7" stroke-width="2"/>
+    <g transform="translate(30 25)">
+      <circle cx="50" cy="50" r="50" fill="rgba(168,85,247,0.3)"/>
+      <text x="50" y="65" text-anchor="middle" font-size="50">🤖</text>
+    </g>
+    <text x="150" y="60" font-family="Inter,system-ui,sans-serif" font-size="22" font-weight="900" fill="#ffffff">HR Assistant</text>
+    <text x="150" y="90" font-family="Inter,system-ui,sans-serif" font-size="16" fill="#94a3b8">Answers queries • Schedules meetings</text>
+    <text x="150" y="115" font-family="Inter,system-ui,sans-serif" font-size="16" fill="#94a3b8">Generates reports • 24/7 support</text>
+    <text x="380" y="50" font-size="24">💬</text>
+  </g>
+  
+  <g transform="translate(520 380)">
+    <rect width="440" height="150" rx="24" fill="rgba(34,197,94,0.12)" stroke="#22c55e" stroke-width="2"/>
+    <g transform="translate(30 25)">
+      <circle cx="50" cy="50" r="50" fill="rgba(34,197,94,0.3)"/>
+      <text x="50" y="65" text-anchor="middle" font-size="50">🧠</text>
+    </g>
+    <text x="150" y="60" font-family="Inter,system-ui,sans-serif" font-size="22" font-weight="900" fill="#ffffff">Leave Intelligence</text>
+    <text x="150" y="90" font-family="Inter,system-ui,sans-serif" font-size="16" fill="#94a3b8">Fairness checks • Team coverage</text>
+    <text x="150" y="115" font-family="Inter,system-ui,sans-serif" font-size="16" fill="#94a3b8">Auto-routing • Smart suggestions</text>
+    <text x="380" y="50" font-size="24">⚖️</text>
+  </g>
+  
+  <g transform="translate(120 550)">
+    <rect width="440" height="150" rx="24" fill="rgba(59,130,246,0.12)" stroke="#3b82f6" stroke-width="2"/>
+    <g transform="translate(30 25)">
+      <circle cx="50" cy="50" r="50" fill="rgba(59,130,246,0.3)"/>
+      <text x="50" y="65" text-anchor="middle" font-size="50">🛡️</text>
+    </g>
+    <text x="150" y="60" font-family="Inter,system-ui,sans-serif" font-size="22" font-weight="900" fill="#ffffff">Payroll Guardian</text>
+    <text x="150" y="90" font-family="Inter,system-ui,sans-serif" font-size="16" fill="#94a3b8">Anomaly detection • Duplicate alerts</text>
+    <text x="150" y="115" font-family="Inter,system-ui,sans-serif" font-size="16" fill="#94a3b8">Validation rules • Audit logging</text>
+    <text x="380" y="50" font-size="24">💰</text>
+  </g>
+  
+  <g transform="translate(520 550)">
+    <rect width="440" height="150" rx="24" fill="rgba(251,191,36,0.12)" stroke="#fbbf24" stroke-width="2"/>
+    <g transform="translate(30 25)">
+      <circle cx="50" cy="50" r="50" fill="rgba(251,191,36,0.3)"/>
+      <text x="50" y="65" text-anchor="middle" font-size="50">👁️</text>
+    </g>
+    <text x="150" y="60" font-family="Inter,system-ui,sans-serif" font-size="22" font-weight="900" fill="#ffffff">Compliance Sentinel</text>
+    <text x="150" y="90" font-family="Inter,system-ui,sans-serif" font-size="16" fill="#94a3b8">Policy awareness • Violation alerts</text>
+    <text x="150" y="115" font-family="Inter,system-ui,sans-serif" font-size="16" fill="#94a3b8">GDPR tracking • Data protection</text>
+    <text x="380" y="50" font-size="24">📋</text>
+  </g>
+  
+  <g transform="translate(320 720)">
+    <rect width="440" height="150" rx="24" fill="rgba(236,72,153,0.12)" stroke="#ec4899" stroke-width="2"/>
+    <g transform="translate(30 25)">
+      <circle cx="50" cy="50" r="50" fill="rgba(236,72,153,0.3)"/>
+      <text x="50" y="65" text-anchor="middle" font-size="50">📊</text>
+    </g>
+    <text x="150" y="60" font-family="Inter,system-ui,sans-serif" font-size="22" font-weight="900" fill="#ffffff">Analytics Copilot</text>
+    <text x="150" y="90" font-family="Inter,system-ui,sans-serif" font-size="16" fill="#94a3b8">Trend analysis • Predictions</text>
+    <text x="150" y="115" font-family="Inter,system-ui,sans-serif" font-size="16" fill="#94a3b8">Recommendations • Risk scoring</text>
+    <text x="380" y="50" font-size="24">📈</text>
+  </g>
+  
+  <g transform="translate(120 920)">
+    <rect width="840" height="200" rx="28" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.12)"/>
+    <text x="420" y="50" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="24" font-weight="900" fill="#ffffff">🏆 WHY OUR AI IS DIFFERENT</text>
+    
+    <g transform="translate(40 80)">
+      <text x="0" y="25" font-size="28">✨</text>
+      <text x="40" y="22" font-family="Inter,system-ui,sans-serif" font-size="18" font-weight="700" fill="#ffffff">Policy-Aware</text>
+      <text x="40" y="45" font-family="Inter,system-ui,sans-serif" font-size="14" fill="#94a3b8">Learns YOUR rules</text>
+    </g>
+    
+    <g transform="translate(230 80)">
+      <text x="0" y="25" font-size="28">🔍</text>
+      <text x="40" y="22" font-family="Inter,system-ui,sans-serif" font-size="18" font-weight="700" fill="#ffffff">Explainable</text>
+      <text x="40" y="45" font-family="Inter,system-ui,sans-serif" font-size="14" fill="#94a3b8">Shows reasoning</text>
+    </g>
+    
+    <g transform="translate(420 80)">
+      <text x="0" y="25" font-size="28">📋</text>
+      <text x="40" y="22" font-family="Inter,system-ui,sans-serif" font-size="18" font-weight="700" fill="#ffffff">Audit-Ready</text>
+      <text x="40" y="45" font-family="Inter,system-ui,sans-serif" font-size="14" fill="#94a3b8">Full trail logs</text>
+    </g>
+    
+    <g transform="translate(610 80)">
+      <text x="0" y="25" font-size="28">🛡️</text>
+      <text x="40" y="22" font-family="Inter,system-ui,sans-serif" font-size="18" font-weight="700" fill="#ffffff">Enterprise</text>
+      <text x="40" y="45" font-family="Inter,system-ui,sans-serif" font-size="14" fill="#94a3b8">Security first</text>
+    </g>
+  </g>
+  
+  <g transform="translate(100 1200)">
+    <text x="0" y="40" font-family="Inter,system-ui,sans-serif" font-size="36" font-weight="900" fill="#ffffff">Continuum</text>
+    <text x="0" y="70" font-family="Inter,system-ui,sans-serif" font-size="18" font-weight="600" fill="#64748b">Enterprise HR • Payroll • Compliance</text>
+    <text x="780" y="55" font-size="40">🤖🧠⚡</text>
+  </g>
+</svg>

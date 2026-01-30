@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1350" viewBox="0 0 1080 1350">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#030508"/>
+      <stop offset="1" stop-color="#0a0f1a"/>
+    </linearGradient>
+    <linearGradient id="red" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ef4444"/>
+      <stop offset="1" stop-color="#f87171"/>
+    </linearGradient>
+    <linearGradient id="green" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#22c55e"/>
+      <stop offset="1" stop-color="#4ade80"/>
+    </linearGradient>
+    <radialGradient id="glowRed" cx="25%" cy="50%" r="35%">
+      <stop offset="0" stop-color="#ef4444" stop-opacity="0.2"/>
+      <stop offset="1" stop-color="#ef4444" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glowGreen" cx="75%" cy="50%" r="35%">
+      <stop offset="0" stop-color="#22c55e" stop-opacity="0.2"/>
+      <stop offset="1" stop-color="#22c55e" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="blur"><feGaussianBlur stdDeviation="40"/></filter>
+  </defs>
+  
+  <rect width="1080" height="1350" fill="url(#bg)"/>
+  <rect x="0" y="0" width="540" height="1350" fill="url(#glowRed)" filter="url(#blur)"/>
+  <rect x="540" y="0" width="540" height="1350" fill="url(#glowGreen)" filter="url(#blur)"/>
+  
+  <g transform="translate(290 80)">
+    <rect width="500" height="50" rx="25" fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.2)"/>
+    <text x="250" y="34" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="18" font-weight="900" fill="#ffffff">📊 BEFORE vs AFTER</text>
+  </g>
+  
+  <text x="540" y="200" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="52" font-weight="900" fill="#ffffff">THE TRANSFORMATION</text>
+  <text x="540" y="255" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="22" font-weight="600" fill="#94a3b8">What changes when you choose Continuum</text>
+  
+  <line x1="540" y1="300" x2="540" y2="1180" stroke="rgba(255,255,255,0.2)" stroke-width="2" stroke-dasharray="8,8"/>
+  
+  <text x="270" y="340" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="28" font-weight="900" fill="#ef4444">😰 BEFORE</text>
+  <text x="810" y="340" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="28" font-weight="900" fill="#22c55e">😊 AFTER</text>
+  
+  <g transform="translate(60 380)">
+    <rect width="420" height="95" rx="18" fill="rgba(239,68,68,0.12)" stroke="#ef4444"/>
+    <text x="30" y="45" font-size="28">📁</text>
+    <text x="80" y="40" font-family="Inter,system-ui,sans-serif" font-size="16" font-weight="700" fill="#ffffff">Spreadsheet chaos</text>
+    <text x="80" y="60" font-family="Inter,system-ui,sans-serif" font-size="13" fill="#94a3b8">Multiple files, version conflicts</text>
+    <text x="80" y="80" font-family="Inter,system-ui,sans-serif" font-size="12" fill="#ef4444">❌ Error-prone</text>
+  </g>
+  
+  <g transform="translate(600 380)">
+    <rect width="420" height="95" rx="18" fill="rgba(34,197,94,0.12)" stroke="#22c55e"/>
+    <text x="30" y="45" font-size="28">🎯</text>
+    <text x="80" y="40" font-family="Inter,system-ui,sans-serif" font-size="16" font-weight="700" fill="#ffffff">Single source of truth</text>
+    <text x="80" y="60" font-family="Inter,system-ui,sans-serif" font-size="13" fill="#94a3b8">One platform, real-time data</text>
+    <text x="80" y="80" font-family="Inter,system-ui,sans-serif" font-size="12" fill="#22c55e">✅ Always accurate</text>
+  </g>
+  
+  <g transform="translate(60 500)">
+    <rect width="420" height="95" rx="18" fill="rgba(239,68,68,0.12)" stroke="#ef4444"/>
+    <text x="30" y="45" font-size="28">⏰</text>
+    <text x="80" y="40" font-family="Inter,system-ui,sans-serif" font-size="16" font-weight="700" fill="#ffffff">Manual payroll (5 days)</text>
+    <text x="80" y="60" font-family="Inter,system-ui,sans-serif" font-size="13" fill="#94a3b8">Calculate, verify, re-check</text>
+    <text x="80" y="80" font-family="Inter,system-ui,sans-serif" font-size="12" fill="#ef4444">❌ Time consuming</text>
+  </g>
+  
+  <g transform="translate(600 500)">
+    <rect width="420" height="95" rx="18" fill="rgba(34,197,94,0.12)" stroke="#22c55e"/>
+    <text x="30" y="45" font-size="28">⚡</text>
+    <text x="80" y="40" font-family="Inter,system-ui,sans-serif" font-size="16" font-weight="700" fill="#ffffff">Auto payroll (1 click)</text>
+    <text x="80" y="60" font-family="Inter,system-ui,sans-serif" font-size="13" fill="#94a3b8">AI calculates everything</text>
+    <text x="80" y="80" font-family="Inter,system-ui,sans-serif" font-size="12" fill="#22c55e">✅ Minutes, not days</text>
+  </g>
+  
+  <g transform="translate(60 620)">
+    <rect width="420" height="95" rx="18" fill="rgba(239,68,68,0.12)" stroke="#ef4444"/>
+    <text x="30" y="45" font-size="28">📧</text>
+    <text x="80" y="40" font-family="Inter,system-ui,sans-serif" font-size="16" font-weight="700" fill="#ffffff">Email-based leave requests</text>
+    <text x="80" y="60" font-family="Inter,system-ui,sans-serif" font-size="13" fill="#94a3b8">Lost emails, no tracking</text>
+    <text x="80" y="80" font-family="Inter,system-ui,sans-serif" font-size="12" fill="#ef4444">❌ No visibility</text>
+  </g>
+  
+  <g transform="translate(600 620)">
+    <rect width="420" height="95" rx="18" fill="rgba(34,197,94,0.12)" stroke="#22c55e"/>
+    <text x="30" y="45" font-size="28">📱</text>
+    <text x="80" y="40" font-family="Inter,system-ui,sans-serif" font-size="16" font-weight="700" fill="#ffffff">Mobile self-service</text>
+    <text x="80" y="60" font-family="Inter,system-ui,sans-serif" font-size="13" fill="#94a3b8">Apply, track, get instant updates</text>
+    <text x="80" y="80" font-family="Inter,system-ui,sans-serif" font-size="12" fill="#22c55e">✅ Full transparency</text>
+  </g>
+  
+  <g transform="translate(60 740)">
+    <rect width="420" height="95" rx="18" fill="rgba(239,68,68,0.12)" stroke="#ef4444"/>
+    <text x="30" y="45" font-size="28">😱</text>
+    <text x="80" y="40" font-family="Inter,system-ui,sans-serif" font-size="16" font-weight="700" fill="#ffffff">Compliance anxiety</text>
+    <text x="80" y="60" font-family="Inter,system-ui,sans-serif" font-size="13" fill="#94a3b8">Manual tracking, audit fear</text>
+    <text x="80" y="80" font-family="Inter,system-ui,sans-serif" font-size="12" fill="#ef4444">❌ High risk</text>
+  </g>
+  
+  <g transform="translate(600 740)">
+    <rect width="420" height="95" rx="18" fill="rgba(34,197,94,0.12)" stroke="#22c55e"/>
+    <text x="30" y="45" font-size="28">🛡️</text>
+    <text x="80" y="40" font-family="Inter,system-ui,sans-serif" font-size="16" font-weight="700" fill="#ffffff">Auto compliance</text>
+    <text x="80" y="60" font-family="Inter,system-ui,sans-serif" font-size="13" fill="#94a3b8">Built-in rules, audit trails</text>
+    <text x="80" y="80" font-family="Inter,system-ui,sans-serif" font-size="12" fill="#22c55e">✅ Always compliant</text>
+  </g>
+  
+  <g transform="translate(60 860)">
+    <rect width="420" height="95" rx="18" fill="rgba(239,68,68,0.12)" stroke="#ef4444"/>
+    <text x="30" y="45" font-size="28">🤷</text>
+    <text x="80" y="40" font-family="Inter,system-ui,sans-serif" font-size="16" font-weight="700" fill="#ffffff">No insights</text>
+    <text x="80" y="60" font-family="Inter,system-ui,sans-serif" font-size="13" fill="#94a3b8">Can't measure what matters</text>
+    <text x="80" y="80" font-family="Inter,system-ui,sans-serif" font-size="12" fill="#ef4444">❌ Flying blind</text>
+  </g>
+  
+  <g transform="translate(600 860)">
+    <rect width="420" height="95" rx="18" fill="rgba(34,197,94,0.12)" stroke="#22c55e"/>
+    <text x="30" y="45" font-size="28">📊</text>
+    <text x="80" y="40" font-family="Inter,system-ui,sans-serif" font-size="16" font-weight="700" fill="#ffffff">AI-powered analytics</text>
+    <text x="80" y="60" font-family="Inter,system-ui,sans-serif" font-size="13" fill="#94a3b8">Dashboards, predictions, alerts</text>
+    <text x="80" y="80" font-family="Inter,system-ui,sans-serif" font-size="12" fill="#22c55e">✅ Data-driven decisions</text>
+  </g>
+  
+  <g transform="translate(60 980)">
+    <rect width="420" height="95" rx="18" fill="rgba(239,68,68,0.12)" stroke="#ef4444"/>
+    <text x="30" y="45" font-size="28">💸</text>
+    <text x="80" y="40" font-family="Inter,system-ui,sans-serif" font-size="16" font-weight="700" fill="#ffffff">Multiple vendors</text>
+    <text x="80" y="60" font-family="Inter,system-ui,sans-serif" font-size="13" fill="#94a3b8">HR, payroll, time tracking separate</text>
+    <text x="80" y="80" font-family="Inter,system-ui,sans-serif" font-size="12" fill="#ef4444">❌ $50K+/year</text>
+  </g>
+  
+  <g transform="translate(600 980)">
+    <rect width="420" height="95" rx="18" fill="rgba(34,197,94,0.12)" stroke="#22c55e"/>
+    <text x="30" y="45" font-size="28">💎</text>
+    <text x="80" y="40" font-family="Inter,system-ui,sans-serif" font-size="16" font-weight="700" fill="#ffffff">All-in-one platform</text>
+    <text x="80" y="60" font-family="Inter,system-ui,sans-serif" font-size="13" fill="#94a3b8">Everything integrated</text>
+    <text x="80" y="80" font-family="Inter,system-ui,sans-serif" font-size="12" fill="#22c55e">✅ Save 60%+</text>
+  </g>
+  
+  <g transform="translate(120 1110)">
+    <rect width="840" height="100" rx="24" fill="url(#green)" opacity="0.95"/>
+    <text x="420" y="45" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="26" font-weight="900" fill="#0a0f1a">🚀 Transform your HR today</text>
+    <text x="420" y="75" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="16" font-weight="700" fill="#0a0f1a">Join 1,000+ companies who made the switch</text>
+  </g>
+  
+  <g transform="translate(100 1250)">
+    <text x="0" y="40" font-family="Inter,system-ui,sans-serif" font-size="36" font-weight="900" fill="#ffffff">Continuum</text>
+    <text x="0" y="70" font-family="Inter,system-ui,sans-serif" font-size="18" font-weight="600" fill="#64748b">Enterprise HR • Payroll • Compliance</text>
+    <text x="780" y="55" font-size="40">📊✨🚀</text>
+  </g>
+</svg>

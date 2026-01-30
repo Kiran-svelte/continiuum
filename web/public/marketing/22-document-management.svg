@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1350" viewBox="0 0 1080 1350">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#030508"/>
+      <stop offset="1" stop-color="#0a0f1a"/>
+    </linearGradient>
+    <linearGradient id="sky" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0ea5e9"/>
+      <stop offset="1" stop-color="#38bdf8"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="35%" r="50%">
+      <stop offset="0" stop-color="#0ea5e9" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#0ea5e9" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="blur"><feGaussianBlur stdDeviation="40"/></filter>
+  </defs>
+  
+  <rect width="1080" height="1350" fill="url(#bg)"/>
+  <circle cx="540" cy="400" r="400" fill="url(#glow)" filter="url(#blur)"/>
+  
+  <g transform="translate(310 80)">
+    <rect width="460" height="50" rx="25" fill="url(#sky)"/>
+    <text x="230" y="34" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="18" font-weight="900" fill="#0a0f1a">💎 DOCUMENT MANAGEMENT</text>
+  </g>
+  
+  <text x="540" y="200" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="58" font-weight="900" fill="#ffffff">PAPERLESS</text>
+  <text x="540" y="275" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="58" font-weight="900" fill="url(#sky)">HR</text>
+  <text x="540" y="325" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="22" font-weight="600" fill="#94a3b8">Store, organize, sign, share — all digitally</text>
+  
+  <g transform="translate(120 380)">
+    <rect width="840" height="220" rx="28" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.1)"/>
+    
+    <rect x="20" y="20" width="800" height="35" rx="8" fill="rgba(255,255,255,0.08)"/>
+    <text x="420" y="43" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="12" font-weight="700" fill="#94a3b8">📁 Document Vault — Secure &amp; Organized</text>
+    
+    <g transform="translate(40 70)">
+      <rect width="180" height="130" rx="12" fill="rgba(14,165,233,0.15)" stroke="#0ea5e9"/>
+      <text x="90" y="50" text-anchor="middle" font-size="32">📋</text>
+      <text x="90" y="80" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="14" font-weight="700" fill="#ffffff">Contracts</text>
+      <text x="90" y="100" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="11" fill="#94a3b8">234 files</text>
+      <text x="90" y="120" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="10" fill="#0ea5e9">↓ 5 pending</text>
+    </g>
+    
+    <g transform="translate(240 70)">
+      <rect width="180" height="130" rx="12" fill="rgba(34,197,94,0.15)" stroke="#22c55e"/>
+      <text x="90" y="50" text-anchor="middle" font-size="32">🪪</text>
+      <text x="90" y="80" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="14" font-weight="700" fill="#ffffff">ID Documents</text>
+      <text x="90" y="100" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="11" fill="#94a3b8">456 files</text>
+      <text x="90" y="120" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="10" fill="#22c55e">✓ All verified</text>
+    </g>
+    
+    <g transform="translate(440 70)">
+      <rect width="180" height="130" rx="12" fill="rgba(168,85,247,0.15)" stroke="#a855f7"/>
+      <text x="90" y="50" text-anchor="middle" font-size="32">📜</text>
+      <text x="90" y="80" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="14" font-weight="700" fill="#ffffff">Policies</text>
+      <text x="90" y="100" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="11" fill="#94a3b8">45 documents</text>
+      <text x="90" y="120" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="10" fill="#a855f7">v2.3 latest</text>
+    </g>
+    
+    <g transform="translate(640 70)">
+      <rect width="160" height="130" rx="12" fill="rgba(251,191,36,0.15)" stroke="#fbbf24"/>
+      <text x="80" y="50" text-anchor="middle" font-size="32">📝</text>
+      <text x="80" y="80" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="14" font-weight="700" fill="#ffffff">Forms</text>
+      <text x="80" y="100" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="11" fill="#94a3b8">78 templates</text>
+      <text x="80" y="120" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="10" fill="#fbbf24">Auto-fill ready</text>
+    </g>
+  </g>
+  
+  <g transform="translate(120 640)">
+    <text x="420" y="30" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="24" font-weight="900" fill="#ffffff">✍️ E-Signature Workflow</text>
+    
+    <g transform="translate(0 50)">
+      <rect width="195" height="130" rx="18" fill="rgba(14,165,233,0.12)" stroke="#0ea5e9"/>
+      <text x="98" y="50" text-anchor="middle" font-size="32">📄</text>
+      <text x="98" y="85" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="15" font-weight="700" fill="#ffffff">Upload</text>
+      <text x="98" y="105" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="11" fill="#94a3b8">Drag &amp; drop</text>
+      <text x="98" y="120" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="10" fill="#0ea5e9">PDF, Word, etc.</text>
+    </g>
+    
+    <g transform="translate(200 90)"><text font-size="24" fill="#0ea5e9">→</text></g>
+    
+    <g transform="translate(215 50)">
+      <rect width="195" height="130" rx="18" fill="rgba(168,85,247,0.12)" stroke="#a855f7"/>
+      <text x="98" y="50" text-anchor="middle" font-size="32">👥</text>
+      <text x="98" y="85" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="15" font-weight="700" fill="#ffffff">Assign</text>
+      <text x="98" y="105" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="11" fill="#94a3b8">Add signers</text>
+      <text x="98" y="120" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="10" fill="#a855f7">Set order</text>
+    </g>
+    
+    <g transform="translate(415 90)"><text font-size="24" fill="#a855f7">→</text></g>
+    
+    <g transform="translate(430 50)">
+      <rect width="195" height="130" rx="18" fill="rgba(251,191,36,0.12)" stroke="#fbbf24"/>
+      <text x="98" y="50" text-anchor="middle" font-size="32">✍️</text>
+      <text x="98" y="85" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="15" font-weight="700" fill="#ffffff">Sign</text>
+      <text x="98" y="105" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="11" fill="#94a3b8">Email notification</text>
+      <text x="98" y="120" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="10" fill="#fbbf24">Mobile friendly</text>
+    </g>
+    
+    <g transform="translate(630 90)"><text font-size="24" fill="#fbbf24">→</text></g>
+    
+    <g transform="translate(645 50)">
+      <rect width="195" height="130" rx="18" fill="rgba(34,197,94,0.12)" stroke="#22c55e"/>
+      <text x="98" y="50" text-anchor="middle" font-size="32">✅</text>
+      <text x="98" y="85" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="15" font-weight="700" fill="#ffffff">Complete</text>
+      <text x="98" y="105" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="11" fill="#94a3b8">Auto-filed</text>
+      <text x="98" y="120" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="10" fill="#22c55e">Audit trail</text>
+    </g>
+  </g>
+  
+  <g transform="translate(120 860)">
+    <text x="420" y="30" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="22" font-weight="900" fill="#ffffff">📂 Document Features</text>
+    
+    <g transform="translate(0 55)">
+      <rect width="260" height="80" rx="14" fill="rgba(14,165,233,0.1)"/>
+      <text x="25" y="46" font-size="24">🔍</text>
+      <text x="65" y="40" font-family="Inter,system-ui,sans-serif" font-size="14" font-weight="700" fill="#ffffff">Smart Search</text>
+      <text x="65" y="60" font-family="Inter,system-ui,sans-serif" font-size="12" fill="#94a3b8">Full-text OCR</text>
+    </g>
+    
+    <g transform="translate(290 55)">
+      <rect width="260" height="80" rx="14" fill="rgba(168,85,247,0.1)"/>
+      <text x="25" y="46" font-size="24">📊</text>
+      <text x="65" y="40" font-family="Inter,system-ui,sans-serif" font-size="14" font-weight="700" fill="#ffffff">Version Control</text>
+      <text x="65" y="60" font-family="Inter,system-ui,sans-serif" font-size="12" fill="#94a3b8">Track all changes</text>
+    </g>
+    
+    <g transform="translate(580 55)">
+      <rect width="260" height="80" rx="14" fill="rgba(34,197,94,0.1)"/>
+      <text x="25" y="46" font-size="24">⏰</text>
+      <text x="65" y="40" font-family="Inter,system-ui,sans-serif" font-size="14" font-weight="700" fill="#ffffff">Expiry Alerts</text>
+      <text x="65" y="60" font-family="Inter,system-ui,sans-serif" font-size="12" fill="#94a3b8">Auto reminders</text>
+    </g>
+    
+    <g transform="translate(0 150)">
+      <rect width="260" height="80" rx="14" fill="rgba(251,191,36,0.1)"/>
+      <text x="25" y="46" font-size="24">📤</text>
+      <text x="65" y="40" font-family="Inter,system-ui,sans-serif" font-size="14" font-weight="700" fill="#ffffff">Bulk Upload</text>
+      <text x="65" y="60" font-family="Inter,system-ui,sans-serif" font-size="12" fill="#94a3b8">Import CSV/ZIP</text>
+    </g>
+    
+    <g transform="translate(290 150)">
+      <rect width="260" height="80" rx="14" fill="rgba(236,72,153,0.1)"/>
+      <text x="25" y="46" font-size="24">🔒</text>
+      <text x="65" y="40" font-family="Inter,system-ui,sans-serif" font-size="14" font-weight="700" fill="#ffffff">Access Control</text>
+      <text x="65" y="60" font-family="Inter,system-ui,sans-serif" font-size="12" fill="#94a3b8">Role-based perms</text>
+    </g>
+    
+    <g transform="translate(580 150)">
+      <rect width="260" height="80" rx="14" fill="rgba(6,182,212,0.1)"/>
+      <text x="25" y="46" font-size="24">✅</text>
+      <text x="65" y="40" font-family="Inter,system-ui,sans-serif" font-size="14" font-weight="700" fill="#ffffff">Legal Compliance</text>
+      <text x="65" y="60" font-family="Inter,system-ui,sans-serif" font-size="12" fill="#94a3b8">eIDAS certified</text>
+    </g>
+  </g>
+  
+  <g transform="translate(120 1140)">
+    <rect width="840" height="70" rx="20" fill="url(#sky)" opacity="0.95"/>
+    <text x="420" y="45" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="22" font-weight="900" fill="#0a0f1a">💎 Say goodbye to paper. Hello to productivity.</text>
+  </g>
+  
+  <g transform="translate(100 1250)">
+    <text x="0" y="40" font-family="Inter,system-ui,sans-serif" font-size="36" font-weight="900" fill="#ffffff">Continuum</text>
+    <text x="0" y="70" font-family="Inter,system-ui,sans-serif" font-size="18" font-weight="600" fill="#64748b">Enterprise HR • Payroll • Compliance</text>
+    <text x="780" y="55" font-size="40">📄✍️🔒</text>
+  </g>
+</svg>

@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Enable dark mode via class (for our theme provider) */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* ================================================================
    CONTINUUM - FUTURE GENERATION UI SYSTEM
    Premium, Expert-Crafted Design Language
@@ -356,6 +359,20 @@ body {
     box-shadow: var(--glass-shadow), var(--glow-shadow);
 }
 
+/* Light theme glass-panel */
+:root.light .glass-panel,
+.light-theme .glass-panel {
+    background: #ffffff;
+    border: 1px solid #e1e4e8;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+:root.light .glass-panel:hover,
+.light-theme .glass-panel:hover {
+    border-color: #c4c9cf;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
 .glass-card {
     background: linear-gradient(135deg, rgba(20, 20, 35, 0.9), rgba(10, 10, 20, 0.95));
     backdrop-filter: var(--backdrop);
@@ -386,6 +403,26 @@ body {
         0 12px 40px rgba(0, 0, 0, 0.4),
         0 0 60px rgba(168, 85, 247, 0.1),
         0 0 0 1px rgba(168, 85, 247, 0.1) inset;
+}
+
+/* Light theme glass-card */
+:root.light .glass-card,
+.light-theme .glass-card {
+    background: #ffffff;
+    border: 1px solid #e1e4e8;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+:root.light .glass-card::before,
+.light-theme .glass-card::before {
+    background: linear-gradient(135deg, rgba(0, 102, 204, 0.03), transparent 50%);
+}
+
+:root.light .glass-card:hover,
+.light-theme .glass-card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(0, 102, 204, 0.3);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12), 0 4px 8px rgba(0, 0, 0, 0.08);
 }
 
 /* ==================== PREMIUM BUTTONS ==================== */
@@ -421,6 +458,18 @@ body {
     transform: translateX(100%);
 }
 
+/* Light theme btn-primary */
+:root.light .btn-primary,
+.light-theme .btn-primary {
+    background: linear-gradient(135deg, #0066cc, #0052a3);
+    box-shadow: 0 4px 12px rgba(0, 102, 204, 0.25);
+}
+
+:root.light .btn-primary:hover,
+.light-theme .btn-primary:hover {
+    box-shadow: 0 8px 20px rgba(0, 102, 204, 0.35);
+}
+
 .btn-secondary {
     position: relative;
     background: transparent;
@@ -437,6 +486,20 @@ body {
 .btn-secondary:hover {
     background: rgba(255, 255, 255, 0.05);
     border-color: rgba(168, 85, 247, 0.3);
+}
+
+/* Light theme btn-secondary */
+:root.light .btn-secondary,
+.light-theme .btn-secondary {
+    color: #1a1a1a;
+    border: 1px solid #e1e4e8;
+}
+
+:root.light .btn-secondary:hover,
+.light-theme .btn-secondary:hover {
+    background: #f5f5f5;
+    border-color: #0066cc;
+    color: #0066cc;
 }
 
 /* ==================== ANIMATED BORDERS ==================== */
@@ -688,6 +751,11 @@ body {
     outline-offset: 2px;
 }
 
+:root.light *:focus-visible,
+.light-theme *:focus-visible {
+    outline: 2px solid rgba(0, 102, 204, 0.5);
+}
+
 /* ==================== RESPONSIVE UTILS ==================== */
 @media (max-width: 768px) {
     .glass-card {
@@ -698,5 +766,250 @@ body {
         padding: 18px;
         border-radius: 16px;
     }
+}
+
+/* ==================== LIGHT THEME GLOBAL OVERRIDES ==================== */
+/* These override common hardcoded dark theme colors throughout the app */
+
+/* White text → Dark text in light mode */
+:root.light .text-white,
+.light-theme .text-white {
+    color: #1a1a1a !important;
+}
+
+/* Slate text colors → Appropriate light mode colors */
+:root.light .text-slate-300,
+.light-theme .text-slate-300 {
+    color: #374151 !important;
+}
+
+:root.light .text-slate-400,
+.light-theme .text-slate-400 {
+    color: #6b7280 !important;
+}
+
+:root.light .text-slate-500,
+.light-theme .text-slate-500 {
+    color: #6b7280 !important;
+}
+
+/* White with opacity → Gray in light mode */
+:root.light .text-white\/50,
+.light-theme .text-white\/50 {
+    color: #6b7280 !important;
+}
+
+:root.light .text-white\/40,
+.light-theme .text-white\/40 {
+    color: #9ca3af !important;
+}
+
+:root.light .text-white\/30,
+.light-theme .text-white\/30 {
+    color: #9ca3af !important;
+}
+
+/* Dark backgrounds → Light backgrounds */
+:root.light .bg-slate-800,
+.light-theme .bg-slate-800 {
+    background-color: #f3f4f6 !important;
+}
+
+:root.light .bg-slate-800\/50,
+.light-theme .bg-slate-800\/50 {
+    background-color: #f9fafb !important;
+}
+
+:root.light .bg-slate-700,
+.light-theme .bg-slate-700 {
+    background-color: #e5e7eb !important;
+}
+
+:root.light .bg-slate-900,
+.light-theme .bg-slate-900 {
+    background-color: #ffffff !important;
+}
+
+/* Dark borders → Light borders */
+:root.light .border-white\/10,
+.light-theme .border-white\/10 {
+    border-color: #e5e7eb !important;
+}
+
+:root.light .border-white\/5,
+.light-theme .border-white\/5 {
+    border-color: #f3f4f6 !important;
+}
+
+:root.light .border-slate-700,
+.light-theme .border-slate-700 {
+    border-color: #e5e7eb !important;
+}
+
+:root.light .border-slate-800,
+.light-theme .border-slate-800 {
+    border-color: #d1d5db !important;
+}
+
+/* Inputs in light mode */
+:root.light input,
+.light-theme input,
+:root.light select,
+.light-theme select,
+:root.light textarea,
+.light-theme textarea {
+    background-color: #ffffff !important;
+    border-color: #d1d5db !important;
+    color: #1a1a1a !important;
+}
+
+:root.light input::placeholder,
+.light-theme input::placeholder,
+:root.light textarea::placeholder,
+.light-theme textarea::placeholder {
+    color: #9ca3af !important;
+}
+
+:root.light input:focus,
+.light-theme input:focus,
+:root.light select:focus,
+.light-theme select:focus,
+:root.light textarea:focus,
+.light-theme textarea:focus {
+    border-color: #0066cc !important;
+    box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.1) !important;
+}
+
+/* Tables in light mode */
+:root.light .table-premium th,
+.light-theme .table-premium th {
+    background: #f9fafb !important;
+    color: #6b7280 !important;
+    border-bottom-color: #e5e7eb !important;
+}
+
+:root.light .table-premium td,
+.light-theme .table-premium td {
+    border-bottom-color: #f3f4f6 !important;
+}
+
+:root.light .table-premium tbody tr:hover td,
+.light-theme .table-premium tbody tr:hover td {
+    background: rgba(0, 102, 204, 0.03) !important;
+}
+
+/* Badges in light mode */
+:root.light .badge-success,
+.light-theme .badge-success {
+    background: rgba(16, 185, 129, 0.1) !important;
+    color: #059669 !important;
+    border-color: rgba(16, 185, 129, 0.3) !important;
+}
+
+:root.light .badge-warning,
+.light-theme .badge-warning {
+    background: rgba(245, 158, 11, 0.1) !important;
+    color: #d97706 !important;
+    border-color: rgba(245, 158, 11, 0.3) !important;
+}
+
+:root.light .badge-danger,
+.light-theme .badge-danger {
+    background: rgba(239, 68, 68, 0.1) !important;
+    color: #dc2626 !important;
+    border-color: rgba(239, 68, 68, 0.3) !important;
+}
+
+/* Loading spinner in light mode */
+:root.light .loading-spinner,
+.light-theme .loading-spinner {
+    border-color: rgba(0, 102, 204, 0.2) !important;
+    border-top-color: #0066cc !important;
+}
+
+/* Skeleton loading in light mode */
+:root.light .skeleton,
+.light-theme .skeleton {
+    background: linear-gradient(90deg, 
+        #f3f4f6 0%,
+        #e5e7eb 50%,
+        #f3f4f6 100%
+    ) !important;
+}
+
+/* Tooltips in light mode */
+:root.light .tooltip::after,
+.light-theme .tooltip::after {
+    background: #1f2937 !important;
+    border-color: #374151 !important;
+}
+
+/* Preserve white text on gradient buttons */
+:root.light .bg-gradient-to-r .text-white,
+.light-theme .bg-gradient-to-r .text-white,
+:root.light [class*="bg-gradient"] .text-white,
+.light-theme [class*="bg-gradient"] .text-white,
+:root.light .bg-cyan-600,
+.light-theme .bg-cyan-600,
+:root.light .bg-pink-600,
+.light-theme .bg-pink-600,
+:root.light .bg-purple-600,
+.light-theme .bg-purple-600 {
+    color: white !important;
+}
+
+/* Fix button text colors */
+:root.light button[class*="bg-gradient"] span,
+.light-theme button[class*="bg-gradient"] span,
+:root.light a[class*="bg-gradient"] span,
+.light-theme a[class*="bg-gradient"] span {
+    color: white !important;
+}
+
+/* Color accent badges should keep their colors */
+:root.light .text-green-400,
+.light-theme .text-green-400 {
+    color: #059669 !important;
+}
+
+:root.light .text-red-400,
+.light-theme .text-red-400 {
+    color: #dc2626 !important;
+}
+
+:root.light .text-purple-400,
+.light-theme .text-purple-400 {
+    color: #7c3aed !important;
+}
+
+:root.light .text-cyan-400,
+.light-theme .text-cyan-400 {
+    color: #0891b2 !important;
+}
+
+:root.light .text-amber-400,
+.light-theme .text-amber-400 {
+    color: #d97706 !important;
+}
+
+:root.light .text-blue-400,
+.light-theme .text-blue-400 {
+    color: #2563eb !important;
+}
+
+:root.light .text-emerald-400,
+.light-theme .text-emerald-400 {
+    color: #059669 !important;
+}
+
+/* Hover states for dark buttons in light mode */
+:root.light .hover\:bg-slate-700:hover,
+.light-theme .hover\:bg-slate-700:hover {
+    background-color: #d1d5db !important;
+}
+
+:root.light .hover\:bg-white\/\[0\.03\]:hover,
+.light-theme .hover\:bg-white\/\[0\.03\]:hover {
+    background-color: #f3f4f6 !important;
 }
 

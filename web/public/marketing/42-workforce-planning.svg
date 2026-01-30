@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1350" viewBox="0 0 1080 1350">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#030508"/>
+      <stop offset="1" stop-color="#0a0f1a"/>
+    </linearGradient>
+    <linearGradient id="indigo" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#4f46e5"/>
+      <stop offset="1" stop-color="#6366f1"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="35%" r="50%">
+      <stop offset="0" stop-color="#4f46e5" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#4f46e5" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="blur"><feGaussianBlur stdDeviation="40"/></filter>
+  </defs>
+  
+  <rect width="1080" height="1350" fill="url(#bg)"/>
+  <circle cx="540" cy="400" r="400" fill="url(#glow)" filter="url(#blur)"/>
+  
+  <g transform="translate(280 80)">
+    <rect width="520" height="50" rx="25" fill="url(#indigo)"/>
+    <text x="260" y="34" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="18" font-weight="900" fill="#ffffff">📊 WORKFORCE PLANNING</text>
+  </g>
+  
+  <text x="540" y="200" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="52" font-weight="900" fill="#ffffff">STRATEGIC</text>
+  <text x="540" y="280" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="52" font-weight="900" fill="url(#indigo)">WORKFORCE PLANNING</text>
+  <text x="540" y="340" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="22" font-weight="600" fill="#94a3b8">Data-driven decisions for headcount &amp; hiring</text>
+  
+  <g transform="translate(120 400)">
+    <rect width="840" height="200" rx="28" fill="rgba(79,70,229,0.1)" stroke="#4f46e5"/>
+    
+    <text x="420" y="45" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="20" font-weight="900" fill="#ffffff">📈 Headcount Forecasting Dashboard</text>
+    
+    <g transform="translate(40 70)">
+      <rect width="760" height="110" rx="12" fill="rgba(255,255,255,0.05)"/>
+      
+      <text x="30" y="30" font-family="Inter,system-ui,sans-serif" font-size="12" fill="#94a3b8">HEADCOUNT PROJECTION (12 MONTHS)</text>
+      
+      <g transform="translate(30 45)">
+        <rect x="0" y="40" width="50" height="20" fill="#4f46e5"/>
+        <text x="25" y="35" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="10" fill="#94a3b8">JAN</text>
+        <text x="25" y="75" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="9" fill="#4f46e5">120</text>
+        
+        <rect x="60" y="35" width="50" height="25" fill="#4f46e5"/>
+        <text x="85" y="35" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="10" fill="#94a3b8">FEB</text>
+        <text x="85" y="75" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="9" fill="#4f46e5">125</text>
+        
+        <rect x="120" y="30" width="50" height="30" fill="#4f46e5"/>
+        <text x="145" y="35" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="10" fill="#94a3b8">MAR</text>
+        <text x="145" y="75" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="9" fill="#4f46e5">130</text>
+        
+        <rect x="180" y="25" width="50" height="35" fill="#4f46e5"/>
+        <text x="205" y="35" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="10" fill="#94a3b8">APR</text>
+        <text x="205" y="75" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="9" fill="#4f46e5">135</text>
+        
+        <rect x="240" y="25" width="50" height="35" fill="#6366f1"/>
+        <text x="265" y="35" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="10" fill="#94a3b8">MAY</text>
+        <text x="265" y="75" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="9" fill="#6366f1">140</text>
+        
+        <rect x="300" y="20" width="50" height="40" fill="#6366f1"/>
+        <text x="325" y="35" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="10" fill="#94a3b8">JUN</text>
+        <text x="325" y="75" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="9" fill="#6366f1">145</text>
+        
+        <rect x="360" y="15" width="50" height="45" fill="#22c55e"/>
+        <text x="385" y="35" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="10" fill="#94a3b8">Q3</text>
+        <text x="385" y="75" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="9" fill="#22c55e">+15</text>
+        
+        <rect x="420" y="10" width="50" height="50" fill="#22c55e"/>
+        <text x="445" y="35" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="10" fill="#94a3b8">Q4</text>
+        <text x="445" y="75" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="9" fill="#22c55e">+20</text>
+      </g>
+      
+      <g transform="translate(530 35)">
+        <text x="0" y="15" font-family="Inter,system-ui,sans-serif" font-size="11" font-weight="700" fill="#ffffff">Year End: 180 FTEs</text>
+        <text x="0" y="35" font-family="Inter,system-ui,sans-serif" font-size="10" fill="#22c55e">↑50% growth planned</text>
+        <text x="0" y="55" font-family="Inter,system-ui,sans-serif" font-size="10" fill="#94a3b8">60 hires needed</text>
+      </g>
+    </g>
+  </g>
+  
+  <g transform="translate(120 640)">
+    <text x="420" y="30" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="22" font-weight="900" fill="#ffffff">🔮 Planning Features</text>
+    
+    <g transform="translate(0 55)">
+      <rect width="260" height="130" rx="18" fill="rgba(79,70,229,0.12)" stroke="#4f46e5"/>
+      <text x="130" y="45" text-anchor="middle" font-size="32">🎯</text>
+      <text x="130" y="80" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="15" font-weight="700" fill="#ffffff">Scenario Planning</text>
+      <text x="130" y="102" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="12" fill="#94a3b8">What-if analysis</text>
+      <text x="130" y="120" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="11" fill="#4f46e5">Multiple scenarios</text>
+    </g>
+    
+    <g transform="translate(290 55)">
+      <rect width="260" height="130" rx="18" fill="rgba(34,197,94,0.12)" stroke="#22c55e"/>
+      <text x="130" y="45" text-anchor="middle" font-size="32">💰</text>
+      <text x="130" y="80" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="15" font-weight="700" fill="#ffffff">Budget Planning</text>
+      <text x="130" y="102" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="12" fill="#94a3b8">Cost projections</text>
+      <text x="130" y="120" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="11" fill="#22c55e">Salary modeling</text>
+    </g>
+    
+    <g transform="translate(580 55)">
+      <rect width="260" height="130" rx="18" fill="rgba(168,85,247,0.12)" stroke="#a855f7"/>
+      <text x="130" y="45" text-anchor="middle" font-size="32">📊</text>
+      <text x="130" y="80" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="15" font-weight="700" fill="#ffffff">Skills Gap Analysis</text>
+      <text x="130" y="102" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="12" fill="#94a3b8">Future-proof teams</text>
+      <text x="130" y="120" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="11" fill="#a855f7">Training plans</text>
+    </g>
+  </g>
+  
+  <g transform="translate(120 850)">
+    <g>
+      <rect width="405" height="110" rx="18" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.1)"/>
+      <text x="30" y="40" font-size="28">⚡</text>
+      <text x="75" y="35" font-family="Inter,system-ui,sans-serif" font-size="16" font-weight="700" fill="#ffffff">Succession Planning</text>
+      <text x="75" y="60" font-family="Inter,system-ui,sans-serif" font-size="12" fill="#94a3b8">Identify future leaders</text>
+      <text x="75" y="82" font-family="Inter,system-ui,sans-serif" font-size="12" fill="#94a3b8">9-box talent grid</text>
+    </g>
+    
+    <g transform="translate(435 0)">
+      <rect width="405" height="110" rx="18" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.1)"/>
+      <text x="30" y="40" font-size="28">🔄</text>
+      <text x="75" y="35" font-family="Inter,system-ui,sans-serif" font-size="16" font-weight="700" fill="#ffffff">Attrition Forecasting</text>
+      <text x="75" y="60" font-family="Inter,system-ui,sans-serif" font-size="12" fill="#94a3b8">Predict turnover risk</text>
+      <text x="75" y="82" font-family="Inter,system-ui,sans-serif" font-size="12" fill="#94a3b8">AI-powered signals</text>
+    </g>
+  </g>
+  
+  <g transform="translate(120 1000)">
+    <g>
+      <rect width="260" height="80" rx="16" fill="rgba(255,255,255,0.05)"/>
+      <text x="130" y="40" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="28" font-weight="900" fill="#4f46e5">↓35%</text>
+      <text x="130" y="62" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="12" font-weight="700" fill="#ffffff">Hiring Costs</text>
+    </g>
+    
+    <g transform="translate(290 0)">
+      <rect width="260" height="80" rx="16" fill="rgba(255,255,255,0.05)"/>
+      <text x="130" y="40" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="28" font-weight="900" fill="#22c55e">92%</text>
+      <text x="130" y="62" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="12" font-weight="700" fill="#ffffff">Forecast Accuracy</text>
+    </g>
+    
+    <g transform="translate(580 0)">
+      <rect width="260" height="80" rx="16" fill="rgba(255,255,255,0.05)"/>
+      <text x="130" y="40" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="28" font-weight="900" fill="#a855f7">↑50%</text>
+      <text x="130" y="62" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="12" font-weight="700" fill="#ffffff">Internal Mobility</text>
+    </g>
+  </g>
+  
+  <g transform="translate(120 1120)">
+    <rect width="840" height="90" rx="24" fill="url(#indigo)" opacity="0.95"/>
+    <text x="420" y="40" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="24" font-weight="900" fill="#ffffff">📊 Plan your workforce like a chess grandmaster</text>
+    <text x="420" y="68" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="16" font-weight="700" fill="rgba(255,255,255,0.9)">Strategic planning starts here</text>
+  </g>
+  
+  <g transform="translate(100 1250)">
+    <text x="0" y="40" font-family="Inter,system-ui,sans-serif" font-size="36" font-weight="900" fill="#ffffff">Continuum</text>
+    <text x="0" y="70" font-family="Inter,system-ui,sans-serif" font-size="18" font-weight="600" fill="#64748b">Enterprise HR • Payroll • Compliance</text>
+    <text x="780" y="55" font-size="40">📊🎯📈</text>
+  </g>
+</svg>

@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1350" viewBox="0 0 1080 1350">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#030508"/>
+      <stop offset="1" stop-color="#0a0f1a"/>
+    </linearGradient>
+    <linearGradient id="cyan" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#06b6d4"/>
+      <stop offset="1" stop-color="#22d3ee"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="50%" r="40%">
+      <stop offset="0" stop-color="#06b6d4" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#06b6d4" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="blur"><feGaussianBlur stdDeviation="50"/></filter>
+  </defs>
+  
+  <rect width="1080" height="1350" fill="url(#bg)"/>
+  <circle cx="540" cy="600" r="450" fill="url(#glow)" filter="url(#blur)"/>
+  
+  <g transform="translate(340 80)">
+    <rect width="400" height="50" rx="25" fill="url(#cyan)"/>
+    <text x="200" y="34" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="18" font-weight="900" fill="#0a0f1a">👥 TEAM MANAGEMENT</text>
+  </g>
+  
+  <text x="540" y="200" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="58" font-weight="900" fill="#ffffff">MANAGE YOUR</text>
+  <text x="540" y="275" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="58" font-weight="900" fill="url(#cyan)">ENTIRE TEAM</text>
+  <text x="540" y="325" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="22" font-weight="600" fill="#94a3b8">One platform for every role. Every workflow.</text>
+  
+  <g transform="translate(120 380)">
+    <rect width="840" height="260" rx="28" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.1)"/>
+    <text x="420" y="45" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="24" font-weight="900" fill="#ffffff">📊 Org Structure View</text>
+    
+    <g transform="translate(320 80)">
+      <rect width="200" height="70" rx="16" fill="rgba(6,182,212,0.25)" stroke="#06b6d4" stroke-width="2"/>
+      <text x="35" y="45" font-size="28">👔</text>
+      <text x="70" y="40" font-family="Inter,system-ui,sans-serif" font-size="16" font-weight="800" fill="#ffffff">CEO</text>
+      <text x="70" y="58" font-family="Inter,system-ui,sans-serif" font-size="12" fill="#94a3b8">Sarah Chen</text>
+    </g>
+    
+    <line x1="420" y1="150" x2="420" y2="170" stroke="#06b6d4" stroke-width="2"/>
+    <line x1="220" y1="170" x2="620" y2="170" stroke="#06b6d4" stroke-width="2"/>
+    
+    <line x1="220" y1="170" x2="220" y2="190" stroke="#06b6d4" stroke-width="2"/>
+    <line x1="420" y1="170" x2="420" y2="190" stroke="#06b6d4" stroke-width="2"/>
+    <line x1="620" y1="170" x2="620" y2="190" stroke="#06b6d4" stroke-width="2"/>
+    
+    <g transform="translate(120 190)">
+      <rect width="200" height="55" rx="12" fill="rgba(168,85,247,0.2)" stroke="#a855f7"/>
+      <text x="25" y="36" font-size="20">💼</text>
+      <text x="55" y="32" font-family="Inter,system-ui,sans-serif" font-size="14" font-weight="700" fill="#ffffff">VP Engineering</text>
+      <text x="55" y="48" font-family="Inter,system-ui,sans-serif" font-size="11" fill="#94a3b8">15 reports</text>
+    </g>
+    
+    <g transform="translate(320 190)">
+      <rect width="200" height="55" rx="12" fill="rgba(34,197,94,0.2)" stroke="#22c55e"/>
+      <text x="25" y="36" font-size="20">📊</text>
+      <text x="55" y="32" font-family="Inter,system-ui,sans-serif" font-size="14" font-weight="700" fill="#ffffff">VP Sales</text>
+      <text x="55" y="48" font-family="Inter,system-ui,sans-serif" font-size="11" fill="#94a3b8">20 reports</text>
+    </g>
+    
+    <g transform="translate(520 190)">
+      <rect width="200" height="55" rx="12" fill="rgba(251,191,36,0.2)" stroke="#fbbf24"/>
+      <text x="25" y="36" font-size="20">🎨</text>
+      <text x="55" y="32" font-family="Inter,system-ui,sans-serif" font-size="14" font-weight="700" fill="#ffffff">VP Marketing</text>
+      <text x="55" y="48" font-family="Inter,system-ui,sans-serif" font-size="11" fill="#94a3b8">12 reports</text>
+    </g>
+  </g>
+  
+  <g transform="translate(120 680)">
+    <text x="420" y="30" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="24" font-weight="900" fill="#ffffff">🎭 Role-Based Features</text>
+    
+    <g transform="translate(0 55)">
+      <rect width="260" height="140" rx="20" fill="rgba(6,182,212,0.12)" stroke="#06b6d4"/>
+      <text x="130" y="50" text-anchor="middle" font-size="36">👔</text>
+      <text x="130" y="85" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="18" font-weight="800" fill="#ffffff">C-Suite</text>
+      <text x="130" y="108" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="12" fill="#94a3b8">Org-wide dashboards</text>
+      <text x="130" y="125" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="12" fill="#94a3b8">Strategic insights</text>
+    </g>
+    
+    <g transform="translate(290 55)">
+      <rect width="260" height="140" rx="20" fill="rgba(168,85,247,0.12)" stroke="#a855f7"/>
+      <text x="130" y="50" text-anchor="middle" font-size="36">👨‍💼</text>
+      <text x="130" y="85" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="18" font-weight="800" fill="#ffffff">Managers</text>
+      <text x="130" y="108" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="12" fill="#94a3b8">Team management</text>
+      <text x="130" y="125" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="12" fill="#94a3b8">Approvals • Reviews</text>
+    </g>
+    
+    <g transform="translate(580 55)">
+      <rect width="260" height="140" rx="20" fill="rgba(34,197,94,0.12)" stroke="#22c55e"/>
+      <text x="130" y="50" text-anchor="middle" font-size="36">🧑‍💻</text>
+      <text x="130" y="85" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="18" font-weight="800" fill="#ffffff">Employees</text>
+      <text x="130" y="108" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="12" fill="#94a3b8">Self-service portal</text>
+      <text x="130" y="125" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="12" fill="#94a3b8">Leave • Payslips</text>
+    </g>
+    
+    <g transform="translate(0 215)">
+      <rect width="260" height="140" rx="20" fill="rgba(251,191,36,0.12)" stroke="#fbbf24"/>
+      <text x="130" y="50" text-anchor="middle" font-size="36">👩‍💼</text>
+      <text x="130" y="85" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="18" font-weight="800" fill="#ffffff">HR Team</text>
+      <text x="130" y="108" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="12" fill="#94a3b8">Full admin access</text>
+      <text x="130" y="125" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="12" fill="#94a3b8">Policies • Reports</text>
+    </g>
+    
+    <g transform="translate(290 215)">
+      <rect width="260" height="140" rx="20" fill="rgba(236,72,153,0.12)" stroke="#ec4899"/>
+      <text x="130" y="50" text-anchor="middle" font-size="36">💼</text>
+      <text x="130" y="85" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="18" font-weight="800" fill="#ffffff">Finance</text>
+      <text x="130" y="108" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="12" fill="#94a3b8">Payroll • Budgets</text>
+      <text x="130" y="125" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="12" fill="#94a3b8">Compensation</text>
+    </g>
+    
+    <g transform="translate(580 215)">
+      <rect width="260" height="140" rx="20" fill="rgba(59,130,246,0.12)" stroke="#3b82f6"/>
+      <text x="130" y="50" text-anchor="middle" font-size="36">🔧</text>
+      <text x="130" y="85" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="18" font-weight="800" fill="#ffffff">IT Admin</text>
+      <text x="130" y="108" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="12" fill="#94a3b8">Access control</text>
+      <text x="130" y="125" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="12" fill="#94a3b8">SSO • Integrations</text>
+    </g>
+  </g>
+  
+  <g transform="translate(120 1120)">
+    <rect width="840" height="80" rx="20" fill="url(#cyan)" opacity="0.95"/>
+    <text x="420" y="35" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="24" font-weight="900" fill="#0a0f1a">👥 One platform. Every role. Total alignment.</text>
+    <text x="420" y="60" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="16" font-weight="700" fill="#0a0f1a">Real-time visibility across your entire organization</text>
+  </g>
+  
+  <g transform="translate(100 1240)">
+    <text x="0" y="40" font-family="Inter,system-ui,sans-serif" font-size="36" font-weight="900" fill="#ffffff">Continuum</text>
+    <text x="0" y="70" font-family="Inter,system-ui,sans-serif" font-size="18" font-weight="600" fill="#64748b">Enterprise HR • Payroll • Compliance</text>
+    <text x="780" y="55" font-size="40">👥📊🎯</text>
+  </g>
+</svg>

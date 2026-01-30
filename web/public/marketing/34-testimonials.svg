@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1350" viewBox="0 0 1080 1350">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#030508"/>
+      <stop offset="1" stop-color="#0a0f1a"/>
+    </linearGradient>
+    <linearGradient id="pink" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ec4899"/>
+      <stop offset="1" stop-color="#f472b6"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="35%" r="50%">
+      <stop offset="0" stop-color="#ec4899" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#ec4899" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="blur"><feGaussianBlur stdDeviation="40"/></filter>
+  </defs>
+  
+  <rect width="1080" height="1350" fill="url(#bg)"/>
+  <circle cx="540" cy="400" r="400" fill="url(#glow)" filter="url(#blur)"/>
+  
+  <g transform="translate(330 80)">
+    <rect width="420" height="50" rx="25" fill="url(#pink)"/>
+    <text x="210" y="34" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="18" font-weight="900" fill="#ffffff">💬 TESTIMONIALS</text>
+  </g>
+  
+  <text x="540" y="200" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="52" font-weight="900" fill="#ffffff">WHAT CUSTOMERS</text>
+  <text x="540" y="270" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="52" font-weight="900" fill="url(#pink)">SAY ABOUT US</text>
+  <text x="540" y="320" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="22" font-weight="600" fill="#94a3b8">Real stories from real companies</text>
+  
+  <g transform="translate(120 380)">
+    <rect width="840" height="200" rx="28" fill="rgba(236,72,153,0.1)" stroke="#ec4899" stroke-width="2"/>
+    <text x="60" y="55" font-size="56">"</text>
+    <text x="100" y="55" font-family="Inter,system-ui,sans-serif" font-size="20" font-style="italic" fill="#ffffff">Continuum transformed our HR operations</text>
+    <text x="100" y="85" font-family="Inter,system-ui,sans-serif" font-size="20" font-style="italic" fill="#ffffff">completely. What used to take our team 3 days</text>
+    <text x="100" y="115" font-family="Inter,system-ui,sans-serif" font-size="20" font-style="italic" fill="#ffffff">now takes 3 hours. It's unbelievable.</text>
+    
+    <g transform="translate(60 150)">
+      <circle cx="25" cy="0" r="25" fill="#ec4899"/>
+      <text x="25" y="7" text-anchor="middle" font-size="24">👩</text>
+      <text x="65" y="-5" font-family="Inter,system-ui,sans-serif" font-size="16" font-weight="700" fill="#ffffff">Sarah Chen</text>
+      <text x="65" y="15" font-family="Inter,system-ui,sans-serif" font-size="13" fill="#94a3b8">VP of HR, TechGlobal Inc. (2,500 employees)</text>
+      <text x="550" y="5" font-size="28">⭐⭐⭐⭐⭐</text>
+    </g>
+  </g>
+  
+  <g transform="translate(120 620)">
+    <rect width="405" height="180" rx="24" fill="rgba(59,130,246,0.1)" stroke="#3b82f6"/>
+    <text x="35" y="45" font-size="40">"</text>
+    <text x="35" y="75" font-family="Inter,system-ui,sans-serif" font-size="15" font-style="italic" fill="#ffffff">The AI agents are incredible. Our</text>
+    <text x="35" y="95" font-family="Inter,system-ui,sans-serif" font-size="15" font-style="italic" fill="#ffffff">leave management is now 100%</text>
+    <text x="35" y="115" font-family="Inter,system-ui,sans-serif" font-size="15" font-style="italic" fill="#ffffff">automated with zero errors.</text>
+    
+    <g transform="translate(35 140)">
+      <text x="0" y="5" font-family="Inter,system-ui,sans-serif" font-size="13" font-weight="700" fill="#ffffff">James Wilson</text>
+      <text x="0" y="22" font-family="Inter,system-ui,sans-serif" font-size="11" fill="#94a3b8">HR Director, FinanceFirst</text>
+      <text x="260" y="15" font-size="20">⭐⭐⭐⭐⭐</text>
+    </g>
+  </g>
+  
+  <g transform="translate(555 620)">
+    <rect width="405" height="180" rx="24" fill="rgba(34,197,94,0.1)" stroke="#22c55e"/>
+    <text x="35" y="45" font-size="40">"</text>
+    <text x="35" y="75" font-family="Inter,system-ui,sans-serif" font-size="15" font-style="italic" fill="#ffffff">We cut our payroll processing</text>
+    <text x="35" y="95" font-family="Inter,system-ui,sans-serif" font-size="15" font-style="italic" fill="#ffffff">time by 85%. The ROI was</text>
+    <text x="35" y="115" font-family="Inter,system-ui,sans-serif" font-size="15" font-style="italic" fill="#ffffff">obvious within the first month.</text>
+    
+    <g transform="translate(35 140)">
+      <text x="0" y="5" font-family="Inter,system-ui,sans-serif" font-size="13" font-weight="700" fill="#ffffff">Maria Garcia</text>
+      <text x="0" y="22" font-family="Inter,system-ui,sans-serif" font-size="11" fill="#94a3b8">COO, RetailMax</text>
+      <text x="260" y="15" font-size="20">⭐⭐⭐⭐⭐</text>
+    </g>
+  </g>
+  
+  <g transform="translate(120 840)">
+    <rect width="405" height="180" rx="24" fill="rgba(168,85,247,0.1)" stroke="#a855f7"/>
+    <text x="35" y="45" font-size="40">"</text>
+    <text x="35" y="75" font-family="Inter,system-ui,sans-serif" font-size="15" font-style="italic" fill="#ffffff">Finally, an HR system that our</text>
+    <text x="35" y="95" font-family="Inter,system-ui,sans-serif" font-size="15" font-style="italic" fill="#ffffff">employees actually want to use.</text>
+    <text x="35" y="115" font-family="Inter,system-ui,sans-serif" font-size="15" font-style="italic" fill="#ffffff">Adoption was almost instant.</text>
+    
+    <g transform="translate(35 140)">
+      <text x="0" y="5" font-family="Inter,system-ui,sans-serif" font-size="13" font-weight="700" fill="#ffffff">David Park</text>
+      <text x="0" y="22" font-family="Inter,system-ui,sans-serif" font-size="11" fill="#94a3b8">CHRO, HealthPlus</text>
+      <text x="260" y="15" font-size="20">⭐⭐⭐⭐⭐</text>
+    </g>
+  </g>
+  
+  <g transform="translate(555 840)">
+    <rect width="405" height="180" rx="24" fill="rgba(251,191,36,0.1)" stroke="#fbbf24"/>
+    <text x="35" y="45" font-size="40">"</text>
+    <text x="35" y="75" font-family="Inter,system-ui,sans-serif" font-size="15" font-style="italic" fill="#ffffff">The compliance features saved</text>
+    <text x="35" y="95" font-family="Inter,system-ui,sans-serif" font-size="15" font-style="italic" fill="#ffffff">us from 3 potential violations.</text>
+    <text x="35" y="115" font-family="Inter,system-ui,sans-serif" font-size="15" font-style="italic" fill="#ffffff">Worth every penny.</text>
+    
+    <g transform="translate(35 140)">
+      <text x="0" y="5" font-family="Inter,system-ui,sans-serif" font-size="13" font-weight="700" fill="#ffffff">Lisa Thompson</text>
+      <text x="0" y="22" font-family="Inter,system-ui,sans-serif" font-size="11" fill="#94a3b8">CFO, ManufactureCo</text>
+      <text x="260" y="15" font-size="20">⭐⭐⭐⭐⭐</text>
+    </g>
+  </g>
+  
+  <g transform="translate(120 1060)">
+    <g>
+      <rect width="260" height="80" rx="16" fill="rgba(255,255,255,0.05)"/>
+      <text x="130" y="40" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="28" font-weight="900" fill="#ec4899">4.9/5</text>
+      <text x="130" y="62" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="12" font-weight="700" fill="#ffffff">Average Rating</text>
+    </g>
+    
+    <g transform="translate(290 0)">
+      <rect width="260" height="80" rx="16" fill="rgba(255,255,255,0.05)"/>
+      <text x="130" y="40" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="28" font-weight="900" fill="#22c55e">1,200+</text>
+      <text x="130" y="62" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="12" font-weight="700" fill="#ffffff">Reviews</text>
+    </g>
+    
+    <g transform="translate(580 0)">
+      <rect width="260" height="80" rx="16" fill="rgba(255,255,255,0.05)"/>
+      <text x="130" y="40" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="28" font-weight="900" fill="#3b82f6">98%</text>
+      <text x="130" y="62" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="12" font-weight="700" fill="#ffffff">Would Recommend</text>
+    </g>
+  </g>
+  
+  <g transform="translate(120 1180)">
+    <rect width="840" height="50" rx="16" fill="url(#pink)" opacity="0.95"/>
+    <text x="420" y="32" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="18" font-weight="900" fill="#ffffff">💬 Join thousands of happy customers. Start free today!</text>
+  </g>
+  
+  <g transform="translate(100 1270)">
+    <text x="0" y="40" font-family="Inter,system-ui,sans-serif" font-size="36" font-weight="900" fill="#ffffff">Continuum</text>
+    <text x="780" y="40" font-size="40">💬⭐✨</text>
+  </g>
+</svg>

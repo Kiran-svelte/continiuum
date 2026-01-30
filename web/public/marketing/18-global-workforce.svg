@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1350" viewBox="0 0 1080 1350">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#030508"/>
+      <stop offset="1" stop-color="#0a0f1a"/>
+    </linearGradient>
+    <linearGradient id="teal" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#14b8a6"/>
+      <stop offset="1" stop-color="#2dd4bf"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="35%" r="50%">
+      <stop offset="0" stop-color="#14b8a6" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#14b8a6" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="blur"><feGaussianBlur stdDeviation="40"/></filter>
+  </defs>
+  
+  <rect width="1080" height="1350" fill="url(#bg)"/>
+  <circle cx="540" cy="400" r="400" fill="url(#glow)" filter="url(#blur)"/>
+  
+  <g transform="translate(310 80)">
+    <rect width="460" height="50" rx="25" fill="url(#teal)"/>
+    <text x="230" y="34" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="18" font-weight="900" fill="#0a0f1a">🌍 GLOBAL WORKFORCE READY</text>
+  </g>
+  
+  <text x="540" y="200" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="58" font-weight="900" fill="#ffffff">ONE PLATFORM</text>
+  <text x="540" y="275" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="58" font-weight="900" fill="url(#teal)">EVERY COUNTRY</text>
+  <text x="540" y="325" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="22" font-weight="600" fill="#94a3b8">Local compliance. Global visibility. Unified experience.</text>
+  
+  <g transform="translate(120 380)">
+    <rect width="840" height="200" rx="28" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.1)"/>
+    
+    <text x="420" y="45" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="22" font-weight="900" fill="#ffffff">🗺️ Regional Coverage</text>
+    
+    <g transform="translate(45 70)">
+      <rect width="180" height="110" rx="16" fill="rgba(20,184,166,0.2)" stroke="#14b8a6"/>
+      <text x="90" y="45" text-anchor="middle" font-size="28">🌏</text>
+      <text x="90" y="75" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="16" font-weight="700" fill="#ffffff">APAC</text>
+      <text x="90" y="95" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="12" fill="#94a3b8">15 countries</text>
+    </g>
+    
+    <g transform="translate(245 70)">
+      <rect width="180" height="110" rx="16" fill="rgba(59,130,246,0.2)" stroke="#3b82f6"/>
+      <text x="90" y="45" text-anchor="middle" font-size="28">🌍</text>
+      <text x="90" y="75" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="16" font-weight="700" fill="#ffffff">EMEA</text>
+      <text x="90" y="95" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="12" fill="#94a3b8">25 countries</text>
+    </g>
+    
+    <g transform="translate(445 70)">
+      <rect width="180" height="110" rx="16" fill="rgba(251,191,36,0.2)" stroke="#fbbf24"/>
+      <text x="90" y="45" text-anchor="middle" font-size="28">🌎</text>
+      <text x="90" y="75" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="16" font-weight="700" fill="#ffffff">Americas</text>
+      <text x="90" y="95" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="12" fill="#94a3b8">20 countries</text>
+    </g>
+    
+    <g transform="translate(645 70)">
+      <rect width="150" height="110" rx="16" fill="rgba(168,85,247,0.2)" stroke="#a855f7"/>
+      <text x="75" y="45" text-anchor="middle" font-size="28">🌐</text>
+      <text x="75" y="75" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="16" font-weight="700" fill="#ffffff">60+</text>
+      <text x="75" y="95" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="12" fill="#94a3b8">Total</text>
+    </g>
+  </g>
+  
+  <g transform="translate(120 620)">
+    <text x="420" y="30" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="24" font-weight="900" fill="#ffffff">✨ Global Features</text>
+    
+    <g transform="translate(0 55)">
+      <rect width="260" height="130" rx="20" fill="rgba(20,184,166,0.12)" stroke="#14b8a6"/>
+      <text x="130" y="45" text-anchor="middle" font-size="32">💱</text>
+      <text x="130" y="80" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="16" font-weight="700" fill="#ffffff">Multi-Currency</text>
+      <text x="130" y="100" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="12" fill="#94a3b8">50+ currencies</text>
+      <text x="130" y="120" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="11" fill="#14b8a6">Auto FX rates</text>
+    </g>
+    
+    <g transform="translate(290 55)">
+      <rect width="260" height="130" rx="20" fill="rgba(59,130,246,0.12)" stroke="#3b82f6"/>
+      <text x="130" y="45" text-anchor="middle" font-size="32">🌐</text>
+      <text x="130" y="80" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="16" font-weight="700" fill="#ffffff">Multi-Language</text>
+      <text x="130" y="100" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="12" fill="#94a3b8">25 languages</text>
+      <text x="130" y="120" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="11" fill="#3b82f6">RTL support</text>
+    </g>
+    
+    <g transform="translate(580 55)">
+      <rect width="260" height="130" rx="20" fill="rgba(168,85,247,0.12)" stroke="#a855f7"/>
+      <text x="130" y="45" text-anchor="middle" font-size="32">⏰</text>
+      <text x="130" y="80" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="16" font-weight="700" fill="#ffffff">Time Zones</text>
+      <text x="130" y="100" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="12" fill="#94a3b8">Smart scheduling</text>
+      <text x="130" y="120" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="11" fill="#a855f7">Auto-detect</text>
+    </g>
+  </g>
+  
+  <g transform="translate(120 840)">
+    <rect width="840" height="180" rx="24" fill="rgba(20,184,166,0.08)" stroke="#14b8a6"/>
+    <text x="420" y="40" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="22" font-weight="900" fill="#ffffff">⚖️ Local Compliance Built-In</text>
+    
+    <g transform="translate(40 65)">
+      <rect width="180" height="95" rx="14" fill="rgba(255,255,255,0.05)"/>
+      <text x="90" y="35" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="16" font-weight="800" fill="#14b8a6">🇺🇸 USA</text>
+      <text x="90" y="58" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="11" fill="#94a3b8">IRS, FLSA, ACA</text>
+      <text x="90" y="78" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="11" fill="#94a3b8">State taxes</text>
+    </g>
+    
+    <g transform="translate(240 65)">
+      <rect width="180" height="95" rx="14" fill="rgba(255,255,255,0.05)"/>
+      <text x="90" y="35" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="16" font-weight="800" fill="#3b82f6">🇪🇺 EU</text>
+      <text x="90" y="58" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="11" fill="#94a3b8">GDPR, Works Council</text>
+      <text x="90" y="78" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="11" fill="#94a3b8">Local labor laws</text>
+    </g>
+    
+    <g transform="translate(440 65)">
+      <rect width="180" height="95" rx="14" fill="rgba(255,255,255,0.05)"/>
+      <text x="90" y="35" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="16" font-weight="800" fill="#f97316">🇲🇾 MY</text>
+      <text x="90" y="58" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="11" fill="#94a3b8">EPF, SOCSO, EIS</text>
+      <text x="90" y="78" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="11" fill="#94a3b8">LHDN, HRDF</text>
+    </g>
+    
+    <g transform="translate(640 65)">
+      <rect width="160" height="95" rx="14" fill="rgba(255,255,255,0.05)"/>
+      <text x="80" y="35" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="16" font-weight="800" fill="#ec4899">🇸🇬 SG</text>
+      <text x="80" y="58" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="11" fill="#94a3b8">CPF, IRAS</text>
+      <text x="80" y="78" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="11" fill="#94a3b8">MOM</text>
+    </g>
+  </g>
+  
+  <g transform="translate(120 1060)">
+    <g>
+      <rect width="405" height="80" rx="16" fill="rgba(255,255,255,0.04)"/>
+      <text x="50" y="48" font-size="28">📊</text>
+      <text x="95" y="42" font-family="Inter,system-ui,sans-serif" font-size="16" font-weight="700" fill="#ffffff">Consolidated Reporting</text>
+      <text x="95" y="62" font-family="Inter,system-ui,sans-serif" font-size="13" fill="#94a3b8">All entities, one dashboard</text>
+    </g>
+    
+    <g transform="translate(435 0)">
+      <rect width="405" height="80" rx="16" fill="rgba(255,255,255,0.04)"/>
+      <text x="50" y="48" font-size="28">🔄</text>
+      <text x="95" y="42" font-family="Inter,system-ui,sans-serif" font-size="16" font-weight="700" fill="#ffffff">Centralized Policies</text>
+      <text x="95" y="62" font-family="Inter,system-ui,sans-serif" font-size="13" fill="#94a3b8">Global rules, local exceptions</text>
+    </g>
+  </g>
+  
+  <g transform="translate(120 1180)">
+    <rect width="840" height="60" rx="18" fill="url(#teal)" opacity="0.95"/>
+    <text x="420" y="38" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="20" font-weight="900" fill="#0a0f1a">🌍 Hire anywhere. Comply everywhere. Manage centrally.</text>
+  </g>
+  
+  <g transform="translate(100 1270)">
+    <text x="0" y="40" font-family="Inter,system-ui,sans-serif" font-size="36" font-weight="900" fill="#ffffff">Continuum</text>
+    <text x="0" y="70" font-family="Inter,system-ui,sans-serif" font-size="18" font-weight="600" fill="#64748b">Enterprise HR • Payroll • Compliance</text>
+    <text x="780" y="55" font-size="40">🌍💱🌐</text>
+  </g>
+</svg>

@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1350" viewBox="0 0 1080 1350">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#030508"/>
+      <stop offset="1" stop-color="#0a0f1a"/>
+    </linearGradient>
+    <linearGradient id="lime" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#84cc16"/>
+      <stop offset="1" stop-color="#a3e635"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="35%" r="50%">
+      <stop offset="0" stop-color="#84cc16" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#84cc16" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="blur"><feGaussianBlur stdDeviation="40"/></filter>
+  </defs>
+  
+  <rect width="1080" height="1350" fill="url(#bg)"/>
+  <circle cx="540" cy="400" r="400" fill="url(#glow)" filter="url(#blur)"/>
+  
+  <g transform="translate(330 80)">
+    <rect width="420" height="50" rx="25" fill="url(#lime)"/>
+    <text x="210" y="34" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="18" font-weight="900" fill="#0a0f1a">📱 MOBILE FIRST DESIGN</text>
+  </g>
+  
+  <text x="540" y="200" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="58" font-weight="900" fill="#ffffff">HR IN YOUR</text>
+  <text x="540" y="275" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="58" font-weight="900" fill="url(#lime)">POCKET</text>
+  <text x="540" y="325" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="22" font-weight="600" fill="#94a3b8">Everything works perfectly on any device</text>
+  
+  <g transform="translate(120 380)">
+    <g transform="translate(280 0)">
+      <rect width="280" height="520" rx="36" fill="#1a1a2e" stroke="#84cc16" stroke-width="3"/>
+      <rect x="95" y="15" width="90" height="25" rx="12" fill="#000"/>
+      <rect x="20" y="55" width="240" height="430" rx="4" fill="#0f172a"/>
+      
+      <rect x="30" y="65" width="220" height="80" rx="12" fill="rgba(132,204,22,0.15)"/>
+      <text x="50" y="100" font-family="Inter,system-ui,sans-serif" font-size="14" font-weight="700" fill="#ffffff">Good morning, Sarah! 👋</text>
+      <text x="50" y="120" font-family="Inter,system-ui,sans-serif" font-size="11" fill="#94a3b8">You have 3 pending tasks</text>
+      
+      <g transform="translate(30 160)">
+        <rect width="220" height="60" rx="10" fill="rgba(34,197,94,0.2)"/>
+        <text x="15" y="28" font-size="20">🏖️</text>
+        <text x="45" y="25" font-family="Inter,system-ui,sans-serif" font-size="12" font-weight="700" fill="#ffffff">Leave Balance</text>
+        <text x="45" y="42" font-family="Inter,system-ui,sans-serif" font-size="10" fill="#94a3b8">12 days remaining</text>
+        <text x="180" y="38" text-anchor="end" font-family="Inter,system-ui,sans-serif" font-size="16" font-weight="900" fill="#22c55e">12</text>
+      </g>
+      
+      <g transform="translate(30 230)">
+        <rect width="220" height="60" rx="10" fill="rgba(168,85,247,0.2)"/>
+        <text x="15" y="28" font-size="20">⏰</text>
+        <text x="45" y="25" font-family="Inter,system-ui,sans-serif" font-size="12" font-weight="700" fill="#ffffff">Clock In</text>
+        <text x="45" y="42" font-family="Inter,system-ui,sans-serif" font-size="10" fill="#94a3b8">Tap to start your day</text>
+        <circle cx="190" cy="30" r="18" fill="#a855f7"/>
+        <text x="190" y="35" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="14" fill="#ffffff">▶</text>
+      </g>
+      
+      <g transform="translate(30 300)">
+        <rect width="220" height="60" rx="10" fill="rgba(59,130,246,0.2)"/>
+        <text x="15" y="28" font-size="20">💰</text>
+        <text x="45" y="25" font-family="Inter,system-ui,sans-serif" font-size="12" font-weight="700" fill="#ffffff">Latest Payslip</text>
+        <text x="45" y="42" font-family="Inter,system-ui,sans-serif" font-size="10" fill="#94a3b8">Nov 2024 • View →</text>
+        <text x="180" y="38" text-anchor="end" font-family="Inter,system-ui,sans-serif" font-size="11" font-weight="700" fill="#3b82f6">NEW</text>
+      </g>
+      
+      <g transform="translate(30 370)">
+        <rect width="220" height="60" rx="10" fill="rgba(251,191,36,0.2)"/>
+        <text x="15" y="28" font-size="20">📋</text>
+        <text x="45" y="25" font-family="Inter,system-ui,sans-serif" font-size="12" font-weight="700" fill="#ffffff">Pending Approvals</text>
+        <text x="45" y="42" font-family="Inter,system-ui,sans-serif" font-size="10" fill="#94a3b8">2 requests waiting</text>
+        <circle cx="190" cy="30" r="14" fill="#fbbf24"/>
+        <text x="190" y="35" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="12" font-weight="700" fill="#0a0f1a">2</text>
+      </g>
+      
+      <g transform="translate(30 445)">
+        <rect x="0" y="0" width="55" height="35" rx="8" fill="rgba(132,204,22,0.3)"/>
+        <text x="27" y="25" text-anchor="middle" font-size="16">🏠</text>
+        <rect x="58" y="0" width="55" height="35" rx="8" fill="rgba(255,255,255,0.1)"/>
+        <text x="85" y="25" text-anchor="middle" font-size="16">📅</text>
+        <rect x="116" y="0" width="49" height="35" rx="8" fill="rgba(255,255,255,0.1)"/>
+        <text x="140" y="25" text-anchor="middle" font-size="16">💬</text>
+        <rect x="168" y="0" width="52" height="35" rx="8" fill="rgba(255,255,255,0.1)"/>
+        <text x="195" y="25" text-anchor="middle" font-size="16">👤</text>
+      </g>
+    </g>
+    
+    <g transform="translate(0 100)">
+      <rect width="240" height="120" rx="20" fill="rgba(132,204,22,0.12)" stroke="#84cc16"/>
+      <text x="120" y="50" text-anchor="middle" font-size="36">📱</text>
+      <text x="120" y="80" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="16" font-weight="700" fill="#ffffff">iOS &amp; Android</text>
+      <text x="120" y="100" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="12" fill="#94a3b8">Native apps</text>
+    </g>
+    
+    <g transform="translate(0 240)">
+      <rect width="240" height="120" rx="20" fill="rgba(168,85,247,0.12)" stroke="#a855f7"/>
+      <text x="120" y="50" text-anchor="middle" font-size="36">🔔</text>
+      <text x="120" y="80" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="16" font-weight="700" fill="#ffffff">Push Notifications</text>
+      <text x="120" y="100" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="12" fill="#94a3b8">Real-time alerts</text>
+    </g>
+    
+    <g transform="translate(600 100)">
+      <rect width="240" height="120" rx="20" fill="rgba(59,130,246,0.12)" stroke="#3b82f6"/>
+      <text x="120" y="50" text-anchor="middle" font-size="36">☁️</text>
+      <text x="120" y="80" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="16" font-weight="700" fill="#ffffff">Offline Mode</text>
+      <text x="120" y="100" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="12" fill="#94a3b8">Works anywhere</text>
+    </g>
+    
+    <g transform="translate(600 240)">
+      <rect width="240" height="120" rx="20" fill="rgba(34,197,94,0.12)" stroke="#22c55e"/>
+      <text x="120" y="50" text-anchor="middle" font-size="36">🔒</text>
+      <text x="120" y="80" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="16" font-weight="700" fill="#ffffff">Biometric Login</text>
+      <text x="120" y="100" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="12" fill="#94a3b8">Face ID / Touch</text>
+    </g>
+  </g>
+  
+  <g transform="translate(120 950)">
+    <text x="420" y="30" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="22" font-weight="900" fill="#ffffff">📱 Mobile Features</text>
+    
+    <g transform="translate(0 55)">
+      <rect width="260" height="65" rx="12" fill="rgba(255,255,255,0.05)"/>
+      <text x="25" y="40" font-size="22">✅</text>
+      <text x="60" y="38" font-family="Inter,system-ui,sans-serif" font-size="14" font-weight="700" fill="#ffffff">Quick Leave Requests</text>
+    </g>
+    
+    <g transform="translate(290 55)">
+      <rect width="260" height="65" rx="12" fill="rgba(255,255,255,0.05)"/>
+      <text x="25" y="40" font-size="22">📍</text>
+      <text x="60" y="38" font-family="Inter,system-ui,sans-serif" font-size="14" font-weight="700" fill="#ffffff">GPS Clock In/Out</text>
+    </g>
+    
+    <g transform="translate(580 55)">
+      <rect width="260" height="65" rx="12" fill="rgba(255,255,255,0.05)"/>
+      <text x="25" y="40" font-size="22">💳</text>
+      <text x="60" y="38" font-family="Inter,system-ui,sans-serif" font-size="14" font-weight="700" fill="#ffffff">Instant Payslips</text>
+    </g>
+    
+    <g transform="translate(0 135)">
+      <rect width="260" height="65" rx="12" fill="rgba(255,255,255,0.05)"/>
+      <text x="25" y="40" font-size="22">👥</text>
+      <text x="60" y="38" font-family="Inter,system-ui,sans-serif" font-size="14" font-weight="700" fill="#ffffff">Team Directory</text>
+    </g>
+    
+    <g transform="translate(290 135)">
+      <rect width="260" height="65" rx="12" fill="rgba(255,255,255,0.05)"/>
+      <text x="25" y="40" font-size="22">💬</text>
+      <text x="60" y="38" font-family="Inter,system-ui,sans-serif" font-size="14" font-weight="700" fill="#ffffff">AI Assistant Chat</text>
+    </g>
+    
+    <g transform="translate(580 135)">
+      <rect width="260" height="65" rx="12" fill="rgba(255,255,255,0.05)"/>
+      <text x="25" y="40" font-size="22">📊</text>
+      <text x="60" y="38" font-family="Inter,system-ui,sans-serif" font-size="14" font-weight="700" fill="#ffffff">Quick Analytics</text>
+    </g>
+  </g>
+  
+  <g transform="translate(120 1180)">
+    <rect width="840" height="60" rx="18" fill="url(#lime)" opacity="0.95"/>
+    <text x="420" y="38" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="20" font-weight="900" fill="#0a0f1a">📱 Desktop power. Mobile freedom. Zero compromise.</text>
+  </g>
+  
+  <g transform="translate(100 1270)">
+    <text x="0" y="40" font-family="Inter,system-ui,sans-serif" font-size="36" font-weight="900" fill="#ffffff">Continuum</text>
+    <text x="0" y="70" font-family="Inter,system-ui,sans-serif" font-size="18" font-weight="600" fill="#64748b">Enterprise HR • Payroll • Compliance</text>
+    <text x="780" y="55" font-size="40">📱☁️✨</text>
+  </g>
+</svg>

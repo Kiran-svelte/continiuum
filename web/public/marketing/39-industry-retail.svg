@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1350" viewBox="0 0 1080 1350">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#030508"/>
+      <stop offset="1" stop-color="#0a0f1a"/>
+    </linearGradient>
+    <linearGradient id="gradient2" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#8b5cf6"/>
+      <stop offset="1" stop-color="#d946ef"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="35%" r="50%">
+      <stop offset="0" stop-color="#8b5cf6" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#8b5cf6" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="blur"><feGaussianBlur stdDeviation="40"/></filter>
+  </defs>
+  
+  <rect width="1080" height="1350" fill="url(#bg)"/>
+  <circle cx="540" cy="400" r="400" fill="url(#glow)" filter="url(#blur)"/>
+  
+  <g transform="translate(290 80)">
+    <rect width="500" height="50" rx="25" fill="url(#gradient2)"/>
+    <text x="250" y="34" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="18" font-weight="900" fill="#ffffff">🏢 RETAIL &amp; HOSPITALITY</text>
+  </g>
+  
+  <text x="540" y="200" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="52" font-weight="900" fill="#ffffff">HR FOR</text>
+  <text x="540" y="270" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="52" font-weight="900" fill="url(#gradient2)">RETAIL</text>
+  <text x="540" y="320" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="22" font-weight="600" fill="#94a3b8">Built for stores, restaurants &amp; hospitality teams</text>
+  
+  <g transform="translate(120 380)">
+    <rect width="840" height="180" rx="28" fill="rgba(139,92,246,0.1)" stroke="#8b5cf6"/>
+    <text x="420" y="40" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="20" font-weight="900" fill="#ffffff">🏪 Retail-Specific Features</text>
+    
+    <g transform="translate(40 60)">
+      <rect width="240" height="100" rx="16" fill="rgba(255,255,255,0.06)"/>
+      <text x="120" y="40" text-anchor="middle" font-size="28">📅</text>
+      <text x="120" y="65" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="14" font-weight="700" fill="#ffffff">Shift Scheduling</text>
+      <text x="120" y="85" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="11" fill="#94a3b8">Peak hours coverage</text>
+    </g>
+    
+    <g transform="translate(300 60)">
+      <rect width="240" height="100" rx="16" fill="rgba(255,255,255,0.06)"/>
+      <text x="120" y="40" text-anchor="middle" font-size="28">👥</text>
+      <text x="120" y="65" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="14" font-weight="700" fill="#ffffff">Multi-Location</text>
+      <text x="120" y="85" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="11" fill="#94a3b8">Manage all stores</text>
+    </g>
+    
+    <g transform="translate(560 60)">
+      <rect width="240" height="100" rx="16" fill="rgba(255,255,255,0.06)"/>
+      <text x="120" y="40" text-anchor="middle" font-size="28">💰</text>
+      <text x="120" y="65" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="14" font-weight="700" fill="#ffffff">Tips &amp; Commission</text>
+      <text x="120" y="85" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="11" fill="#94a3b8">Auto distribution</text>
+    </g>
+  </g>
+  
+  <g transform="translate(120 600)">
+    <text x="420" y="30" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="22" font-weight="900" fill="#ffffff">👷 Staff Management</text>
+    
+    <g transform="translate(0 55)">
+      <rect width="260" height="120" rx="18" fill="rgba(139,92,246,0.12)" stroke="#8b5cf6"/>
+      <text x="130" y="45" text-anchor="middle" font-size="32">🔄</text>
+      <text x="130" y="80" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="15" font-weight="700" fill="#ffffff">Shift Swaps</text>
+      <text x="130" y="102" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="12" fill="#94a3b8">Employee self-service</text>
+    </g>
+    
+    <g transform="translate(290 55)">
+      <rect width="260" height="120" rx="18" fill="rgba(251,191,36,0.12)" stroke="#fbbf24"/>
+      <text x="130" y="45" text-anchor="middle" font-size="32">📱</text>
+      <text x="130" y="80" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="15" font-weight="700" fill="#ffffff">Mobile Clock-In</text>
+      <text x="130" y="102" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="12" fill="#94a3b8">GPS verification</text>
+    </g>
+    
+    <g transform="translate(580 55)">
+      <rect width="260" height="120" rx="18" fill="rgba(34,197,94,0.12)" stroke="#22c55e"/>
+      <text x="130" y="45" text-anchor="middle" font-size="32">📊</text>
+      <text x="130" y="80" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="15" font-weight="700" fill="#ffffff">Labor Forecasting</text>
+      <text x="130" y="102" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="12" fill="#94a3b8">AI-powered scheduling</text>
+    </g>
+  </g>
+  
+  <g transform="translate(120 800)">
+    <g>
+      <rect width="405" height="150" rx="20" fill="rgba(139,92,246,0.08)" stroke="#8b5cf6"/>
+      <text x="35" y="45" font-size="36">🍽️</text>
+      <text x="95" y="40" font-family="Inter,system-ui,sans-serif" font-size="18" font-weight="800" fill="#ffffff">Restaurant Mode</text>
+      <text x="95" y="65" font-family="Inter,system-ui,sans-serif" font-size="13" fill="#94a3b8">Front &amp; back of house management</text>
+      <g transform="translate(35 90)">
+        <rect width="90" height="24" rx="12" fill="rgba(139,92,246,0.3)"/>
+        <text x="45" y="17" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="10" font-weight="700" fill="#8b5cf6">FOH</text>
+        <rect x="105" width="90" height="24" rx="12" fill="rgba(251,191,36,0.3)"/>
+        <text x="150" y="17" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="10" font-weight="700" fill="#fbbf24">BOH</text>
+        <rect x="210" width="90" height="24" rx="12" fill="rgba(34,197,94,0.3)"/>
+        <text x="255" y="17" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="10" font-weight="700" fill="#22c55e">Tips</text>
+      </g>
+    </g>
+    
+    <g transform="translate(435 0)">
+      <rect width="405" height="150" rx="20" fill="rgba(217,70,239,0.08)" stroke="#d946ef"/>
+      <text x="35" y="45" font-size="36">🛒</text>
+      <text x="95" y="40" font-family="Inter,system-ui,sans-serif" font-size="18" font-weight="800" fill="#ffffff">Retail Mode</text>
+      <text x="95" y="65" font-family="Inter,system-ui,sans-serif" font-size="13" fill="#94a3b8">Store staff &amp; seasonal workers</text>
+      <g transform="translate(35 90)">
+        <rect width="90" height="24" rx="12" fill="rgba(217,70,239,0.3)"/>
+        <text x="45" y="17" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="10" font-weight="700" fill="#d946ef">Sales</text>
+        <rect x="105" width="90" height="24" rx="12" fill="rgba(59,130,246,0.3)"/>
+        <text x="150" y="17" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="10" font-weight="700" fill="#3b82f6">Stock</text>
+        <rect x="210" width="90" height="24" rx="12" fill="rgba(236,72,153,0.3)"/>
+        <text x="255" y="17" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="10" font-weight="700" fill="#ec4899">Seasonal</text>
+      </g>
+    </g>
+  </g>
+  
+  <g transform="translate(120 990)">
+    <g>
+      <rect width="260" height="80" rx="16" fill="rgba(255,255,255,0.05)"/>
+      <text x="130" y="40" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="28" font-weight="900" fill="#8b5cf6">1,500+</text>
+      <text x="130" y="62" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="12" font-weight="700" fill="#ffffff">Retail Locations</text>
+    </g>
+    
+    <g transform="translate(290 0)">
+      <rect width="260" height="80" rx="16" fill="rgba(255,255,255,0.05)"/>
+      <text x="130" y="40" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="28" font-weight="900" fill="#fbbf24">↓40%</text>
+      <text x="130" y="62" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="12" font-weight="700" fill="#ffffff">Labor Costs</text>
+    </g>
+    
+    <g transform="translate(580 0)">
+      <rect width="260" height="80" rx="16" fill="rgba(255,255,255,0.05)"/>
+      <text x="130" y="40" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="28" font-weight="900" fill="#22c55e">↑35%</text>
+      <text x="130" y="62" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="12" font-weight="700" fill="#ffffff">Retention</text>
+    </g>
+  </g>
+  
+  <g transform="translate(120 1110)">
+    <rect width="840" height="100" rx="24" fill="url(#gradient2)" opacity="0.95"/>
+    <text x="420" y="40" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="24" font-weight="900" fill="#ffffff">🏪 From 1 store to 1,000 — we scale with you</text>
+    <text x="420" y="70" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="16" font-weight="700" fill="rgba(255,255,255,0.9)">Request a retail-specific demo today</text>
+  </g>
+  
+  <g transform="translate(100 1250)">
+    <text x="0" y="40" font-family="Inter,system-ui,sans-serif" font-size="36" font-weight="900" fill="#ffffff">Continuum</text>
+    <text x="0" y="70" font-family="Inter,system-ui,sans-serif" font-size="18" font-weight="600" fill="#64748b">Enterprise HR • Payroll • Compliance</text>
+    <text x="780" y="55" font-size="40">🏪🛒🍽️</text>
+  </g>
+</svg>

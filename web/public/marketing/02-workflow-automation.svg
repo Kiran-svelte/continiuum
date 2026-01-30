@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1350" viewBox="0 0 1080 1350">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#030508"/>
+      <stop offset="1" stop-color="#0a0f1a"/>
+    </linearGradient>
+    <linearGradient id="green" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#22c55e"/>
+      <stop offset="1" stop-color="#06b6d4"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="40%" r="50%">
+      <stop offset="0" stop-color="#22c55e" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#22c55e" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="blur"><feGaussianBlur stdDeviation="35"/></filter>
+  </defs>
+  
+  <rect width="1080" height="1350" fill="url(#bg)"/>
+  <ellipse cx="540" cy="500" rx="450" ry="350" fill="url(#glow)" filter="url(#blur)"/>
+  
+  <text x="540" y="130" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="64" font-weight="900" fill="#ffffff">WORKFLOW</text>
+  <text x="540" y="200" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="64" font-weight="900" fill="url(#green)">AUTOMATION</text>
+  <text x="540" y="260" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="24" font-weight="600" fill="#94a3b8">From request to approval in seconds, not days</text>
+  
+  <g transform="translate(140 340)">
+    <rect width="220" height="160" rx="24" fill="rgba(34,197,94,0.15)" stroke="#22c55e" stroke-width="2"/>
+    <text x="110" y="70" text-anchor="middle" font-size="56">👤</text>
+    <text x="110" y="110" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="20" font-weight="800" fill="#ffffff">EMPLOYEE</text>
+    <text x="110" y="135" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="14" fill="#94a3b8">Submits Request</text>
+  </g>
+  
+  <g transform="translate(370 400)"><text x="0" y="25" font-size="40" fill="#22c55e">→</text></g>
+  
+  <g transform="translate(430 340)">
+    <rect width="220" height="160" rx="24" fill="rgba(168,85,247,0.15)" stroke="#a855f7" stroke-width="2"/>
+    <text x="110" y="70" text-anchor="middle" font-size="56">🤖</text>
+    <text x="110" y="110" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="20" font-weight="800" fill="#ffffff">AI ENGINE</text>
+    <text x="110" y="135" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="14" fill="#94a3b8">Validates Rules</text>
+  </g>
+  
+  <g transform="translate(660 400)"><text x="0" y="25" font-size="40" fill="#a855f7">→</text></g>
+  
+  <g transform="translate(720 340)">
+    <rect width="220" height="160" rx="24" fill="rgba(59,130,246,0.15)" stroke="#3b82f6" stroke-width="2"/>
+    <text x="110" y="70" text-anchor="middle" font-size="56">✅</text>
+    <text x="110" y="110" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="20" font-weight="800" fill="#ffffff">APPROVED</text>
+    <text x="110" y="135" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="14" fill="#94a3b8">Instant Decision</text>
+  </g>
+  
+  <g transform="translate(140 560)">
+    <rect width="220" height="160" rx="24" fill="rgba(251,191,36,0.15)" stroke="#fbbf24" stroke-width="2"/>
+    <text x="110" y="70" text-anchor="middle" font-size="56">📊</text>
+    <text x="110" y="110" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="20" font-weight="800" fill="#ffffff">ATTENDANCE</text>
+    <text x="110" y="135" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="14" fill="#94a3b8">Auto-Synced</text>
+  </g>
+  
+  <g transform="translate(370 620)"><text x="0" y="25" font-size="40" fill="#fbbf24">→</text></g>
+  
+  <g transform="translate(430 560)">
+    <rect width="220" height="160" rx="24" fill="rgba(34,197,94,0.15)" stroke="#22c55e" stroke-width="2"/>
+    <text x="110" y="70" text-anchor="middle" font-size="56">🧮</text>
+    <text x="110" y="110" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="20" font-weight="800" fill="#ffffff">CALCULATE</text>
+    <text x="110" y="135" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="14" fill="#94a3b8">Earnings + Deductions</text>
+  </g>
+  
+  <g transform="translate(660 620)"><text x="0" y="25" font-size="40" fill="#22c55e">→</text></g>
+  
+  <g transform="translate(720 560)">
+    <rect width="220" height="160" rx="24" fill="rgba(34,211,238,0.15)" stroke="#22d3ee" stroke-width="2"/>
+    <text x="110" y="70" text-anchor="middle" font-size="56">💰</text>
+    <text x="110" y="110" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="20" font-weight="800" fill="#ffffff">PAYOUT</text>
+    <text x="110" y="135" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="14" fill="#94a3b8">Processed</text>
+  </g>
+  
+  <g transform="translate(120 800)">
+    <rect width="260" height="140" rx="20" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.1)"/>
+    <text x="130" y="60" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="48" font-weight="900" fill="#22c55e">90%</text>
+    <text x="130" y="100" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="18" font-weight="700" fill="#ffffff">Faster Approvals</text>
+    <text x="130" y="125" text-anchor="middle" font-size="28">⚡</text>
+  </g>
+  
+  <g transform="translate(410 800)">
+    <rect width="260" height="140" rx="20" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.1)"/>
+    <text x="130" y="60" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="48" font-weight="900" fill="#a855f7">24/7</text>
+    <text x="130" y="100" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="18" font-weight="700" fill="#ffffff">AI Available</text>
+    <text x="130" y="125" text-anchor="middle" font-size="28">🤖</text>
+  </g>
+  
+  <g transform="translate(700 800)">
+    <rect width="260" height="140" rx="20" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.1)"/>
+    <text x="130" y="60" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="48" font-weight="900" fill="#3b82f6">0</text>
+    <text x="130" y="100" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="18" font-weight="700" fill="#ffffff">Manual Steps</text>
+    <text x="130" y="125" text-anchor="middle" font-size="28">🎯</text>
+  </g>
+  
+  <g transform="translate(120 980)">
+    <rect width="840" height="90" rx="18" fill="rgba(34,197,94,0.1)" stroke="#22c55e" stroke-width="1"/>
+    <text x="60" y="55" font-size="36">🔄</text>
+    <text x="110" y="50" font-family="Inter,system-ui,sans-serif" font-size="22" font-weight="700" fill="#ffffff">Automated workflows eliminate human bottlenecks</text>
+    <text x="110" y="75" font-family="Inter,system-ui,sans-serif" font-size="16" fill="#64748b">Leave • Payroll • Onboarding • Compliance • Attendance</text>
+  </g>
+  
+  <g transform="translate(120 1090)">
+    <rect width="840" height="90" rx="18" fill="rgba(168,85,247,0.1)" stroke="#a855f7" stroke-width="1"/>
+    <text x="60" y="55" font-size="36">🧠</text>
+    <text x="110" y="50" font-family="Inter,system-ui,sans-serif" font-size="22" font-weight="700" fill="#ffffff">AI learns your policies, not generic rules</text>
+    <text x="110" y="75" font-family="Inter,system-ui,sans-serif" font-size="16" fill="#64748b">Constraint engine • Custom rules • Smart routing</text>
+  </g>
+  
+  <g transform="translate(100 1220)">
+    <text x="0" y="40" font-family="Inter,system-ui,sans-serif" font-size="36" font-weight="900" fill="#ffffff">Continuum</text>
+    <text x="0" y="70" font-family="Inter,system-ui,sans-serif" font-size="18" font-weight="600" fill="#64748b">Enterprise HR • Payroll • Compliance</text>
+    <text x="780" y="55" font-size="40">🚀⚡✨</text>
+  </g>
+</svg>

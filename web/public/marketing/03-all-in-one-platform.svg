@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1350" viewBox="0 0 1080 1350">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#030508"/>
+      <stop offset="1" stop-color="#0a0f1a"/>
+    </linearGradient>
+    <linearGradient id="purple" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#a855f7"/>
+      <stop offset="1" stop-color="#ec4899"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="35%" r="45%">
+      <stop offset="0" stop-color="#a855f7" stop-opacity="0.4"/>
+      <stop offset="1" stop-color="#a855f7" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="blur"><feGaussianBlur stdDeviation="40"/></filter>
+  </defs>
+  
+  <rect width="1080" height="1350" fill="url(#bg)"/>
+  <circle cx="540" cy="450" r="400" fill="url(#glow)" filter="url(#blur)"/>
+  
+  <g transform="translate(340 80)">
+    <rect width="400" height="50" rx="25" fill="url(#purple)"/>
+    <text x="200" y="34" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="18" font-weight="900" fill="#0a0f1a">🎪 EVERYTHING IN ONE PLACE</text>
+  </g>
+  
+  <text x="540" y="200" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="58" font-weight="900" fill="#ffffff">ALL FEATURES</text>
+  <text x="540" y="270" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="58" font-weight="900" fill="url(#purple)">ONE PLATFORM</text>
+  <text x="540" y="320" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="22" font-weight="600" fill="#94a3b8">Replace 10 tools with 1 enterprise solution</text>
+  
+  <g transform="translate(540 480)">
+    <circle cx="0" cy="0" r="90" fill="url(#purple)" opacity="0.9"/>
+    <text x="0" y="15" text-anchor="middle" font-size="60">🤖</text>
+    <text x="0" y="50" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="14" font-weight="900" fill="#ffffff">AI CORE</text>
+  </g>
+  
+  <g transform="translate(120 380)">
+    <rect width="160" height="130" rx="20" fill="rgba(168,85,247,0.15)" stroke="#a855f7" stroke-width="1"/>
+    <text x="80" y="55" text-anchor="middle" font-size="42">👥</text>
+    <text x="80" y="90" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="16" font-weight="800" fill="#ffffff">Team Mgmt</text>
+    <text x="80" y="110" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="12" fill="#94a3b8">Org structure</text>
+  </g>
+  
+  <g transform="translate(300 380)">
+    <rect width="160" height="130" rx="20" fill="rgba(34,197,94,0.15)" stroke="#22c55e" stroke-width="1"/>
+    <text x="80" y="55" text-anchor="middle" font-size="42">📅</text>
+    <text x="80" y="90" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="16" font-weight="800" fill="#ffffff">Attendance</text>
+    <text x="80" y="110" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="12" fill="#94a3b8">Auto-tracking</text>
+  </g>
+  
+  <g transform="translate(620 380)">
+    <rect width="160" height="130" rx="20" fill="rgba(59,130,246,0.15)" stroke="#3b82f6" stroke-width="1"/>
+    <text x="80" y="55" text-anchor="middle" font-size="42">🏖️</text>
+    <text x="80" y="90" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="16" font-weight="800" fill="#ffffff">Leave</text>
+    <text x="80" y="110" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="12" fill="#94a3b8">Smart approvals</text>
+  </g>
+  
+  <g transform="translate(800 380)">
+    <rect width="160" height="130" rx="20" fill="rgba(251,191,36,0.15)" stroke="#fbbf24" stroke-width="1"/>
+    <text x="80" y="55" text-anchor="middle" font-size="42">💰</text>
+    <text x="80" y="90" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="16" font-weight="800" fill="#ffffff">Payroll</text>
+    <text x="80" y="110" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="12" fill="#94a3b8">Automated</text>
+  </g>
+  
+  <g transform="translate(120 530)">
+    <rect width="160" height="130" rx="20" fill="rgba(236,72,153,0.15)" stroke="#ec4899" stroke-width="1"/>
+    <text x="80" y="55" text-anchor="middle" font-size="42">📁</text>
+    <text x="80" y="90" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="16" font-weight="800" fill="#ffffff">Documents</text>
+    <text x="80" y="110" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="12" fill="#94a3b8">Secure storage</text>
+  </g>
+  
+  <g transform="translate(800 530)">
+    <rect width="160" height="130" rx="20" fill="rgba(34,211,238,0.15)" stroke="#22d3ee" stroke-width="1"/>
+    <text x="80" y="55" text-anchor="middle" font-size="42">🔒</text>
+    <text x="80" y="90" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="16" font-weight="800" fill="#ffffff">Security</text>
+    <text x="80" y="110" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="12" fill="#94a3b8">Enterprise grade</text>
+  </g>
+  
+  <g transform="translate(120 680)">
+    <rect width="160" height="130" rx="20" fill="rgba(34,211,238,0.15)" stroke="#22d3ee" stroke-width="1"/>
+    <text x="80" y="55" text-anchor="middle" font-size="42">📊</text>
+    <text x="80" y="90" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="16" font-weight="800" fill="#ffffff">Analytics</text>
+    <text x="80" y="110" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="12" fill="#94a3b8">AI insights</text>
+  </g>
+  
+  <g transform="translate(300 680)">
+    <rect width="160" height="130" rx="20" fill="rgba(251,113,133,0.15)" stroke="#fb7185" stroke-width="1"/>
+    <text x="80" y="55" text-anchor="middle" font-size="42">📋</text>
+    <text x="80" y="90" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="16" font-weight="800" fill="#ffffff">Compliance</text>
+    <text x="80" y="110" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="12" fill="#94a3b8">GDPR ready</text>
+  </g>
+  
+  <g transform="translate(620 680)">
+    <rect width="160" height="130" rx="20" fill="rgba(132,204,22,0.15)" stroke="#84cc16" stroke-width="1"/>
+    <text x="80" y="55" text-anchor="middle" font-size="42">⚙️</text>
+    <text x="80" y="90" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="16" font-weight="800" fill="#ffffff">Automation</text>
+    <text x="80" y="110" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="12" fill="#94a3b8">Workflows</text>
+  </g>
+  
+  <g transform="translate(800 680)">
+    <rect width="160" height="130" rx="20" fill="rgba(168,85,247,0.15)" stroke="#a855f7" stroke-width="1"/>
+    <text x="80" y="55" text-anchor="middle" font-size="42">🛡️</text>
+    <text x="80" y="90" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="16" font-weight="800" fill="#ffffff">Audit</text>
+    <text x="80" y="110" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="12" fill="#94a3b8">Full trails</text>
+  </g>
+  
+  <g transform="translate(120 860)">
+    <rect width="840" height="120" rx="24" fill="rgba(168,85,247,0.1)" stroke="#a855f7" stroke-width="2"/>
+    <text x="80" y="70" font-size="48">🚀</text>
+    <text x="140" y="55" font-family="Inter,system-ui,sans-serif" font-size="28" font-weight="800" fill="#ffffff">Stop switching between tools</text>
+    <text x="140" y="90" font-family="Inter,system-ui,sans-serif" font-size="18" fill="#94a3b8">HR + Payroll + Compliance + AI — unified in one platform</text>
+  </g>
+  
+  <g transform="translate(120 1010)">
+    <rect width="400" height="80" rx="16" fill="rgba(239,68,68,0.1)" stroke="#ef4444" stroke-width="1"/>
+    <text x="50" y="50" font-size="28">❌</text>
+    <text x="90" y="45" font-family="Inter,system-ui,sans-serif" font-size="18" font-weight="700" fill="#ef4444">Without Continuum</text>
+    <text x="90" y="65" font-family="Inter,system-ui,sans-serif" font-size="14" fill="#94a3b8">10+ tools, manual work, no AI</text>
+  </g>
+  
+  <g transform="translate(560 1010)">
+    <rect width="400" height="80" rx="16" fill="rgba(34,197,94,0.1)" stroke="#22c55e" stroke-width="1"/>
+    <text x="50" y="50" font-size="28">✅</text>
+    <text x="90" y="45" font-family="Inter,system-ui,sans-serif" font-size="18" font-weight="700" fill="#22c55e">With Continuum</text>
+    <text x="90" y="65" font-family="Inter,system-ui,sans-serif" font-size="14" fill="#94a3b8">1 platform, automated, AI-powered</text>
+  </g>
+  
+  <g transform="translate(100 1180)">
+    <text x="0" y="40" font-family="Inter,system-ui,sans-serif" font-size="36" font-weight="900" fill="#ffffff">Continuum</text>
+    <text x="0" y="70" font-family="Inter,system-ui,sans-serif" font-size="18" font-weight="600" fill="#64748b">Enterprise HR • Payroll • Compliance</text>
+    <text x="780" y="55" font-size="40">🤖🎪✨</text>
+  </g>
+</svg>

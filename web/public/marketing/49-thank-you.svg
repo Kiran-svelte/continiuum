@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1350" viewBox="0 0 1080 1350">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#030508"/>
+      <stop offset="1" stop-color="#0a0f1a"/>
+    </linearGradient>
+    <linearGradient id="warm" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f97316"/>
+      <stop offset="0.5" stop-color="#ec4899"/>
+      <stop offset="1" stop-color="#a855f7"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#ec4899" stop-opacity="0.4"/>
+      <stop offset="1" stop-color="#ec4899" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="blur"><feGaussianBlur stdDeviation="60"/></filter>
+  </defs>
+  
+  <rect width="1080" height="1350" fill="url(#bg)"/>
+  <circle cx="540" cy="650" r="500" fill="url(#glow)" filter="url(#blur)"/>
+  
+  <g transform="translate(280 80)">
+    <rect width="520" height="50" rx="25" fill="url(#warm)"/>
+    <text x="260" y="34" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="18" font-weight="900" fill="#ffffff">🎉 THANK YOU</text>
+  </g>
+  
+  <text x="540" y="200" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="52" font-weight="900" fill="#ffffff">THANK YOU FOR</text>
+  <text x="540" y="290" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="72" font-weight="900" fill="url(#warm)">WATCHING</text>
+  <text x="540" y="350" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="22" font-weight="600" fill="#94a3b8">We're excited to have you on this journey with us</text>
+  
+  <g transform="translate(120 430)">
+    <rect width="840" height="200" rx="32" fill="rgba(249,115,22,0.1)" stroke="#f97316" stroke-width="2"/>
+    
+    <text x="420" y="50" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="26" font-weight="900" fill="#ffffff">🚀 Ready to Transform Your HR?</text>
+    <text x="420" y="85" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="16" fill="#94a3b8">Take the first step towards HR excellence</text>
+    
+    <g transform="translate(80 110)">
+      <rect width="200" height="60" rx="16" fill="#f97316"/>
+      <text x="100" y="28" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="16" font-weight="900" fill="#ffffff">Start Free Trial</text>
+      <text x="100" y="48" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="12" fill="rgba(255,255,255,0.8)">30 days • No card</text>
+    </g>
+    
+    <g transform="translate(320 110)">
+      <rect width="200" height="60" rx="16" fill="rgba(236,72,153,0.3)" stroke="#ec4899"/>
+      <text x="100" y="28" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="16" font-weight="900" fill="#ec4899">Book a Demo</text>
+      <text x="100" y="48" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="12" fill="#94a3b8">30 min • Free</text>
+    </g>
+    
+    <g transform="translate(560 110)">
+      <rect width="200" height="60" rx="16" fill="rgba(168,85,247,0.3)" stroke="#a855f7"/>
+      <text x="100" y="28" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="16" font-weight="900" fill="#a855f7">Contact Sales</text>
+      <text x="100" y="48" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="12" fill="#94a3b8">Enterprise plans</text>
+    </g>
+  </g>
+  
+  <g transform="translate(120 670)">
+    <text x="420" y="30" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="22" font-weight="900" fill="#ffffff">📱 Connect With Us</text>
+    
+    <g transform="translate(0 55)">
+      <rect width="200" height="100" rx="20" fill="rgba(59,130,246,0.1)" stroke="#3b82f6"/>
+      <text x="100" y="40" text-anchor="middle" font-size="32">🌐</text>
+      <text x="100" y="70" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="14" font-weight="700" fill="#ffffff">Website</text>
+      <text x="100" y="90" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="12" fill="#3b82f6">continuum.hr</text>
+    </g>
+    
+    <g transform="translate(220 55)">
+      <rect width="200" height="100" rx="20" fill="rgba(14,165,233,0.1)" stroke="#0ea5e9"/>
+      <text x="100" y="40" text-anchor="middle" font-size="32">🐦</text>
+      <text x="100" y="70" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="14" font-weight="700" fill="#ffffff">Twitter/X</text>
+      <text x="100" y="90" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="12" fill="#0ea5e9">@ContinuumHR</text>
+    </g>
+    
+    <g transform="translate(440 55)">
+      <rect width="200" height="100" rx="20" fill="rgba(59,130,246,0.1)" stroke="#0077b5"/>
+      <text x="100" y="40" text-anchor="middle" font-size="32">💼</text>
+      <text x="100" y="70" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="14" font-weight="700" fill="#ffffff">LinkedIn</text>
+      <text x="100" y="90" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="12" fill="#0077b5">/company/continuum</text>
+    </g>
+    
+    <g transform="translate(660 55)">
+      <rect width="160" height="100" rx="20" fill="rgba(16,185,129,0.1)" stroke="#10b981"/>
+      <text x="80" y="40" text-anchor="middle" font-size="32">📧</text>
+      <text x="80" y="70" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="14" font-weight="700" fill="#ffffff">Email</text>
+      <text x="80" y="90" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="11" fill="#10b981">hello@continuum.hr</text>
+    </g>
+  </g>
+  
+  <g transform="translate(120 880)">
+    <rect width="840" height="160" rx="28" fill="rgba(255,255,255,0.03)" stroke="url(#warm)" stroke-width="2"/>
+    
+    <text x="420" y="45" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="22" font-weight="900" fill="#ffffff">✨ Quick Recap</text>
+    
+    <g transform="translate(60 70)">
+      <text x="0" y="20" font-size="20">🤖</text>
+      <text x="35" y="20" font-family="Inter,system-ui,sans-serif" font-size="14" fill="#ffffff">5 AI Agents</text>
+    </g>
+    
+    <g transform="translate(180 70)">
+      <text x="0" y="20" font-size="20">💰</text>
+      <text x="35" y="20" font-family="Inter,system-ui,sans-serif" font-size="14" fill="#ffffff">Global Payroll</text>
+    </g>
+    
+    <g transform="translate(320 70)">
+      <text x="0" y="20" font-size="20">🛡️</text>
+      <text x="35" y="20" font-family="Inter,system-ui,sans-serif" font-size="14" fill="#ffffff">Enterprise Security</text>
+    </g>
+    
+    <g transform="translate(490 70)">
+      <text x="0" y="20" font-size="20">📊</text>
+      <text x="35" y="20" font-family="Inter,system-ui,sans-serif" font-size="14" fill="#ffffff">Real-Time Analytics</text>
+    </g>
+    
+    <g transform="translate(670 70)">
+      <text x="0" y="20" font-size="20">🔗</text>
+      <text x="35" y="20" font-family="Inter,system-ui,sans-serif" font-size="14" fill="#ffffff">200+ Integrations</text>
+    </g>
+    
+    <text x="420" y="120" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="18" font-weight="700" fill="url(#warm)">All in one platform. Zero complexity.</text>
+  </g>
+  
+  <g transform="translate(120 1080)">
+    <rect width="840" height="120" rx="28" fill="url(#warm)" opacity="0.95"/>
+    <text x="420" y="45" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="32" font-weight="900" fill="#ffffff">🎉 See You Inside!</text>
+    <text x="420" y="80" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="18" font-weight="700" fill="rgba(255,255,255,0.9)">Start your 30-day free trial at continuum.hr</text>
+    <text x="420" y="105" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="14" fill="rgba(255,255,255,0.8)">No credit card required • Cancel anytime</text>
+  </g>
+  
+  <g transform="translate(100 1240)">
+    <text x="0" y="50" font-family="Inter,system-ui,sans-serif" font-size="48" font-weight="900" fill="#ffffff">Continuum</text>
+    <text x="0" y="85" font-family="Inter,system-ui,sans-serif" font-size="20" font-weight="600" fill="#64748b">AI-Powered Enterprise HR Platform</text>
+    <text x="780" y="70" font-size="50">🎉💜🚀</text>
+  </g>
+</svg>
