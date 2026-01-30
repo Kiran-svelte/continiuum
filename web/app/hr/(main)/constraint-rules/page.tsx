@@ -150,7 +150,10 @@ export default function ConstraintRulesPage() {
             setError(null);
             
             // First try to initialize if needed
-            await initializeCompanyRules();
+            const initResult = await initializeCompanyRules();
+            if (!initResult.success) {
+                console.error("Init failed:", initResult.error);
+            }
             
             const result = await getCompanyConstraintRules();
             if (result.success && result.rules) {
@@ -158,9 +161,9 @@ export default function ConstraintRulesPage() {
             } else {
                 setError(result.error || "Failed to load rules");
             }
-        } catch (err) {
+        } catch (err: any) {
             console.error("Error fetching rules:", err);
-            setError("Unable to load constraint rules");
+            setError(err?.message || "Unable to load constraint rules. Please try again.");
         } finally {
             setLoading(false);
         }

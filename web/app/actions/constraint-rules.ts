@@ -114,8 +114,12 @@ export async function initializeCompanyRules(): Promise<{
             include: { company: true }
         });
 
-        if (!employee?.org_id) {
-            return { success: false, error: "Employee not found" };
+        if (!employee) {
+            return { success: false, error: "Employee profile not found" };
+        }
+        
+        if (!employee.org_id) {
+            return { success: false, error: "No organization found. Please complete company setup." };
         }
 
         // Check if policy already exists
