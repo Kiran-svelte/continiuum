@@ -3,6 +3,11 @@ import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { checkApiRateLimit, rateLimitedResponse } from "@/lib/api-rate-limit";
 import { aiLogger } from "@/lib/logger";
+import { withRetry, getCircuitBreaker } from "@/lib/reliability";
+import { sanitizeInput, safeStringSchema } from "@/lib/integrity";
+
+// 🔄 ENTERPRISE: Circuit breaker for AI engine
+const aiCircuitBreaker = getCircuitBreaker('ai-engine');
 
 // Helper function to format date as YYYY-MM-DD without timezone conversion
 function formatDateLocal(date: Date): string {

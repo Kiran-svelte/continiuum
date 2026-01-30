@@ -5,6 +5,9 @@ import { currentUser } from "@clerk/nextjs/server";
 import { analyzeLeaveRequest, AIAnalysisResult } from "./leave-constraints";
 import { revalidatePath } from "next/cache";
 import { sendHRNewLeaveRequestEmail, sendLeaveApprovalEmail, sendLeaveSubmissionEmail } from "@/lib/email-service";
+import { withRetry } from "@/lib/reliability";
+import { leaveRequestSchema, sanitizeInput } from "@/lib/integrity";
+import { logAudit, AuditAction } from "@/lib/audit";
 
 /**
  * Calculate actual working days between two dates
@@ -105,12 +108,13 @@ export async function submitLeaveRequest(formData: {
     // Get the specific leave type configuration
     const leaveTypeConfig = companyLeaveTypes.find(lt => lt.code.toUpperCase() === requestedType);
 
-    // 4. Validate reason
-    if (!formData.reason || typeof formData.reason !== 'string' || formData.reason.trim().length < 5) {
+    // 4. 🛡️ ENTERPRISE: Sanitize and validate reason with integrity checks
+    const sanitizedReason = sanitizeInput(formData.reason || '');
+    if (!sanitizedReason || sanitizedReason.trim().length < 5) {
         return { success: false, error: "Reason must be at least 5 characters" };
     }
 
-    if (formData.reason.length > 1000) {
+    if (sanitizedReason.length > 1000) {
         return { success: false, error: "Reason must not exceed 1000 characters" };
     }
 

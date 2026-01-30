@@ -9,6 +9,7 @@ import { GlobalErrorBoundary } from "@/components/ui/error-boundary";
 import { ScrollToTop } from "@/components/ui/scroll-to-top";
 import { ScreenReaderAnnouncer } from "@/lib/accessibility";
 import { ThemeProvider, ThemeScript } from "@/lib/theme/theme-provider";
+import { ConsentBanner } from "@/components/enterprise/ConsentBanner";
 import "./globals.css";
 
 import { Inter } from "next/font/google";
@@ -60,6 +61,7 @@ export default async function RootLayout({
                 {children}
                 <ScrollToTop />
                 <ScreenReaderAnnouncer />
+                <ConsentBanner />
               </ConfirmProvider>
             </GlobalErrorBoundary>
             <Analytics />

@@ -357,3 +357,65 @@ export function getFirstErrors(error: z.ZodError): Record<string, string> {
 
 // Re-export Zod for convenience
 export { z } from 'zod';
+
+// ============================================================
+// TYPE-SAFE VALIDATION HELPERS
+// ============================================================
+
+export interface ValidationResult<T> {
+  success: boolean;
+  data?: T;
+  errors?: Array<{ field: string; message: string }>;
+}
+
+/**
+ * Validate a leave request with full type safety
+ */
+export function validateLeaveRequest(data: unknown): ValidationResult<z.infer<typeof leaveRequestSchema>> {
+  const result = leaveRequestSchema.safeParse(data);
+  if (result.success) {
+    return { success: true, data: result.data };
+  }
+  return {
+    success: false,
+    errors: result.error.issues.map(issue => ({
+      field: issue.path.join('.'),
+      message: issue.message
+    }))
+  };
+}
+
+/**
+ * Validate employee data with full type safety
+ */
+export function validateEmployee(data: unknown): ValidationResult<z.infer<typeof employeeSchema>> {
+  const result = employeeSchema.safeParse(data);
+  if (result.success) {
+    return { success: true, data: result.data };
+  }
+  return {
+    success: false,
+    errors: result.error.issues.map(issue => ({
+      field: issue.path.join('.'),
+      message: issue.message
+    }))
+  };
+}
+
+/**
+ * Validate company data with full type safety
+ */
+export function validateCompany(data: unknown): ValidationResult<z.infer<typeof companySchema>> {
+  const result = companySchema.safeParse(data);
+  if (result.success) {
+    return { success: true, data: result.data };
+  }
+  return {
+    success: false,
+    errors: result.error.issues.map(issue => ({
+      field: issue.path.join('.'),
+      message: issue.message
+    }))
+  };
+}
+
