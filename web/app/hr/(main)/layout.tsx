@@ -15,20 +15,27 @@ export default async function DashboardLayout({
     }
 
     // Check employee exists and has completed onboarding
-    const employee = await prisma.employee.findUnique({
-        where: { clerk_id: user.id },
-        select: {
-            org_id: true,
-            role: true,
-            onboarding_status: true,
-            onboarding_completed: true,
-            terms_accepted_at: true,
-            approval_status: true,
-            company: {
-                select: { id: true, name: true }
+    let employee;
+    try {
+        employee = await prisma.employee.findUnique({
+            where: { clerk_id: user.id },
+            select: {
+                org_id: true,
+                role: true,
+                onboarding_status: true,
+                onboarding_completed: true,
+                terms_accepted_at: true,
+                approval_status: true,
+                company: {
+                    select: { id: true, name: true }
+                }
             }
-        }
-    });
+        });
+    } catch (error) {
+        console.error("[HR Layout] Database error:", error);
+        // On database error, redirect to onboarding to avoid crash
+        return redirect("/onboarding?intent=hr");
+    }
 
     // No employee record - redirect to onboarding
     if (!employee) {
