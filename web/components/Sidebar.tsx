@@ -48,8 +48,8 @@ export default function Sidebar() {
         { href: "/hr/attendance", label: "Attendance", icon: Clock },
         { href: "/hr/employees", label: "Employees", icon: Users },
         { href: "/hr/payroll", label: "Payroll", icon: Wallet },
+        { href: "/hr/settings", label: "Company Settings", icon: Settings },
         { href: "/hr/constraint-rules", label: "Constraint Rules", icon: ShieldAlert },
-        { href: "/hr/policy-settings", label: "Legacy Policy", icon: Settings },
         { href: "/hr/holiday-settings", label: "Holiday Calendar", icon: Calendar },
         { href: "/hr/notification-settings", label: "Email Notifications", icon: Bell },
     ];
