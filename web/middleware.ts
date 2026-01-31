@@ -54,7 +54,7 @@ const isPublicRoute = createRouteMatcher([
     '/api/platform(.*)', // Platform stats for marketing page - public
     '/api/cron(.*)',
     '/api/admin(.*)',
-    '/api/debug(.*)   ',
+    '/api/debug(.*)',
     '/api/security(.*)',
     '/api/enterprise(.*)',
     '/api/waitlist(.*)',
