@@ -12,7 +12,6 @@ import { toast } from "sonner";
 import { useConfirm } from "@/components/ui/confirm-provider";
 import {
     getCompanyConstraintRules,
-    initializeCompanyRules,
     toggleRuleStatus,
     updateRuleConfig,
     createCustomRule,
@@ -148,21 +147,29 @@ export default function ConstraintRulesPage() {
             setLoading(true);
             setError(null);
             
-            // First try to initialize if needed
-            const initResult = await initializeCompanyRules();
-            if (!initResult.success) {
-                console.error("Init failed:", initResult.error);
-            }
-            
+            // Get the rules first - this will auto-initialize if needed
             const result = await getCompanyConstraintRules();
             if (result.success && result.rules) {
                 setRules(result.rules);
             } else {
-                setError(result.error || "Failed to load rules");
+                // Provide user-friendly error messages
+                const errorMessage = result.error || "Failed to load rules";
+                // Check if it's the generic Next.js server error
+                if (errorMessage.includes("Server Components") || errorMessage.includes("omitted in production")) {
+                    setError("Unable to connect to the server. Please check your connection and try again.");
+                } else {
+                    setError(errorMessage);
+                }
             }
         } catch (err: any) {
             console.error("Error fetching rules:", err);
-            setError(err?.message || "Unable to load constraint rules. Please try again.");
+            // Handle the generic Next.js error message
+            const errMsg = err?.message || "";
+            if (errMsg.includes("Server Components") || errMsg.includes("omitted in production")) {
+                setError("Unable to connect to the server. Please check your connection and try again.");
+            } else {
+                setError(errMsg || "Unable to load constraint rules. Please try again.");
+            }
         } finally {
             setLoading(false);
         }

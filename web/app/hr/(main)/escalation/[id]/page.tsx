@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { getEscalationDetail, updateLeaveRequestStatus } from '@/app/actions/hr';
 import { ArrowLeft, AlertTriangle, CheckCircle2, XCircle, MessageCircle, Loader2 } from 'lucide-react';
 
-export default function EscalationDetailPage({ params }: { params: { id: string } }) {
+export default function EscalationDetailPage({ params }: { params: Promise<{ id: string }> }) {
+    const { id } = use(params);
     const router = useRouter();
     const [escalation, setEscalation] = useState<any>(null);
     const [loading, setLoading] = useState(true);
@@ -15,7 +16,7 @@ export default function EscalationDetailPage({ params }: { params: { id: string 
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const result = await getEscalationDetail(params.id);
+                const result = await getEscalationDetail(id);
                 if (result.success && result.escalation) {
                     setEscalation(result.escalation);
                 } else {
@@ -27,12 +28,12 @@ export default function EscalationDetailPage({ params }: { params: { id: string 
             setLoading(false);
         };
         fetchData();
-    }, [params.id]);
+    }, [id]);
 
     const handleAction = async (action: 'approved' | 'rejected') => {
         setActionLoading(true);
         try {
-            const result = await updateLeaveRequestStatus(params.id, action);
+            const result = await updateLeaveRequestStatus(id, action);
             if (result.success) {
                 router.push('/hr/leave-requests');
             } else {

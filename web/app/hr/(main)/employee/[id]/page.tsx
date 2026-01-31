@@ -3,10 +3,13 @@ import { notFound } from "next/navigation";
 import { ShieldCheck, Calendar, Activity, TrendingUp, AlertCircle, CheckCircle, Sparkles, ArrowRight, AlertTriangle } from "lucide-react";
 import { EmployeeQuickActions } from "@/components/hr/EmployeeQuickActions";
 
-export default async function EmployeeDeepDivePage({ params }: { params: { id: string } }) {
+export default async function EmployeeDeepDivePage({ params }: { params: Promise<{ id: string }> }) {
+    // Await params in Next.js 15+
+    const { id } = await params;
+    
     // 1. Fetch Data
     const employee = await prisma.employee.findUnique({
-        where: { emp_id: params.id },
+        where: { emp_id: id },
         include: {
             leave_balances: true,
             leave_requests: {

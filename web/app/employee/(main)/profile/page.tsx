@@ -7,12 +7,20 @@ import { User, Mail, Briefcase, Building2, Calendar, BadgeCheck, Hash } from 'lu
 export default function ProfilePage() {
     const [profile, setProfile] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         async function load() {
-            const res = await getEmployeeProfile();
-            if (res.success && res.profile) {
-                setProfile(res.profile);
+            try {
+                const res = await getEmployeeProfile();
+                if (res.success && res.profile) {
+                    setProfile(res.profile);
+                } else {
+                    setError(res.error || 'Failed to load profile');
+                }
+            } catch (err) {
+                console.error("Failed to load profile:", err);
+                setError('An unexpected error occurred');
             }
             setLoading(false);
         }
@@ -27,8 +35,8 @@ export default function ProfilePage() {
         );
     }
 
-    if (!profile) {
-        return <div className="text-center text-red-500 mt-10">Failed to load profile.</div>;
+    if (error || !profile) {
+        return <div className="text-center text-red-500 mt-10">{error || 'Failed to load profile.'}</div>;
     }
 
     return (
