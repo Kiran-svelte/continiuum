@@ -12,9 +12,11 @@ import { prisma } from "@/lib/prisma";
 export async function GET(request: NextRequest) {
   try {
     const user = await currentUser();
+    console.log("[Employee Profile] Clerk user:", user?.id || "null");
+    
     if (!user) {
       return NextResponse.json(
-        { success: false, error: "Unauthorized" },
+        { success: false, error: "Unauthorized - Please sign in" },
         { status: 401 }
       );
     }
@@ -52,9 +54,11 @@ export async function GET(request: NextRequest) {
       },
     });
 
+    console.log("[Employee Profile] Found employee:", employee?.emp_id || "null");
+
     if (!employee) {
       return NextResponse.json(
-        { success: false, error: "Employee not found" },
+        { success: false, error: `Employee not found for Clerk ID: ${user.id}` },
         { status: 404 }
       );
     }

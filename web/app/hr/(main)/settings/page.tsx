@@ -404,8 +404,19 @@ export default function HRSettingsPage() {
             try {
                 // First get company ID from employee
                 const empRes = await fetch("/api/employee/profile");
-                if (!empRes.ok) throw new Error("Failed to fetch profile");
                 const empData = await empRes.json();
+                
+                if (!empRes.ok) {
+                    setError(empData.error || `Failed to fetch profile (${empRes.status})`);
+                    setLoading(false);
+                    return;
+                }
+                
+                if (!empData.success) {
+                    setError(empData.error || "Failed to fetch profile");
+                    setLoading(false);
+                    return;
+                }
                 
                 if (!empData.employee?.org_id) {
                     setError("Company not found. Please complete onboarding first.");
