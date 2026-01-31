@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     Clock,
@@ -23,7 +23,11 @@ import {
     Gauge,
     Save,
     Loader2,
-    RefreshCw
+    RefreshCw,
+    Lock,
+    Mail,
+    KeyRound,
+    ShieldCheck
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -74,6 +78,25 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+
+// =========================================================================
+// OTP VERIFICATION TYPES
+// =========================================================================
+type OtpAction = 
+    | "work_schedule_change" 
+    | "leave_type_create" 
+    | "leave_type_delete" 
+    | "rule_change" 
+    | "settings_change";
+
+interface OtpState {
+    isVerifying: boolean;
+    isSending: boolean;
+    action: OtpAction | null;
+    pendingCallback: (() => Promise<void>) | null;
+    expiresAt: Date | null;
+    error: string | null;
+}
 
 // =========================================================================
 // TYPE DEFINITIONS
@@ -224,6 +247,94 @@ export default function HRSettingsPage() {
         is_paid: true,
     });
 
+    // OTP Verification state
+    const [showOtpDialog, setShowOtpDialog] = useState(false);
+    const [otpCode, setOtpCode] = useState("");
+    const [otpState, setOtpState] = useState<OtpState>({
+        isVerifying: false,
+        isSending: false,
+        action: null,
+        pendingCallback: null,
+        expiresAt: null,
+        error: null,
+    });
+
+    // Send OTP for verification
+    const sendOtp = useCallback(async (action: OtpAction, callback: () => Promise<void>) => {
+        setOtpState(prev => ({ ...prev, isSending: true, error: null, action, pendingCallback: () => callback() }));
+        setOtpCode("");
+        
+        try {
+            const res = await fetch("/api/security/otp/send", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action }),
+            });
+            
+            const data = await res.json();
+            
+            if (!res.ok || !data.success) {
+                throw new Error(data.error || "Failed to send OTP");
+            }
+            
+            setOtpState(prev => ({
+                ...prev,
+                isSending: false,
+                expiresAt: new Date(data.expiresAt),
+            }));
+            setShowOtpDialog(true);
+            setSuccess("Verification code sent to your email!");
+        } catch (err: any) {
+            setOtpState(prev => ({ ...prev, isSending: false, error: err.message }));
+            setError(err.message || "Failed to send verification code");
+        }
+    }, []);
+
+    // Verify OTP and execute pending callback
+    const verifyOtpAndProceed = useCallback(async () => {
+        if (!otpCode || otpCode.length !== 6) {
+            setOtpState(prev => ({ ...prev, error: "Please enter a 6-digit code" }));
+            return;
+        }
+        
+        setOtpState(prev => ({ ...prev, isVerifying: true, error: null }));
+        
+        try {
+            const res = await fetch("/api/security/otp/verify", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ 
+                    action: otpState.action, 
+                    code: otpCode 
+                }),
+            });
+            
+            const data = await res.json();
+            
+            if (!res.ok || !data.success) {
+                throw new Error(data.error || "Invalid verification code");
+            }
+            
+            // OTP verified - execute the pending callback
+            setShowOtpDialog(false);
+            if (otpState.pendingCallback) {
+                await otpState.pendingCallback();
+            }
+            
+            setOtpState({
+                isVerifying: false,
+                isSending: false,
+                action: null,
+                pendingCallback: null,
+                expiresAt: null,
+                error: null,
+            });
+            setOtpCode("");
+        } catch (err: any) {
+            setOtpState(prev => ({ ...prev, isVerifying: false, error: err.message }));
+        }
+    }, [otpCode, otpState.action, otpState.pendingCallback]);
+
     // Fetch company settings on mount
     useEffect(() => {
         async function loadSettings() {
@@ -289,62 +400,71 @@ export default function HRSettingsPage() {
         loadSettings();
     }, []);
 
-    // Save handlers
+    // Save handlers - NOW WITH OTP VERIFICATION
     const handleSaveWorkSchedule = async () => {
-        setSaving("workSchedule");
-        setError(null);
-        setSuccess(null);
-        
-        try {
-            const result = await saveWorkSchedule(companyId, workSchedule);
-            if (result.success) {
-                setSuccess("Work schedule saved successfully!");
-            } else {
-                setError(result.error || "Failed to save work schedule");
+        // Require OTP verification for work schedule changes
+        await sendOtp("work_schedule_change", async () => {
+            setSaving("workSchedule");
+            setError(null);
+            setSuccess(null);
+            
+            try {
+                const result = await saveWorkSchedule(companyId, workSchedule);
+                if (result.success) {
+                    setSuccess("✅ Work schedule saved successfully! (OTP Verified)");
+                } else {
+                    setError(result.error || "Failed to save work schedule");
+                }
+            } catch (err: any) {
+                setError(err.message || "Failed to save work schedule");
+            } finally {
+                setSaving(null);
             }
-        } catch (err: any) {
-            setError(err.message || "Failed to save work schedule");
-        } finally {
-            setSaving(null);
-        }
+        });
     };
 
     const handleSaveLeaveSettings = async () => {
-        setSaving("leaveSettings");
-        setError(null);
-        setSuccess(null);
-        
-        try {
-            const result = await saveLeaveSettings(companyId, leaveSettings);
-            if (result.success) {
-                setSuccess("Leave settings saved successfully!");
-            } else {
-                setError(result.error || "Failed to save leave settings");
+        // Require OTP verification for leave settings changes
+        await sendOtp("settings_change", async () => {
+            setSaving("leaveSettings");
+            setError(null);
+            setSuccess(null);
+            
+            try {
+                const result = await saveLeaveSettings(companyId, leaveSettings);
+                if (result.success) {
+                    setSuccess("✅ Leave settings saved successfully! (OTP Verified)");
+                } else {
+                    setError(result.error || "Failed to save leave settings");
+                }
+            } catch (err: any) {
+                setError(err.message || "Failed to save leave settings");
+            } finally {
+                setSaving(null);
             }
-        } catch (err: any) {
-            setError(err.message || "Failed to save leave settings");
-        } finally {
-            setSaving(null);
-        }
+        });
     };
 
     const handleSaveApprovalSettings = async () => {
-        setSaving("approvalSettings");
-        setError(null);
-        setSuccess(null);
-        
-        try {
-            const result = await saveApprovalSettings(companyId, approvalSettings);
-            if (result.success) {
-                setSuccess("Approval settings saved successfully!");
-            } else {
-                setError(result.error || "Failed to save approval settings");
+        // Require OTP verification for approval rule changes
+        await sendOtp("rule_change", async () => {
+            setSaving("approvalSettings");
+            setError(null);
+            setSuccess(null);
+            
+            try {
+                const result = await saveApprovalSettings(companyId, approvalSettings);
+                if (result.success) {
+                    setSuccess("✅ Approval settings saved successfully! (OTP Verified)");
+                } else {
+                    setError(result.error || "Failed to save approval settings");
+                }
+            } catch (err: any) {
+                setError(err.message || "Failed to save approval settings");
+            } finally {
+                setSaving(null);
             }
-        } catch (err: any) {
-            setError(err.message || "Failed to save approval settings");
-        } finally {
-            setSaving(null);
-        }
+        });
     };
 
     // Leave Type handlers
@@ -390,78 +510,84 @@ export default function HRSettingsPage() {
     };
 
     const handleSaveLeaveType = async () => {
-        setSaving("leaveType");
-        setError(null);
-        
-        try {
-            if (editingLeaveType) {
-                // Update existing - updateLeaveType only takes (leaveTypeId, data)
-                const result = await updateLeaveType(editingLeaveType.id, leaveTypeForm);
-                if (result.success) {
-                    setLeaveTypes(prev => prev.map(lt => 
-                        lt.id === editingLeaveType.id 
-                            ? { ...lt, ...leaveTypeForm } as LeaveType
-                            : lt
-                    ));
-                    setSuccess("Leave type updated successfully!");
-                    setShowLeaveTypeDialog(false);
+        // Require OTP verification for leave type changes
+        await sendOtp("leave_type_create", async () => {
+            setSaving("leaveType");
+            setError(null);
+            
+            try {
+                if (editingLeaveType) {
+                    // Update existing - updateLeaveType only takes (leaveTypeId, data)
+                    const result = await updateLeaveType(editingLeaveType.id, leaveTypeForm);
+                    if (result.success) {
+                        setLeaveTypes(prev => prev.map(lt => 
+                            lt.id === editingLeaveType.id 
+                                ? { ...lt, ...leaveTypeForm } as LeaveType
+                                : lt
+                        ));
+                        setSuccess("✅ Leave type updated successfully! (OTP Verified)");
+                        setShowLeaveTypeDialog(false);
+                    } else {
+                        setError(result.error || "Failed to update leave type");
+                    }
                 } else {
-                    setError(result.error || "Failed to update leave type");
+                    // Create new
+                    const result = await createLeaveType(companyId, leaveTypeForm);
+                    if (result.success && result.leaveType) {
+                        // Convert Decimal to number for annual_quota
+                        const newLeaveType: LeaveType = {
+                            id: result.leaveType.id,
+                            code: result.leaveType.code,
+                            name: result.leaveType.name,
+                            description: result.leaveType.description,
+                            color: result.leaveType.color,
+                            annual_quota: Number(result.leaveType.annual_quota),
+                            max_consecutive: result.leaveType.max_consecutive,
+                            min_notice_days: result.leaveType.min_notice_days,
+                            requires_document: result.leaveType.requires_document,
+                            requires_approval: result.leaveType.requires_approval,
+                            half_day_allowed: result.leaveType.half_day_allowed,
+                            gender_specific: result.leaveType.gender_specific as 'M' | 'F' | 'O' | null,
+                            carry_forward: result.leaveType.carry_forward,
+                            max_carry_forward: result.leaveType.max_carry_forward,
+                            is_paid: result.leaveType.is_paid,
+                        };
+                        setLeaveTypes(prev => [...prev, newLeaveType]);
+                        setSuccess("✅ Leave type created successfully! (OTP Verified)");
+                        setShowLeaveTypeDialog(false);
+                    } else {
+                        setError(result.error || "Failed to create leave type");
+                    }
                 }
-            } else {
-                // Create new
-                const result = await createLeaveType(companyId, leaveTypeForm);
-                if (result.success && result.leaveType) {
-                    // Convert Decimal to number for annual_quota
-                    const newLeaveType: LeaveType = {
-                        id: result.leaveType.id,
-                        code: result.leaveType.code,
-                        name: result.leaveType.name,
-                        description: result.leaveType.description,
-                        color: result.leaveType.color,
-                        annual_quota: Number(result.leaveType.annual_quota),
-                        max_consecutive: result.leaveType.max_consecutive,
-                        min_notice_days: result.leaveType.min_notice_days,
-                        requires_document: result.leaveType.requires_document,
-                        requires_approval: result.leaveType.requires_approval,
-                        half_day_allowed: result.leaveType.half_day_allowed,
-                        gender_specific: result.leaveType.gender_specific as 'M' | 'F' | 'O' | null,
-                        carry_forward: result.leaveType.carry_forward,
-                        max_carry_forward: result.leaveType.max_carry_forward,
-                        is_paid: result.leaveType.is_paid,
-                    };
-                    setLeaveTypes(prev => [...prev, newLeaveType]);
-                    setSuccess("Leave type created successfully!");
-                    setShowLeaveTypeDialog(false);
-                } else {
-                    setError(result.error || "Failed to create leave type");
-                }
+            } catch (err: any) {
+                setError(err.message || "Failed to save leave type");
+            } finally {
+                setSaving(null);
             }
-        } catch (err: any) {
-            setError(err.message || "Failed to save leave type");
-        } finally {
-            setSaving(null);
-        }
+        });
     };
 
     const handleDeleteLeaveType = async (id: string) => {
-        if (!confirm("Are you sure you want to delete this leave type?")) return;
+        if (!confirm("Are you sure you want to delete this leave type? This requires OTP verification.")) return;
         
-        setSaving("leaveType");
-        try {
-            // deleteLeaveType only takes leaveTypeId
-            const result = await deleteLeaveType(id);
-            if (result.success) {
-                setLeaveTypes(prev => prev.filter(lt => lt.id !== id));
-                setSuccess("Leave type deleted successfully!");
-            } else {
-                setError(result.error || "Failed to delete leave type");
+        // Require OTP verification for deletion
+        await sendOtp("leave_type_delete", async () => {
+            setSaving("leaveType");
+            try {
+                // deleteLeaveType only takes leaveTypeId
+                const result = await deleteLeaveType(id);
+                if (result.success) {
+                    setLeaveTypes(prev => prev.filter(lt => lt.id !== id));
+                    setSuccess("✅ Leave type deleted successfully! (OTP Verified)");
+                } else {
+                    setError(result.error || "Failed to delete leave type");
+                }
+            } catch (err: any) {
+                setError(err.message || "Failed to delete leave type");
+            } finally {
+                setSaving(null);
             }
-        } catch (err: any) {
-            setError(err.message || "Failed to delete leave type");
-        } finally {
-            setSaving(null);
-        }
+        });
     };
 
     // Toggle work day
@@ -494,6 +620,98 @@ export default function HRSettingsPage() {
 
     return (
         <div className="space-y-6">
+            {/* OTP Verification Dialog */}
+            <Dialog open={showOtpDialog} onOpenChange={setShowOtpDialog}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <ShieldCheck className="h-5 w-5 text-purple-500" />
+                            Security Verification Required
+                        </DialogTitle>
+                        <DialogDescription>
+                            For your security, please enter the 6-digit verification code sent to your email.
+                        </DialogDescription>
+                    </DialogHeader>
+                    
+                    <div className="space-y-4 py-4">
+                        {/* Security Badge */}
+                        <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-3 flex items-start gap-3">
+                            <Lock className="h-5 w-5 text-purple-500 mt-0.5" />
+                            <div className="text-sm">
+                                <p className="font-medium text-purple-700 dark:text-purple-300">
+                                    Why verification?
+                                </p>
+                                <p className="text-purple-600 dark:text-purple-400 mt-1">
+                                    Changing company settings affects all employees. OTP verification ensures only authorized personnel can make these changes.
+                                </p>
+                            </div>
+                        </div>
+                        
+                        {/* OTP Input */}
+                        <div className="space-y-2">
+                            <Label htmlFor="otp-code" className="flex items-center gap-2">
+                                <KeyRound className="h-4 w-4" />
+                                Verification Code
+                            </Label>
+                            <Input
+                                id="otp-code"
+                                type="text"
+                                maxLength={6}
+                                placeholder="Enter 6-digit code"
+                                value={otpCode}
+                                onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                                className="text-center text-2xl tracking-[0.5em] font-mono"
+                                autoFocus
+                            />
+                            {otpState.expiresAt && (
+                                <p className="text-xs text-gray-500 flex items-center gap-1">
+                                    <Clock className="h-3 w-3" />
+                                    Code expires at {otpState.expiresAt.toLocaleTimeString()}
+                                </p>
+                            )}
+                        </div>
+                        
+                        {/* Error Message */}
+                        {otpState.error && (
+                            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3 flex items-center gap-2">
+                                <AlertCircle className="h-4 w-4 text-red-500" />
+                                <p className="text-sm text-red-700 dark:text-red-300">{otpState.error}</p>
+                            </div>
+                        )}
+                    </div>
+                    
+                    <DialogFooter className="flex gap-2">
+                        <Button 
+                            variant="outline" 
+                            onClick={() => {
+                                setShowOtpDialog(false);
+                                setOtpCode("");
+                                setOtpState(prev => ({ ...prev, error: null }));
+                            }}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            onClick={verifyOtpAndProceed}
+                            disabled={otpState.isVerifying || otpCode.length !== 6}
+                            className="bg-purple-600 hover:bg-purple-700"
+                        >
+                            {otpState.isVerifying ? (
+                                <>
+                                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                    Verifying...
+                                </>
+                            ) : (
+                                <>
+                                    <Check className="h-4 w-4 mr-2" />
+                                    Verify & Save
+                                </>
+                            )}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
@@ -501,6 +719,11 @@ export default function HRSettingsPage() {
                     <p className="text-gray-500 dark:text-gray-400 mt-1">
                         Configure work schedules, leave types, and approval rules
                     </p>
+                </div>
+                {/* Security Badge */}
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-full">
+                    <ShieldCheck className="h-4 w-4 text-green-500" />
+                    <span className="text-xs font-medium text-green-700 dark:text-green-300">OTP Protected</span>
                 </div>
             </div>
 

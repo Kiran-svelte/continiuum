@@ -23,9 +23,9 @@ export default function EmployeeDashboard() {
     const [data, setData] = useState({
         leaveBalance: 0,
         annualBalance: 0,
-        annualTotal: 20,
+        annualTotal: 0, // Will be fetched from DB dynamically
         sickBalance: 0,
-        sickTotal: 10,
+        sickTotal: 0, // Will be fetched from DB dynamically
         attendance: "0%",
         pendingRequests: 0,
         performance: "N/A",
@@ -93,9 +93,9 @@ export default function EmployeeDashboard() {
                 setData({
                     leaveBalance: statsRes.stats.leaveBalance,
                     annualBalance: statsRes.stats.annualBalance,
-                    annualTotal: statsRes.stats.annualTotal || 20,
+                    annualTotal: statsRes.stats.annualTotal || 0, // Default to 0, not hardcoded
                     sickBalance: statsRes.stats.sickBalance,
-                    sickTotal: statsRes.stats.sickTotal || 10,
+                    sickTotal: statsRes.stats.sickTotal || 0, // Default to 0, not hardcoded
                     attendance: statsRes.stats.attendance,
                     pendingRequests: statsRes.stats.pendingRequests,
                     performance: statsRes.stats.performance,

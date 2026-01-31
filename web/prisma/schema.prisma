@@ -788,3 +788,42 @@ model Testimonial {
 
   @@map("testimonials")
 }
+
+// 26. OTP Verification Tokens for Sensitive Operations
+model OtpToken {
+  id            String    @id @default(uuid())
+  user_id       String    // Clerk user ID
+  company_id    String    // Company ID for scoping
+  email         String    // Email where OTP was sent
+  code          String    // Hashed OTP code
+  action        String    // "settings_change", "delete_employee", "export_data"
+  context       Json?     // Additional context about the operation
+  attempts      Int       @default(0)  // Failed verification attempts
+  max_attempts  Int       @default(3)  // Max allowed attempts
+  expires_at    DateTime  // When the OTP expires
+  verified_at   DateTime? // When it was successfully verified
+  created_at    DateTime  @default(now())
+  
+  @@index([user_id, action])
+  @@index([email, code])
+  @@map("otp_tokens")
+}
+
+// 27. Settings Change Audit Log for security tracking
+model SettingsAuditLog {
+  id            String   @id @default(uuid())
+  company_id    String
+  user_id       String
+  user_email    String
+  action        String   // "work_schedule_changed", "leave_type_created", etc.
+  previous_value Json?   // What it was before
+  new_value     Json?    // What it changed to
+  otp_verified  Boolean  @default(false) // Was OTP verification used?
+  ip_address    String?
+  user_agent    String?
+  created_at    DateTime @default(now())
+  
+  @@index([company_id])
+  @@index([user_id])
+  @@map("settings_audit_logs")
+}

@@ -133,25 +133,13 @@ export async function getEmployeeProfile(): Promise<{ success: boolean; profile?
             };
         });
 
-        // 5. If no custom leave types, provide defaults
+        // 5. If no leave types configured, return error - HR must set them up
         if (leaveTypesWithBalance.length === 0) {
-            const defaultTypes = [
-                { code: "CL", name: "Casual Leave", color: "#6366f1", annual_quota: 12, max_consecutive: 3, min_notice_days: 1, half_day_allowed: true, is_paid: true },
-                { code: "SL", name: "Sick Leave", color: "#ef4444", annual_quota: 12, max_consecutive: 7, min_notice_days: 0, half_day_allowed: true, is_paid: true },
-                { code: "PL", name: "Privilege Leave", color: "#10b981", annual_quota: 15, max_consecutive: 15, min_notice_days: 7, half_day_allowed: false, is_paid: true },
-            ];
-            
-            for (const dt of defaultTypes) {
-                const balance = balanceMap.get(dt.code);
-                const used = balance ? Number(balance.used_days) : 0;
-                const pending = balance ? Number(balance.pending_days) : 0;
-                leaveTypesWithBalance.push({
-                    ...dt,
-                    balance: dt.annual_quota - used - pending,
-                    used,
-                    pending,
-                });
-            }
+            return {
+                success: false,
+                error: "No leave types configured for this company. Please contact HR to configure leave types.",
+                needsSetup: true
+            };
         }
 
         const company = employee.company;

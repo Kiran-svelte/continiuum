@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { isCalendarificConfigured } from "@/lib/holidays/calendarific";
 import { ensurePublicHolidaysCached } from "@/lib/holidays/cache";
+import { auth } from "@clerk/nextjs/server";
 
 interface CachedHoliday {
     id: string;
@@ -20,7 +21,39 @@ function toDateOnlyUTC(date: string): Date {
     return new Date(`${yyyyMmDd}T00:00:00.000Z`);
 }
 
+// Get company-specific custom holidays from database (stored in CompanySettings.custom_holidays JSON)
+async function getCompanyCustomHolidays(companyId: string, year: number): Promise<CachedHoliday[]> {
+    const settings = await prisma.companySettings.findUnique({
+        where: { company_id: companyId },
+        select: { custom_holidays: true }
+    });
+
+    if (!settings || !settings.custom_holidays) {
+        return [];
+    }
+
+    // custom_holidays is stored as JSON array: [{date: "2025-01-26", name: "Republic Day"}, ...]
+    const holidays = settings.custom_holidays as Array<{date: string, name: string}>;
+    
+    return holidays
+        .filter(h => {
+            const holidayYear = new Date(h.date).getFullYear();
+            return holidayYear === year;
+        })
+        .map((h, idx) => ({
+            id: `custom-${year}-${idx}`,
+            date: new Date(h.date + "T00:00:00.000Z"),
+            name: h.name,
+            local_name: h.name,
+            country_code: "CUSTOM",
+            year,
+            is_global: false,
+            types: ["company"]
+        }));
+}
+
 // Default Indian holidays when provider is not available.
+// NOTE: These are fallbacks only when no API configured AND no company holidays exist
 function getDefaultIndianHolidays(year: number): CachedHoliday[] {
     const defaults = [
         { month: 1, day: 1, name: "New Year's Day" },
@@ -75,11 +108,47 @@ export async function GET(req: NextRequest) {
         const upcoming = searchParams.get('upcoming') === 'true';
 
         const configured = isCalendarificConfigured();
+        
+        // Try to get company context for custom holidays
+        let companyId: string | null = null;
+        try {
+            const { userId } = await auth();
+            if (userId) {
+                const employee = await prisma.employee.findFirst({
+                    where: { clerk_id: userId },
+                    select: { org_id: true }
+                });
+                companyId = employee?.org_id || null;
+            }
+        } catch {
+            // Auth failed, continue without company context
+        }
 
         // If checking a specific date
         if (checkDate) {
             const dateObj = toDateOnlyUTC(checkDate);
             const targetYear = dateObj.getUTCFullYear();
+
+            // First check company custom holidays
+            if (companyId) {
+                const companyHolidays = await getCompanyCustomHolidays(companyId, targetYear);
+                const companyHoliday = companyHolidays.find(h => 
+                    h.date.toISOString().split("T")[0] === dateObj.toISOString().split("T")[0]
+                );
+                if (companyHoliday) {
+                    return NextResponse.json({
+                        success: true,
+                        provider: "company",
+                        configured: true,
+                        isHoliday: true,
+                        holiday: {
+                            date: dateObj.toISOString().split("T")[0],
+                            name: companyHoliday.name,
+                            localName: companyHoliday.name,
+                        },
+                    });
+                }
+            }
 
             if (configured) {
                 await ensurePublicHolidaysCached({ year: targetYear, countryCode }).catch(() => null);
@@ -115,14 +184,31 @@ export async function GET(req: NextRequest) {
             const todayUtc = toDateOnlyUTC(today.toISOString());
             const currentYear = todayUtc.getUTCFullYear();
 
-            const holidays = configured
+            // Get company custom holidays first
+            let companyHolidays: CachedHoliday[] = [];
+            if (companyId) {
+                companyHolidays = await getCompanyCustomHolidays(companyId, currentYear);
+            }
+
+            const publicHolidays = configured
                 ? await getCachedHolidays(currentYear, countryCode)
                 : countryCode === "IN"
                     ? getDefaultIndianHolidays(currentYear)
                     : [];
 
-            const upcomingHolidays = holidays
+            // Merge and deduplicate by date
+            const allHolidays = [...companyHolidays, ...publicHolidays];
+            const seenDates = new Set<string>();
+            const uniqueHolidays = allHolidays.filter(h => {
+                const dateStr = h.date.toISOString().split("T")[0];
+                if (seenDates.has(dateStr)) return false;
+                seenDates.add(dateStr);
+                return true;
+            });
+
+            const upcomingHolidays = uniqueHolidays
                 .filter((h) => h.date.getTime() >= todayUtc.getTime())
+                .sort((a, b) => a.date.getTime() - b.date.getTime())
                 .slice(0, 30)
                 .map((h) => ({
                     date: h.date.toISOString().split("T")[0],
@@ -132,27 +218,42 @@ export async function GET(req: NextRequest) {
 
             return NextResponse.json({
                 success: true,
-                provider: "calendarific",
+                provider: companyHolidays.length > 0 ? "company+calendarific" : "calendarific",
                 configured,
                 holidays: upcomingHolidays
             });
         }
 
         // Fetch all holidays for the year
-        const holidays = configured
+        let companyHolidays: CachedHoliday[] = [];
+        if (companyId) {
+            companyHolidays = await getCompanyCustomHolidays(companyId, year);
+        }
+
+        const publicHolidays = configured
             ? await getCachedHolidays(year, countryCode)
             : countryCode === "IN"
                 ? getDefaultIndianHolidays(year)
                 : [];
 
+        // Merge and deduplicate
+        const allHolidays = [...companyHolidays, ...publicHolidays];
+        const seenDates = new Set<string>();
+        const uniqueHolidays = allHolidays.filter(h => {
+            const dateStr = h.date.toISOString().split("T")[0];
+            if (seenDates.has(dateStr)) return false;
+            seenDates.add(dateStr);
+            return true;
+        }).sort((a, b) => a.date.getTime() - b.date.getTime());
+
         return NextResponse.json({
             success: true,
-            provider: "calendarific",
+            provider: companyHolidays.length > 0 ? "company+calendarific" : "calendarific",
             configured,
             year,
             countryCode,
-            total: holidays.length,
-            holidays: holidays.map((h: CachedHoliday) => ({
+            total: uniqueHolidays.length,
+            holidays: uniqueHolidays.map((h: CachedHoliday) => ({
                 id: h.id,
                 date: h.date,
                 name: h.name,

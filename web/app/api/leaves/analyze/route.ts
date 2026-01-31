@@ -100,16 +100,18 @@ function parseLeaveRequest(
         }
     }
     
-    // Fallback to hardcoded detection if no company leave types available
+    // NO HARDCODED FALLBACK! If company hasn't configured leave types, return error
     if (!leaveType) {
-        if (lowerText.includes("sick")) { leaveType = "Sick Leave"; leaveTypeCode = "SL"; }
-        else if (lowerText.includes("emergency") || lowerText.includes("urgent")) { leaveType = "Emergency Leave"; leaveTypeCode = "EL"; }
-        else if (lowerText.includes("vacation") || lowerText.includes("annual")) { leaveType = "Vacation Leave"; leaveTypeCode = "VL"; }
-        else if (lowerText.includes("maternity")) { leaveType = "Maternity Leave"; leaveTypeCode = "ML"; }
-        else if (lowerText.includes("paternity")) { leaveType = "Paternity Leave"; leaveTypeCode = "PTL"; }
-        else if (lowerText.includes("bereavement")) { leaveType = "Bereavement Leave"; leaveTypeCode = "BL"; }
-        else if (lowerText.includes("comp off") || lowerText.includes("compensatory")) { leaveType = "Comp Off"; leaveTypeCode = "CO"; }
-        else { leaveType = "Casual Leave"; leaveTypeCode = "CL"; }
+        return {
+            leaveType: "UNKNOWN",
+            leaveTypeCode: "UNKNOWN",
+            startDate: null,
+            endDate: null,
+            duration: 0,
+            isHalfDay: false,
+            reason: text,
+            error: "No leave types configured for this company. Please contact HR."
+        };
     }
     
     // Parse dates - handle various formats
@@ -383,7 +385,8 @@ export async function POST(req: NextRequest) {
         // Use the leave type code for balance lookup (try code first, then name)
         const leaveTypeCode = parsed.leaveTypeCode.toLowerCase();
         const leaveTypeKey = parsed.leaveType.toLowerCase().replace(/\s+/g, "_");
-        const remainingLeave = balanceMap[leaveTypeCode] || balanceMap[leaveTypeKey] || balanceMap['cl'] || balanceMap['casual_leave'] || 20;
+        // NO hardcoded fallback! Get actual balance from DB or 0 (will fail constraint check)
+        const remainingLeave = balanceMap[leaveTypeCode] || balanceMap[leaveTypeKey] || Object.values(balanceMap)[0] || 0;
 
         // Check if there's an invalid date
         if (parsed.invalidDate) {

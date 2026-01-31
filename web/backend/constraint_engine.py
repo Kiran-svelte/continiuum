@@ -263,6 +263,255 @@ DEFAULT_CONSTRAINT_RULES = {
     }
 }
 
+
+def generate_dynamic_constraint_rules(company_leave_types: List[Dict]) -> Dict:
+    """
+    Generate constraint rules dynamically based on company's leave types.
+    This is the preferred method - uses actual company configuration, not hardcoded defaults.
+    
+    Args:
+        company_leave_types: List of dicts with keys: name, code, annual_quota, notice_days, max_consecutive, requires_document
+    
+    Returns:
+        Dictionary of constraint rules customized for the company
+    """
+    # Build dynamic limits from company leave types
+    dynamic_limits = {}
+    dynamic_notice_days = {}
+    dynamic_max_consecutive = {}
+    document_required_types = []
+    emergency_types = []  # Types exempt from some rules
+    standard_types = []   # Annual/Personal/Casual types
+
+    for lt in company_leave_types:
+        name = lt.get('name', '')
+        quota = int(lt.get('annual_quota', 20))
+        notice = lt.get('notice_days')
+        max_consec = lt.get('max_consecutive')
+        requires_doc = lt.get('requires_document', False)
+        name_lower = name.lower()
+        
+        dynamic_limits[name] = quota
+        
+        # Default notice days based on type
+        if notice is not None:
+            dynamic_notice_days[name] = notice
+        elif 'sick' in name_lower or 'emergency' in name_lower or 'bereavement' in name_lower:
+            dynamic_notice_days[name] = 0
+        else:
+            dynamic_notice_days[name] = 3
+        
+        # Default max consecutive
+        if max_consec is not None:
+            dynamic_max_consecutive[name] = max_consec
+        else:
+            dynamic_max_consecutive[name] = min(quota, 15)
+        
+        if requires_doc:
+            document_required_types.append(name)
+        
+        # Categorize types
+        if 'sick' in name_lower or 'emergency' in name_lower or 'bereavement' in name_lower:
+            emergency_types.append(name)
+        if 'annual' in name_lower or 'personal' in name_lower or 'casual' in name_lower:
+            standard_types.append(name)
+
+    # Auto-detect document types if none specified
+    if not document_required_types:
+        for lt in company_leave_types:
+            name = lt.get('name', '').lower()
+            if 'sick' in name or 'study' in name or 'maternity' in name or 'paternity' in name:
+                document_required_types.append(lt.get('name'))
+
+    return {
+        "RULE001": {
+            "id": "RULE001",
+            "name": "Maximum Leave Duration",
+            "description": "Check if requested days exceed maximum allowed per leave type",
+            "category": "limits",
+            "is_blocking": True,
+            "priority": 100,
+            "is_active": True,
+            "config": {
+                "limits": dynamic_limits
+            }
+        },
+        "RULE002": {
+            "id": "RULE002",
+            "name": "Leave Balance Check",
+            "description": "Verify sufficient leave balance available before approval",
+            "category": "balance",
+            "is_blocking": True,
+            "priority": 99,
+            "is_active": True,
+            "config": {
+                "allow_negative": False,
+                "negative_limit": 0
+            }
+        },
+        "RULE003": {
+            "id": "RULE003",
+            "name": "Minimum Team Coverage",
+            "description": "Ensure minimum team members present during leave period",
+            "category": "coverage",
+            "is_blocking": True,
+            "priority": 90,
+            "is_active": True,
+            "config": {
+                "min_coverage_percent": 60,
+                "applies_to_departments": ["all"]
+            }
+        },
+        "RULE004": {
+            "id": "RULE004",
+            "name": "Maximum Concurrent Leave",
+            "description": "Limit simultaneous leaves in a team/department",
+            "category": "coverage",
+            "is_blocking": True,
+            "priority": 89,
+            "is_active": True,
+            "config": {
+                "max_concurrent": 2,
+                "scope": "department"
+            }
+        },
+        "RULE005": {
+            "id": "RULE005",
+            "name": "Blackout Period Check",
+            "description": "No leaves during specified blackout dates",
+            "category": "blackout",
+            "is_blocking": True,
+            "priority": 95,
+            "is_active": True,
+            "config": {
+                "blackout_dates": [],
+                "blackout_days_of_week": [],
+                "exception_leave_types": emergency_types
+            }
+        },
+        "RULE006": {
+            "id": "RULE006",
+            "name": "Advance Notice Requirement",
+            "description": "Minimum notice period required for leave requests",
+            "category": "notice",
+            "is_blocking": False,
+            "priority": 80,
+            "is_active": True,
+            "config": {
+                "notice_days": dynamic_notice_days
+            }
+        },
+        "RULE007": {
+            "id": "RULE007",
+            "name": "Consecutive Leave Limit",
+            "description": "Maximum consecutive days allowed for each leave type",
+            "category": "limits",
+            "is_blocking": True,
+            "priority": 85,
+            "is_active": True,
+            "config": {
+                "max_consecutive": dynamic_max_consecutive
+            }
+        },
+        "RULE008": {
+            "id": "RULE008",
+            "name": "Weekend/Holiday Sandwich Rule",
+            "description": "Count weekends/holidays between leave days as leave",
+            "category": "calculation",
+            "is_blocking": False,
+            "priority": 70,
+            "is_active": True,
+            "config": {
+                "enabled": True,
+                "min_gap_days": 1,
+                "applies_to": standard_types
+            }
+        },
+        "RULE009": {
+            "id": "RULE009",
+            "name": "Minimum Gap Between Leaves",
+            "description": "Required gap between consecutive leave requests",
+            "category": "limits",
+            "is_blocking": False,
+            "priority": 75,
+            "is_active": True,
+            "config": {
+                "min_gap_days": 7,
+                "applies_to": standard_types,
+                "exception_types": emergency_types
+            }
+        },
+        "RULE010": {
+            "id": "RULE010",
+            "name": "Probation Period Restriction",
+            "description": "Limit leave types available during probation",
+            "category": "eligibility",
+            "is_blocking": True,
+            "priority": 98,
+            "is_active": True,
+            "config": {
+                "probation_months": 6,
+                "allowed_during_probation": emergency_types,
+                "restricted_types": standard_types
+            }
+        },
+        "RULE011": {
+            "id": "RULE011",
+            "name": "Critical Project Freeze",
+            "description": "Restrict leaves during critical project periods",
+            "category": "blackout",
+            "is_blocking": False,
+            "priority": 85,
+            "is_active": True,
+            "config": {
+                "enabled": False,
+                "freeze_periods": [],
+                "exception_types": emergency_types
+            }
+        },
+        "RULE012": {
+            "id": "RULE012",
+            "name": "Document Requirement",
+            "description": "Require supporting documents for certain leave types/durations",
+            "category": "documentation",
+            "is_blocking": False,
+            "priority": 60,
+            "is_active": True,
+            "config": {
+                "require_document_above_days": 3,
+                "always_require_for": document_required_types,
+                "document_types": ["medical_certificate", "proof_of_event", "other"]
+            }
+        },
+        "RULE013": {
+            "id": "RULE013",
+            "name": "Monthly Leave Quota",
+            "description": "Maximum leaves per month per employee",
+            "category": "limits",
+            "is_blocking": False,
+            "priority": 65,
+            "is_active": True,
+            "config": {
+                "max_per_month": 5,
+                "exception_types": emergency_types
+            }
+        },
+        "RULE014": {
+            "id": "RULE014",
+            "name": "Half-Day Leave Escalation",
+            "description": "Half-day leaves require HR approval - never auto-approved",
+            "category": "escalation",
+            "is_blocking": False,
+            "priority": 50,
+            "is_active": True,
+            "config": {
+                "always_escalate": True,
+                "escalate_to": "hr"
+            }
+        }
+    }
+
+
 # Active constraint rules (loaded dynamically per organization)
 # This global is used as a fallback - prefer get_org_constraint_rules() for org-specific rules
 CONSTRAINT_RULES = DEFAULT_CONSTRAINT_RULES.copy()
@@ -276,7 +525,10 @@ CACHE_TTL_SECONDS = 300  # 5 minutes cache
 def get_org_constraint_rules(org_id: str) -> Dict:
     """
     Get constraint rules for a specific organization.
-    Fetches from database if available, otherwise returns defaults.
+    Priority:
+    1. Custom rules from constraint_policies table
+    2. Dynamic rules generated from company's leave types
+    3. Default hardcoded rules (last resort)
     Uses caching to avoid repeated DB calls.
     """
     global _org_rules_cache, _org_rules_cache_time
@@ -308,8 +560,6 @@ def get_org_constraint_rules(org_id: str) -> Dict:
         """, (org_id,))
         
         result = cur.fetchone()
-        cur.close()
-        conn.close()
         
         if result and result.get('rules'):
             org_rules = result['rules']
@@ -328,12 +578,40 @@ def get_org_constraint_rules(org_id: str) -> Dict:
             # Cache the result
             _org_rules_cache[cache_key] = active_rules
             _org_rules_cache_time[cache_key] = now
+            cur.close()
+            conn.close()
             
             print(f"✅ Loaded {len(active_rules)} active rules for org: {org_id}", file=sys.stderr)
             return active_rules
+        
+        # No custom rules, try to generate from company leave types
+        print(f"📋 No custom rules for org {org_id}, generating from leave types...", file=sys.stderr)
+        
+        # Fetch company leave types
+        cur.execute("""
+            SELECT name, code, annual_quota, notice_days, max_consecutive, requires_document
+            FROM leave_types 
+            WHERE company_id = %s AND is_active = true
+        """, (org_id,))
+        
+        leave_types = cur.fetchall()
+        cur.close()
+        conn.close()
+        
+        if leave_types and len(leave_types) > 0:
+            # Convert to list of dicts
+            lt_list = [dict(lt) for lt in leave_types]
+            dynamic_rules = generate_dynamic_constraint_rules(lt_list)
+            
+            # Cache the result
+            _org_rules_cache[cache_key] = dynamic_rules
+            _org_rules_cache_time[cache_key] = now
+            
+            print(f"✅ Generated dynamic rules from {len(lt_list)} leave types for org: {org_id}", file=sys.stderr)
+            return dynamic_rules
         else:
-            # No custom rules, use defaults
-            print(f"📋 No custom rules for org {org_id}, using defaults", file=sys.stderr)
+            # No leave types configured, use defaults
+            print(f"⚠️ No leave types for org {org_id}, using default rules", file=sys.stderr)
             _org_rules_cache[cache_key] = DEFAULT_CONSTRAINT_RULES
             _org_rules_cache_time[cache_key] = now
             return DEFAULT_CONSTRAINT_RULES

@@ -2,12 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 
-// Fallback leave allocations ONLY if company has no leave types configured
-const FALLBACK_LEAVE_ALLOCATIONS: Record<string, number> = {
-    "Sick Leave": 12,
-    "Vacation Leave": 20,
-    "Casual Leave": 7,
-};
+// NO FALLBACK ALLOCATIONS - Company MUST configure leave types!
+// If no leave types are configured, return empty balances and show error to user
 
 export async function GET(req: NextRequest) {
     try {
@@ -69,22 +65,15 @@ export async function GET(req: NextRequest) {
                     });
                 }
             } else {
-                // Fallback to defaults only if company has no configured types
-                console.warn("[API] Company has no leave types - using fallback defaults");
-                for (const [leaveType, allocation] of Object.entries(FALLBACK_LEAVE_ALLOCATIONS)) {
-                    await prisma.leaveBalance.create({
-                        data: {
-                            emp_id: employee.emp_id,
-                            country_code: employee.country_code || "IN",
-                            leave_type: leaveType,
-                            year: currentYear,
-                            annual_entitlement: allocation,
-                            carried_forward: 0,
-                            used_days: 0,
-                            pending_days: 0,
-                        }
-                    });
-                }
+                // NO FALLBACK! Return error - HR must configure leave types first
+                console.error("[API] Company has no leave types configured! Company ID:", employee.org_id);
+                return NextResponse.json({ 
+                    success: false, 
+                    error: "No leave types configured. Please contact HR to set up leave types.",
+                    needsSetup: true,
+                    balances: [],
+                    leaveTypes: []
+                });
             }
             
             // Re-fetch after creation

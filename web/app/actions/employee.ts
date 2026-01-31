@@ -56,27 +56,51 @@ export async function getEmployeeDashboardStats() {
 
         if (!employee) return { success: false, error: "Employee not found." };
 
-        // 1. Calculate Leave Balances
-        const DEFAULTS = {
-            "Annual Leave": 20,
-            "Sick Leave": 15,
-            "Emergency Leave": 5,
-            "Personal Leave": 5,
-            "Maternity Leave": 18,
-            "Paternity Leave": 15,
-            "Bereavement Leave": 5,
-            "Study Leave": 10
-        };
+        // ============================================================
+        // FULLY DYNAMIC: Fetch company's leave types instead of hardcoded defaults
+        // ============================================================
+        let companyLeaveTypes: any[] = [];
+        const companyId = employee.org_id;
+        
+        if (companyId) {
+            companyLeaveTypes = await prisma.leaveType.findMany({
+                where: { 
+                    company_id: companyId,
+                    is_active: true 
+                },
+                orderBy: { sort_order: 'asc' }
+            });
+        }
+        
+        // Build DEFAULTS dynamically from company's leave types
+        // If company has no leave types configured, use an empty object (no fallback!)
+        const DEFAULTS: Record<string, number> = {};
+        companyLeaveTypes.forEach(lt => {
+            DEFAULTS[lt.name] = Number(lt.annual_quota);
+            // Also add by code for flexible lookup
+            DEFAULTS[lt.code] = Number(lt.annual_quota);
+        });
+        
+        // Log for debugging
+        console.log(`📊 [Dashboard] Company ${companyId} has ${companyLeaveTypes.length} leave types:`, 
+            companyLeaveTypes.map(lt => `${lt.code}:${lt.name}=${lt.annual_quota}`).join(', '));
 
         const allBalances: any[] = [];
         const processedTypes = new Set<string>();
 
-        // Normalize helper
+        // Normalize helper - now uses company's leave types
         const normalizeType = (t: string) => {
             t = t.toLowerCase();
-            if (t.includes('annual') || t.includes('vacation')) return 'Annual Leave';
-            if (t.includes('sick')) return 'Sick Leave';
-            return Object.keys(DEFAULTS).find(k => k.toLowerCase() === t) || t;
+            // First try exact match with company's leave type codes
+            const byCode = companyLeaveTypes.find(lt => lt.code.toLowerCase() === t);
+            if (byCode) return byCode.name;
+            
+            // Then try name match
+            const byName = companyLeaveTypes.find(lt => lt.name.toLowerCase() === t || lt.name.toLowerCase().includes(t));
+            if (byName) return byName.name;
+            
+            // Return as-is if no match
+            return t;
         };
 
         // Fetch ALL requests to calculate usage dynamically (to mitigate sync issues)
@@ -133,26 +157,46 @@ export async function getEmployeeDashboardStats() {
             });
         }
 
-        // 2. Add Defaults for missing types
-        Object.entries(DEFAULTS).forEach(([type, limit]) => {
-            if (!processedTypes.has(type)) {
-                const realUsage = usageMap.get(type);
+        // 2. Add missing leave types from company configuration (no hardcoded fallbacks!)
+        // This ensures the dashboard shows ALL leave types the company has configured
+        companyLeaveTypes.forEach(lt => {
+            if (!processedTypes.has(lt.name)) {
+                const realUsage = usageMap.get(lt.name) || usageMap.get(lt.code);
                 const used = realUsage ? realUsage.used : 0;
                 const pending = realUsage ? realUsage.pending : 0;
+                const quota = Number(lt.annual_quota);
 
                 allBalances.push({
-                    type: type,
-                    total: limit, // Default entitlement
+                    type: lt.name,
+                    code: lt.code,
+                    color: lt.color,
+                    total: quota,
                     used: used,
                     pending: pending,
-                    available: limit - used - pending
+                    available: quota - used - pending
                 });
+                processedTypes.add(lt.name);
             }
         });
 
-        // Extract key metrics based on "Annual" and "Sick"
-        const annual = allBalances.find(b => b.type === 'Annual Leave') || { available: 20, total: 20 };
-        const sick = allBalances.find(b => b.type === 'Sick Leave') || { available: 15, total: 15 };
+        // Extract key metrics - find first "casual/annual" type and "sick" type dynamically
+        const annualType = companyLeaveTypes.find(lt => 
+            lt.code.toLowerCase() === 'cl' || 
+            lt.code.toLowerCase() === 'al' || 
+            lt.name.toLowerCase().includes('casual') || 
+            lt.name.toLowerCase().includes('annual')
+        );
+        const sickType = companyLeaveTypes.find(lt => 
+            lt.code.toLowerCase() === 'sl' || 
+            lt.name.toLowerCase().includes('sick')
+        );
+        
+        const annual = annualType 
+            ? allBalances.find(b => b.type === annualType.name) || { available: Number(annualType.annual_quota), total: Number(annualType.annual_quota) }
+            : allBalances[0] || { available: 0, total: 0 };
+        const sick = sickType 
+            ? allBalances.find(b => b.type === sickType.name) || { available: Number(sickType.annual_quota), total: Number(sickType.annual_quota) }
+            : allBalances[1] || { available: 0, total: 0 };
 
         // 2. Pending Requests Count
         const pendingCount = employee.leave_requests.filter(r => r.status === 'pending' || r.status === 'escalated').length;
@@ -214,7 +258,7 @@ export async function getEmployeeDashboardStats() {
             allBalances: allBalances,
             history: employee.leave_requests.map(req => ({
                 id: req.request_id,
-                type: req.leave_type || "Annual Leave",
+                type: req.leave_type, // Use actual leave type from DB, no fallback
                 days: req.total_days.toString(),
                 start_date: req.start_date,
                 end_date: req.end_date,
@@ -260,8 +304,10 @@ export async function analyzeLeaveRequest(text: string) {
             balanceMap[bal.leave_type.toLowerCase()] = total - used;
         });
 
-        // Default remaining if type not found
-        const remainingLeave = balanceMap['vacation leave'] || balanceMap['casual leave'] || 20;
+        // Get remaining balance - NO hardcoded fallback! Use actual balance or 0
+        // If balance is 0, the request should be rejected by constraint engine
+        const firstBalance = Object.values(balanceMap)[0];
+        const remainingLeave = firstBalance !== undefined ? firstBalance : 0;
 
         // AI Service URL - use localhost for local development
         const aiUrl = process.env.AI_SERVICE_URL || 'http://localhost:8001';
@@ -393,7 +439,7 @@ export async function getLeaveHistory() {
             success: true,
             requests: employee.leave_requests.map(req => ({
                 id: req.request_id,
-                type: req.leave_type || "Annual Leave",
+                type: req.leave_type, // Use actual leave type from DB, no hardcoded fallback
                 start_date: req.start_date.toISOString(),
                 end_date: req.end_date.toISOString(),
                 reason: req.reason,
