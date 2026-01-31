@@ -32,7 +32,9 @@ export async function getCompanyConstraintRules(): Promise<{
     error?: string;
 }> {
     try {
+        console.log('[CONSTRAINT-RULES] getCompanyConstraintRules called');
         const user = await currentUser();
+        console.log('[CONSTRAINT-RULES] user:', user?.id || 'null');
         if (!user) return { success: false, error: "Unauthorized" };
 
         const employee = await prisma.employee.findUnique({
@@ -76,7 +78,7 @@ export async function getCompanyConstraintRules(): Promise<{
                         priority: ruleData.priority ?? 50,
                         config: ruleData.config || {},
                         is_custom: ruleData.is_custom ?? false,
-                        created_at: new Date(ruleData.created_at || Date.now()),
+                        created_at: ruleData.created_at ? new Date(ruleData.created_at) : new Date(),
                         updated_at: new Date(ruleData.updated_at || Date.now())
                     }));
 
@@ -153,7 +155,9 @@ export async function initializeCompanyRules(): Promise<{
     error?: string;
 }> {
     try {
+        console.log('[CONSTRAINT-RULES] getCompanyConstraintRules called');
         const user = await currentUser();
+        console.log('[CONSTRAINT-RULES] user:', user?.id || 'null');
         if (!user) return { success: false, error: "Unauthorized" };
 
         const employee = await prisma.employee.findUnique({
@@ -222,7 +226,9 @@ export async function toggleRuleStatus(
     error?: string;
 }> {
     try {
+        console.log('[CONSTRAINT-RULES] getCompanyConstraintRules called');
         const user = await currentUser();
+        console.log('[CONSTRAINT-RULES] user:', user?.id || 'null');
         if (!user) return { success: false, error: "Unauthorized" };
 
         const employee = await prisma.employee.findUnique({
@@ -299,7 +305,9 @@ export async function updateRuleConfig(
     error?: string;
 }> {
     try {
+        console.log('[CONSTRAINT-RULES] getCompanyConstraintRules called');
         const user = await currentUser();
+        console.log('[CONSTRAINT-RULES] user:', user?.id || 'null');
         if (!user) return { success: false, error: "Unauthorized" };
 
         const employee = await prisma.employee.findUnique({
@@ -384,7 +392,9 @@ export async function createCustomRule(
     error?: string;
 }> {
     try {
+        console.log('[CONSTRAINT-RULES] getCompanyConstraintRules called');
         const user = await currentUser();
+        console.log('[CONSTRAINT-RULES] user:', user?.id || 'null');
         if (!user) return { success: false, error: "Unauthorized" };
 
         const employee = await prisma.employee.findUnique({
@@ -455,7 +465,9 @@ export async function deleteRule(ruleId: string): Promise<{
     error?: string;
 }> {
     try {
+        console.log('[CONSTRAINT-RULES] getCompanyConstraintRules called');
         const user = await currentUser();
+        console.log('[CONSTRAINT-RULES] user:', user?.id || 'null');
         if (!user) return { success: false, error: "Unauthorized" };
 
         const employee = await prisma.employee.findUnique({
@@ -517,7 +529,9 @@ export async function resetToDefaultRules(): Promise<{
     error?: string;
 }> {
     try {
+        console.log('[CONSTRAINT-RULES] getCompanyConstraintRules called');
         const user = await currentUser();
+        console.log('[CONSTRAINT-RULES] user:', user?.id || 'null');
         if (!user) return { success: false, error: "Unauthorized" };
 
         const employee = await prisma.employee.findUnique({
@@ -638,7 +652,9 @@ export async function bulkUpdateRuleStatus(
     error?: string;
 }> {
     try {
+        console.log('[CONSTRAINT-RULES] getCompanyConstraintRules called');
         const user = await currentUser();
+        console.log('[CONSTRAINT-RULES] user:', user?.id || 'null');
         if (!user) return { success: false, error: "Unauthorized" };
 
         const employee = await prisma.employee.findUnique({
@@ -693,3 +709,4 @@ export async function bulkUpdateRuleStatus(
         return { success: false, error: "Failed to update rules" };
     }
 }
+
