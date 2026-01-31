@@ -54,8 +54,8 @@ const isPublicRoute = createRouteMatcher([
     '/api/platform(.*)', // Platform stats for marketing page - public
     '/api/cron(.*)',
     '/api/admin(.*)',
-    '/api/debug(.*)',
-    '/api/security(.*)',
+    // Note: /api/debug/* routes removed from public - auth required for debugging
+    // Note: /api/security/* routes require auth for OTP verification
     '/api/enterprise(.*)',
     '/api/waitlist(.*)',
     '/status(.*)',
