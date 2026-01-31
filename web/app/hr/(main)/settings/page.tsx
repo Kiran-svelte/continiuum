@@ -32,7 +32,8 @@ import {
     ToggleLeft,
     ToggleRight,
     Zap,
-    ChevronRight
+    ChevronRight,
+    Search
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -89,6 +90,7 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { PREDEFINED_LEAVE_TYPES, LEAVE_CATEGORY_LABELS } from "@/lib/leave-types-config";
 
 // =========================================================================
 // OTP VERIFICATION TYPES
@@ -1717,193 +1719,376 @@ export default function HRSettingsPage() {
                 </div>
             )}
 
-            {/* Leave Type Dialog */}
-            <Dialog open={showLeaveTypeDialog} onOpenChange={setShowLeaveTypeDialog}>
-                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                    <DialogHeader>
-                        <DialogTitle>
-                            {editingLeaveType ? "Edit Leave Type" : "Add Leave Type"}
-                        </DialogTitle>
-                        <DialogDescription>
-                            Configure the properties for this leave type
-                        </DialogDescription>
-                    </DialogHeader>
+            {/* Leave Type Dialog - Updated with dropdown selection */}
+            <LeaveTypeDialogWithDropdown
+                open={showLeaveTypeDialog}
+                onOpenChange={setShowLeaveTypeDialog}
+                editingLeaveType={editingLeaveType}
+                leaveTypeForm={leaveTypeForm}
+                setLeaveTypeForm={setLeaveTypeForm}
+                existingCodes={leaveTypes.map(lt => lt.code)}
+                onSave={handleSaveLeaveType}
+                saving={saving}
+            />
+        </div>
+    );
+}
 
-                    <div className="space-y-6 py-4">
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label>Leave Code</Label>
-                                <Input
-                                    value={leaveTypeForm.code}
-                                    onChange={(e) => setLeaveTypeForm(prev => ({ ...prev, code: e.target.value.toUpperCase() }))}
-                                    placeholder="CL"
-                                    maxLength={5}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Leave Name</Label>
-                                <Input
-                                    value={leaveTypeForm.name}
-                                    onChange={(e) => setLeaveTypeForm(prev => ({ ...prev, name: e.target.value }))}
-                                    placeholder="Casual Leave"
-                                />
-                            </div>
-                        </div>
+// =========================================================================
+// LEAVE TYPE DIALOG WITH DROPDOWN SELECTION
+// =========================================================================
+function LeaveTypeDialogWithDropdown({
+    open,
+    onOpenChange,
+    editingLeaveType,
+    leaveTypeForm,
+    setLeaveTypeForm,
+    existingCodes,
+    onSave,
+    saving,
+}: {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    editingLeaveType: LeaveType | null;
+    leaveTypeForm: LeaveTypeInput;
+    setLeaveTypeForm: React.Dispatch<React.SetStateAction<LeaveTypeInput>>;
+    existingCodes: string[];
+    onSave: () => void;
+    saving: string | null;
+}) {
+    const [searchQuery, setSearchQuery] = useState("");
+    const [showDropdown, setShowDropdown] = useState(false);
 
+    // Filter out already added leave types
+    const availableLeaveTypes = PREDEFINED_LEAVE_TYPES.filter(
+        lt => !existingCodes.includes(lt.code) || (editingLeaveType && lt.code === editingLeaveType.code)
+    );
+
+    // Filter by search query
+    const filteredLeaveTypes = searchQuery
+        ? availableLeaveTypes.filter(lt =>
+            lt.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            lt.name.toLowerCase().includes(searchQuery.toLowerCase())
+        )
+        : availableLeaveTypes;
+
+    // Group by category
+    const groupedTypes = filteredLeaveTypes.reduce((acc, lt) => {
+        if (!acc[lt.category]) acc[lt.category] = [];
+        acc[lt.category].push(lt);
+        return acc;
+    }, {} as Record<string, typeof PREDEFINED_LEAVE_TYPES>);
+
+    // Handle selecting a predefined leave type
+    const handleSelectLeaveType = (predefined: typeof PREDEFINED_LEAVE_TYPES[0]) => {
+        setLeaveTypeForm({
+            code: predefined.code,
+            name: predefined.name,
+            description: predefined.description,
+            color: predefined.color,
+            annual_quota: predefined.annual_quota,
+            max_consecutive: predefined.max_consecutive,
+            min_notice_days: predefined.min_notice_days,
+            requires_document: predefined.requires_document,
+            requires_approval: predefined.requires_approval,
+            half_day_allowed: predefined.half_day_allowed,
+            gender_specific: predefined.gender_specific,
+            carry_forward: predefined.carry_forward,
+            max_carry_forward: predefined.max_carry_forward,
+            is_paid: predefined.is_paid,
+        });
+        setSearchQuery("");
+        setShowDropdown(false);
+    };
+
+    // Reset search when dialog closes
+    useEffect(() => {
+        if (!open) {
+            setSearchQuery("");
+            setShowDropdown(false);
+        }
+    }, [open]);
+
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                    <DialogTitle>
+                        {editingLeaveType ? "Edit Leave Type" : "Add Leave Type"}
+                    </DialogTitle>
+                    <DialogDescription>
+                        {editingLeaveType 
+                            ? "Modify the properties of this leave type" 
+                            : "Select a leave type from the dropdown - type to search"}
+                    </DialogDescription>
+                </DialogHeader>
+
+                <div className="space-y-6 py-4">
+                    {/* Leave Type Selection - Only show when adding new */}
+                    {!editingLeaveType && (
                         <div className="space-y-2">
-                            <Label>Description</Label>
-                            <Textarea
-                                value={leaveTypeForm.description || ""}
-                                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setLeaveTypeForm(prev => ({ ...prev, description: e.target.value }))}
-                                placeholder="For personal matters and emergencies"
-                            />
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label>Color</Label>
-                            <div className="flex gap-2">
-                                {LEAVE_TYPE_COLORS.map(color => (
-                                    <button
-                                        key={color}
-                                        onClick={() => setLeaveTypeForm(prev => ({ ...prev, color }))}
-                                        className={cn(
-                                            "w-8 h-8 rounded-full transition-transform",
-                                            leaveTypeForm.color === color && "ring-2 ring-offset-2 ring-purple-500 scale-110"
-                                        )}
-                                        style={{ backgroundColor: color }}
-                                        title={`Select color ${color}`}
-                                        aria-label={`Select color ${color}`}
+                            <Label>Select Leave Type *</Label>
+                            <div className="relative">
+                                <div className="relative">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                    <Input
+                                        value={leaveTypeForm.code ? `${leaveTypeForm.code} - ${leaveTypeForm.name}` : searchQuery}
+                                        onChange={(e) => {
+                                            setSearchQuery(e.target.value);
+                                            setShowDropdown(true);
+                                            // Clear selection if user is typing
+                                            if (leaveTypeForm.code) {
+                                                setLeaveTypeForm(prev => ({ ...prev, code: "", name: "" }));
+                                            }
+                                        }}
+                                        onFocus={() => setShowDropdown(true)}
+                                        placeholder="Type to search (e.g., 'sick', 'CL', 'casual')"
+                                        className="pl-10"
                                     />
-                                ))}
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-3 gap-4">
-                            <div className="space-y-2">
-                                <Label>Annual Quota</Label>
-                                <Input
-                                    type="number"
-                                    min={0}
-                                    value={leaveTypeForm.annual_quota}
-                                    onChange={(e) => setLeaveTypeForm(prev => ({ ...prev, annual_quota: parseInt(e.target.value) || 0 }))}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Max Consecutive</Label>
-                                <Input
-                                    type="number"
-                                    min={1}
-                                    value={leaveTypeForm.max_consecutive || 5}
-                                    onChange={(e) => setLeaveTypeForm(prev => ({ ...prev, max_consecutive: parseInt(e.target.value) || 5 }))}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Min Notice Days</Label>
-                                <Input
-                                    type="number"
-                                    min={0}
-                                    value={leaveTypeForm.min_notice_days || 0}
-                                    onChange={(e) => setLeaveTypeForm(prev => ({ ...prev, min_notice_days: parseInt(e.target.value) || 0 }))}
-                                />
-                            </div>
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label>Gender Specific</Label>
-                            <Select
-                                value={leaveTypeForm.gender_specific || "all"}
-                                onValueChange={(value) => setLeaveTypeForm(prev => ({ 
-                                    ...prev, 
-                                    gender_specific: value === "all" ? null : value as 'M' | 'F' | 'O'
-                                }))}
-                            >
-                                <SelectTrigger>
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">All Employees</SelectItem>
-                                    <SelectItem value="F">Female Only</SelectItem>
-                                    <SelectItem value="M">Male Only</SelectItem>
-                                    <SelectItem value="O">Other Only</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="flex items-center justify-between p-3 border rounded-lg">
-                                <Label>Paid Leave</Label>
-                                <Switch
-                                    checked={leaveTypeForm.is_paid}
-                                    onCheckedChange={(checked) => setLeaveTypeForm(prev => ({ ...prev, is_paid: checked }))}
-                                />
-                            </div>
-                            <div className="flex items-center justify-between p-3 border rounded-lg">
-                                <Label>Requires Document</Label>
-                                <Switch
-                                    checked={leaveTypeForm.requires_document}
-                                    onCheckedChange={(checked) => setLeaveTypeForm(prev => ({ ...prev, requires_document: checked }))}
-                                />
-                            </div>
-                            <div className="flex items-center justify-between p-3 border rounded-lg">
-                                <Label>Requires Approval</Label>
-                                <Switch
-                                    checked={leaveTypeForm.requires_approval}
-                                    onCheckedChange={(checked) => setLeaveTypeForm(prev => ({ ...prev, requires_approval: checked }))}
-                                />
-                            </div>
-                            <div className="flex items-center justify-between p-3 border rounded-lg">
-                                <Label>Half Day Allowed</Label>
-                                <Switch
-                                    checked={leaveTypeForm.half_day_allowed}
-                                    onCheckedChange={(checked) => setLeaveTypeForm(prev => ({ ...prev, half_day_allowed: checked }))}
-                                />
-                            </div>
-                        </div>
-
-                        <div className="space-y-4 border-t pt-4">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <Label>Allow Carry Forward</Label>
-                                    <p className="text-xs text-gray-500">Unused days can be carried to next year</p>
                                 </div>
-                                <Switch
-                                    checked={leaveTypeForm.carry_forward}
-                                    onCheckedChange={(checked) => setLeaveTypeForm(prev => ({ ...prev, carry_forward: checked }))}
+                                
+                                {/* Dropdown */}
+                                {showDropdown && (
+                                    <div className="absolute z-50 w-full mt-1 max-h-64 overflow-auto bg-white dark:bg-gray-900 border rounded-lg shadow-lg">
+                                        {Object.entries(groupedTypes).length === 0 ? (
+                                            <div className="p-3 text-center text-muted-foreground text-sm">
+                                                No matching leave types found
+                                            </div>
+                                        ) : (
+                                            Object.entries(groupedTypes).map(([category, types]) => (
+                                                <div key={category}>
+                                                    <div className="px-3 py-2 text-xs font-semibold text-muted-foreground bg-muted/50 sticky top-0">
+                                                        {LEAVE_CATEGORY_LABELS[category] || category}
+                                                    </div>
+                                                    {types.map(lt => (
+                                                        <button
+                                                            key={lt.code}
+                                                            type="button"
+                                                            onClick={() => handleSelectLeaveType(lt)}
+                                                            className="w-full px-3 py-2 text-left hover:bg-muted/50 flex items-center gap-3 transition-colors"
+                                                        >
+                                                            <div
+                                                                className="w-3 h-3 rounded-full flex-shrink-0"
+                                                                style={{ backgroundColor: lt.color }}
+                                                            />
+                                                            <div className="flex-1 min-w-0">
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="font-medium">{lt.name}</span>
+                                                                    <Badge variant="secondary" className="text-xs">
+                                                                        {lt.code}
+                                                                    </Badge>
+                                                                    {!lt.is_paid && (
+                                                                        <Badge variant="outline" className="text-xs">
+                                                                            Unpaid
+                                                                        </Badge>
+                                                                    )}
+                                                                </div>
+                                                                <p className="text-xs text-muted-foreground truncate">
+                                                                    {lt.description}
+                                                                </p>
+                                                            </div>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            ))
+                                        )}
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowDropdown(false)}
+                                            className="w-full px-3 py-2 text-center text-sm text-muted-foreground hover:bg-muted/50 border-t"
+                                        >
+                                            Close
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                            {leaveTypeForm.code && (
+                                <p className="text-xs text-green-600 flex items-center gap-1">
+                                    <Check className="h-3 w-3" />
+                                    Selected: {leaveTypeForm.code} - {leaveTypeForm.name}
+                                </p>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Show form fields when a type is selected or editing */}
+                    {(leaveTypeForm.code || editingLeaveType) && (
+                        <>
+                            {/* Read-only code and name display */}
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label>Leave Code</Label>
+                                    <Input
+                                        value={leaveTypeForm.code}
+                                        disabled
+                                        className="bg-muted"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Leave Name</Label>
+                                    <Input
+                                        value={leaveTypeForm.name}
+                                        disabled
+                                        className="bg-muted"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label>Description</Label>
+                                <Textarea
+                                    value={leaveTypeForm.description || ""}
+                                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setLeaveTypeForm(prev => ({ ...prev, description: e.target.value }))}
+                                    placeholder="For personal matters and emergencies"
                                 />
                             </div>
-                            {leaveTypeForm.carry_forward && (
+
+                            <div className="space-y-2">
+                                <Label>Color</Label>
+                                <div className="flex gap-2">
+                                    {LEAVE_TYPE_COLORS.map(color => (
+                                        <button
+                                            key={color}
+                                            onClick={() => setLeaveTypeForm(prev => ({ ...prev, color }))}
+                                            className={cn(
+                                                "w-8 h-8 rounded-full transition-transform",
+                                                leaveTypeForm.color === color && "ring-2 ring-offset-2 ring-purple-500 scale-110"
+                                            )}
+                                            style={{ backgroundColor: color }}
+                                            title={`Select color ${color}`}
+                                            aria-label={`Select color ${color}`}
+                                        />
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-3 gap-4">
                                 <div className="space-y-2">
-                                    <Label>Max Carry Forward Days</Label>
+                                    <Label>Annual Quota</Label>
                                     <Input
                                         type="number"
                                         min={0}
-                                        value={leaveTypeForm.max_carry_forward || 0}
-                                        onChange={(e) => setLeaveTypeForm(prev => ({ ...prev, max_carry_forward: parseInt(e.target.value) || 0 }))}
+                                        value={leaveTypeForm.annual_quota}
+                                        onChange={(e) => setLeaveTypeForm(prev => ({ ...prev, annual_quota: parseInt(e.target.value) || 0 }))}
                                     />
                                 </div>
-                            )}
-                        </div>
-                    </div>
+                                <div className="space-y-2">
+                                    <Label>Max Consecutive</Label>
+                                    <Input
+                                        type="number"
+                                        min={1}
+                                        value={leaveTypeForm.max_consecutive || 5}
+                                        onChange={(e) => setLeaveTypeForm(prev => ({ ...prev, max_consecutive: parseInt(e.target.value) || 5 }))}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Min Notice Days</Label>
+                                    <Input
+                                        type="number"
+                                        min={0}
+                                        value={leaveTypeForm.min_notice_days || 0}
+                                        onChange={(e) => setLeaveTypeForm(prev => ({ ...prev, min_notice_days: parseInt(e.target.value) || 0 }))}
+                                    />
+                                </div>
+                            </div>
 
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setShowLeaveTypeDialog(false)}>
-                            Cancel
-                        </Button>
-                        <Button 
-                            onClick={handleSaveLeaveType}
-                            disabled={saving === "leaveType" || !leaveTypeForm.code || !leaveTypeForm.name}
-                            className="bg-purple-500 hover:bg-purple-600"
-                        >
-                            {saving === "leaveType" ? (
-                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                            ) : (
-                                <Check className="h-4 w-4 mr-2" />
-                            )}
-                            {editingLeaveType ? "Update" : "Create"}
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-        </div>
+                            <div className="space-y-2">
+                                <Label>Gender Specific</Label>
+                                <Select
+                                    value={leaveTypeForm.gender_specific || "all"}
+                                    onValueChange={(value) => setLeaveTypeForm(prev => ({ 
+                                        ...prev, 
+                                        gender_specific: value === "all" ? null : value as 'M' | 'F' | 'O'
+                                    }))}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">All Employees</SelectItem>
+                                        <SelectItem value="F">Female Only</SelectItem>
+                                        <SelectItem value="M">Male Only</SelectItem>
+                                        <SelectItem value="O">Other Only</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="flex items-center justify-between p-3 border rounded-lg">
+                                    <Label>Paid Leave</Label>
+                                    <Switch
+                                        checked={leaveTypeForm.is_paid}
+                                        onCheckedChange={(checked) => setLeaveTypeForm(prev => ({ ...prev, is_paid: checked }))}
+                                    />
+                                </div>
+                                <div className="flex items-center justify-between p-3 border rounded-lg">
+                                    <Label>Requires Document</Label>
+                                    <Switch
+                                        checked={leaveTypeForm.requires_document}
+                                        onCheckedChange={(checked) => setLeaveTypeForm(prev => ({ ...prev, requires_document: checked }))}
+                                    />
+                                </div>
+                                <div className="flex items-center justify-between p-3 border rounded-lg">
+                                    <Label>Requires Approval</Label>
+                                    <Switch
+                                        checked={leaveTypeForm.requires_approval}
+                                        onCheckedChange={(checked) => setLeaveTypeForm(prev => ({ ...prev, requires_approval: checked }))}
+                                    />
+                                </div>
+                                <div className="flex items-center justify-between p-3 border rounded-lg">
+                                    <Label>Half Day Allowed</Label>
+                                    <Switch
+                                        checked={leaveTypeForm.half_day_allowed}
+                                        onCheckedChange={(checked) => setLeaveTypeForm(prev => ({ ...prev, half_day_allowed: checked }))}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="space-y-4 border-t pt-4">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <Label>Allow Carry Forward</Label>
+                                        <p className="text-xs text-gray-500">Unused days can be carried to next year</p>
+                                    </div>
+                                    <Switch
+                                        checked={leaveTypeForm.carry_forward}
+                                        onCheckedChange={(checked) => setLeaveTypeForm(prev => ({ ...prev, carry_forward: checked }))}
+                                    />
+                                </div>
+                                {leaveTypeForm.carry_forward && (
+                                    <div className="space-y-2">
+                                        <Label>Max Carry Forward Days</Label>
+                                        <Input
+                                            type="number"
+                                            min={0}
+                                            value={leaveTypeForm.max_carry_forward || 0}
+                                            onChange={(e) => setLeaveTypeForm(prev => ({ ...prev, max_carry_forward: parseInt(e.target.value) || 0 }))}
+                                        />
+                                    </div>
+                                )}
+                            </div>
+                        </>
+                    )}
+                </div>
+
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => onOpenChange(false)}>
+                        Cancel
+                    </Button>
+                    <Button 
+                        onClick={onSave}
+                        disabled={saving === "leaveType" || !leaveTypeForm.code || !leaveTypeForm.name}
+                        className="bg-purple-500 hover:bg-purple-600"
+                    >
+                        {saving === "leaveType" ? (
+                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        ) : (
+                            <Check className="h-4 w-4 mr-2" />
+                        )}
+                        {editingLeaveType ? "Update" : "Create"}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     );
 }

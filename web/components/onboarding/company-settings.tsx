@@ -21,6 +21,7 @@ import {
     Bell,
     CalendarDays,
     Gauge,
+    Search,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -54,7 +55,9 @@ import {
 import { ConstraintRulesSelection } from "./constraint-rules-selection";
 import { HolidaySettingsOnboarding, type HolidaySettingsData } from "./holiday-settings-onboarding";
 import { NotificationSettingsOnboarding, type NotificationSettingsData } from "./notification-settings-onboarding";
-import { DEFAULT_CONSTRAINT_RULES } from "@/lib/constraint-rules-config";import { Badge } from "@/components/ui/badge";
+import { DEFAULT_CONSTRAINT_RULES } from "@/lib/constraint-rules-config";
+import { PREDEFINED_LEAVE_TYPES, getLeaveTypesByCategory, LEAVE_CATEGORY_LABELS, getDefaultLeaveTypes } from "@/lib/leave-types-config";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 // =========================================================================
@@ -172,100 +175,23 @@ const DEFAULT_APPROVAL_SETTINGS: ApprovalSettings = {
     require_document_above_days: 3,
 };
 
-const DEFAULT_LEAVE_TYPES: LeaveType[] = [
-    {
-        code: "CL",
-        name: "Casual Leave",
-        description: "For personal matters and emergencies",
-        color: "#6366f1",
-        annual_quota: 12,
-        max_consecutive: 3,
-        min_notice_days: 1,
-        requires_document: false,
-        requires_approval: true,
-        half_day_allowed: true,
-        carry_forward: false,
-        max_carry_forward: 0,
-        is_paid: true,
-    },
-    {
-        code: "SL",
-        name: "Sick Leave",
-        description: "For health-related absences",
-        color: "#ef4444",
-        annual_quota: 12,
-        max_consecutive: 7,
-        min_notice_days: 0,
-        requires_document: true,
-        requires_approval: true,
-        half_day_allowed: true,
-        carry_forward: false,
-        max_carry_forward: 0,
-        is_paid: true,
-    },
-    {
-        code: "PL",
-        name: "Privilege Leave",
-        description: "Earned leave for vacations",
-        color: "#10b981",
-        annual_quota: 15,
-        max_consecutive: 15,
-        min_notice_days: 7,
-        requires_document: false,
-        requires_approval: true,
-        half_day_allowed: false,
-        carry_forward: true,
-        max_carry_forward: 30,
-        is_paid: true,
-    },
-    {
-        code: "ML",
-        name: "Maternity Leave",
-        description: "For expecting mothers",
-        color: "#f472b6",
-        annual_quota: 182,
-        max_consecutive: 182,
-        min_notice_days: 30,
-        requires_document: true,
-        requires_approval: true,
-        half_day_allowed: false,
-        gender_specific: 'F',
-        carry_forward: false,
-        max_carry_forward: 0,
-        is_paid: true,
-    },
-    {
-        code: "PTL",
-        name: "Paternity Leave",
-        description: "For new fathers",
-        color: "#3b82f6",
-        annual_quota: 15,
-        max_consecutive: 15,
-        min_notice_days: 7,
-        requires_document: true,
-        requires_approval: true,
-        half_day_allowed: false,
-        gender_specific: 'M',
-        carry_forward: false,
-        max_carry_forward: 0,
-        is_paid: true,
-    },
-    {
-        code: "LWP",
-        name: "Leave Without Pay",
-        description: "Unpaid leave when quota exhausted",
-        color: "#6b7280",
-        annual_quota: 0,
-        max_consecutive: 30,
-        min_notice_days: 7,
-        requires_document: false,
-        requires_approval: true,
-        half_day_allowed: true,
-        carry_forward: false,
-        max_carry_forward: 0,
-        is_paid: false,
-    },
-];
+// Use predefined leave types from config - removes the duplicated definitions
+const DEFAULT_LEAVE_TYPES: LeaveType[] = getDefaultLeaveTypes().map(lt => ({
+    code: lt.code,
+    name: lt.name,
+    description: lt.description,
+    color: lt.color,
+    annual_quota: lt.annual_quota,
+    max_consecutive: lt.max_consecutive,
+    min_notice_days: lt.min_notice_days,
+    requires_document: lt.requires_document,
+    requires_approval: lt.requires_approval,
+    half_day_allowed: lt.half_day_allowed,
+    gender_specific: lt.gender_specific,
+    carry_forward: lt.carry_forward,
+    max_carry_forward: lt.max_carry_forward,
+    is_paid: lt.is_paid,
+}));
 
 const DAYS_OF_WEEK = [
     { value: 1, label: "Mon" },
@@ -875,7 +801,7 @@ function LeaveTypesSection({
                 <div>
                     <h3 className="text-lg font-semibold">Leave Types</h3>
                     <p className="text-sm text-muted-foreground">
-                        Configure the types of leaves available to employees
+                        Select leave types from predefined options
                     </p>
                 </div>
                 <Button onClick={() => onShowAdd(true)} size="sm">
@@ -890,6 +816,7 @@ function LeaveTypesSection({
                     <LeaveTypeForm
                         onSave={onAdd}
                         onCancel={() => onShowAdd(false)}
+                        existingCodes={leaveTypes.map(lt => lt.code)}
                     />
                 )}
             </AnimatePresence>
@@ -909,6 +836,7 @@ function LeaveTypesSection({
                                 onSave={onUpdate}
                                 onCancel={() => onEdit(null)}
                                 isEditing
+                                existingCodes={leaveTypes.map(l => l.code)}
                             />
                         ) : (
                             <LeaveTypeCard
@@ -1023,11 +951,13 @@ function LeaveTypeForm({
     onSave,
     onCancel,
     isEditing = false,
+    existingCodes = [],
 }: {
     initialData?: LeaveType;
     onSave: (lt: LeaveType) => void;
     onCancel: () => void;
     isEditing?: boolean;
+    existingCodes?: string[];
 }) {
     const [formData, setFormData] = useState<LeaveType>(
         initialData || {
@@ -1047,6 +977,52 @@ function LeaveTypeForm({
             is_paid: true,
         }
     );
+    
+    const [searchQuery, setSearchQuery] = useState("");
+    const [showDropdown, setShowDropdown] = useState(false);
+
+    // Filter out already added leave types
+    const availableLeaveTypes = PREDEFINED_LEAVE_TYPES.filter(
+        lt => !existingCodes.includes(lt.code) || (isEditing && lt.code === initialData?.code)
+    );
+
+    // Filter by search query
+    const filteredLeaveTypes = searchQuery
+        ? availableLeaveTypes.filter(lt =>
+            lt.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            lt.name.toLowerCase().includes(searchQuery.toLowerCase())
+        )
+        : availableLeaveTypes;
+
+    // Group by category
+    const groupedTypes = filteredLeaveTypes.reduce((acc, lt) => {
+        if (!acc[lt.category]) acc[lt.category] = [];
+        acc[lt.category].push(lt);
+        return acc;
+    }, {} as Record<string, typeof PREDEFINED_LEAVE_TYPES>);
+
+    // Handle selecting a predefined leave type
+    const handleSelectLeaveType = (predefined: typeof PREDEFINED_LEAVE_TYPES[0]) => {
+        setFormData({
+            ...formData,
+            code: predefined.code,
+            name: predefined.name,
+            description: predefined.description,
+            color: predefined.color,
+            annual_quota: predefined.annual_quota,
+            max_consecutive: predefined.max_consecutive,
+            min_notice_days: predefined.min_notice_days,
+            requires_document: predefined.requires_document,
+            requires_approval: predefined.requires_approval,
+            half_day_allowed: predefined.half_day_allowed,
+            gender_specific: predefined.gender_specific,
+            carry_forward: predefined.carry_forward,
+            max_carry_forward: predefined.max_carry_forward,
+            is_paid: predefined.is_paid,
+        });
+        setSearchQuery("");
+        setShowDropdown(false);
+    };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -1065,162 +1041,254 @@ function LeaveTypeForm({
                     <CardTitle className="text-lg">
                         {isEditing ? "Edit Leave Type" : "Add Leave Type"}
                     </CardTitle>
+                    {!isEditing && (
+                        <CardDescription>
+                            Select a leave type from the dropdown or search by typing
+                        </CardDescription>
+                    )}
                 </CardHeader>
                 <CardContent>
                     <form onSubmit={handleSubmit} className="space-y-4">
-                        {/* Basic Info */}
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        {/* Leave Type Selection - Dropdown based */}
+                        {!isEditing && (
                             <div className="space-y-2">
-                                <Label>Code *</Label>
-                                <Input
-                                    value={formData.code}
-                                    onChange={(e) =>
-                                        setFormData({ ...formData, code: e.target.value.toUpperCase() })
-                                    }
-                                    placeholder="CL"
-                                    maxLength={5}
-                                    disabled={isEditing}
-                                />
-                            </div>
-                            <div className="space-y-2 col-span-2">
-                                <Label>Name *</Label>
-                                <Input
-                                    value={formData.name}
-                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                    placeholder="Casual Leave"
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Color</Label>
-                                <div className="flex flex-wrap gap-1">
-                                    {LEAVE_COLORS.map((color) => (
-                                        <button
-                                            key={color}
-                                            type="button"
-                                            className={cn(
-                                                "w-6 h-6 rounded-full transition-transform",
-                                                formData.color === color && "ring-2 ring-offset-2 ring-primary scale-110"
-                                            )}
-                                            style={{ backgroundColor: color }}
-                                            onClick={() => setFormData({ ...formData, color })}
+                                <Label>Select Leave Type *</Label>
+                                <div className="relative">
+                                    <div className="relative">
+                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                        <Input
+                                            value={formData.code ? `${formData.code} - ${formData.name}` : searchQuery}
+                                            onChange={(e) => {
+                                                setSearchQuery(e.target.value);
+                                                setShowDropdown(true);
+                                                // Clear selection if user is typing
+                                                if (formData.code) {
+                                                    setFormData(prev => ({ ...prev, code: "", name: "" }));
+                                                }
+                                            }}
+                                            onFocus={() => setShowDropdown(true)}
+                                            placeholder="Type to search (e.g., 'sick', 'CL', 'casual')"
+                                            className="pl-10"
                                         />
-                                    ))}
+                                    </div>
+                                    
+                                    {/* Dropdown */}
+                                    {showDropdown && (
+                                        <div className="absolute z-50 w-full mt-1 max-h-64 overflow-auto bg-white dark:bg-gray-900 border rounded-lg shadow-lg">
+                                            {Object.entries(groupedTypes).length === 0 ? (
+                                                <div className="p-3 text-center text-muted-foreground text-sm">
+                                                    No matching leave types found
+                                                </div>
+                                            ) : (
+                                                Object.entries(groupedTypes).map(([category, types]) => (
+                                                    <div key={category}>
+                                                        <div className="px-3 py-2 text-xs font-semibold text-muted-foreground bg-muted/50 sticky top-0">
+                                                            {LEAVE_CATEGORY_LABELS[category] || category}
+                                                        </div>
+                                                        {types.map(lt => (
+                                                            <button
+                                                                key={lt.code}
+                                                                type="button"
+                                                                onClick={() => handleSelectLeaveType(lt)}
+                                                                className="w-full px-3 py-2 text-left hover:bg-muted/50 flex items-center gap-3 transition-colors"
+                                                            >
+                                                                <div
+                                                                    className="w-3 h-3 rounded-full flex-shrink-0"
+                                                                    style={{ backgroundColor: lt.color }}
+                                                                />
+                                                                <div className="flex-1 min-w-0">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="font-medium">{lt.name}</span>
+                                                                        <Badge variant="secondary" className="text-xs">
+                                                                            {lt.code}
+                                                                        </Badge>
+                                                                        {!lt.is_paid && (
+                                                                            <Badge variant="outline" className="text-xs">
+                                                                                Unpaid
+                                                                            </Badge>
+                                                                        )}
+                                                                    </div>
+                                                                    <p className="text-xs text-muted-foreground truncate">
+                                                                        {lt.description}
+                                                                    </p>
+                                                                </div>
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                ))
+                                            )}
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowDropdown(false)}
+                                                className="w-full px-3 py-2 text-center text-sm text-muted-foreground hover:bg-muted/50 border-t"
+                                            >
+                                                Close
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
+                                {formData.code && (
+                                    <p className="text-xs text-green-600 flex items-center gap-1">
+                                        <Check className="h-3 w-3" />
+                                        Selected: {formData.code} - {formData.name}
+                                    </p>
+                                )}
                             </div>
-                        </div>
+                        )}
 
-                        {/* Description */}
-                        <div className="space-y-2">
-                            <Label>Description</Label>
-                            <Input
-                                value={formData.description || ""}
-                                onChange={(e) =>
-                                    setFormData({ ...formData, description: e.target.value })
-                                }
-                                placeholder="For personal matters and emergencies"
-                            />
-                        </div>
+                        {/* Show selected details or editing fields */}
+                        {(formData.code || isEditing) && (
+                            <>
+                                {/* Basic Info - Read-only code when editing */}
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    <div className="space-y-2">
+                                        <Label>Code</Label>
+                                        <Input
+                                            value={formData.code}
+                                            disabled
+                                            className="bg-muted"
+                                        />
+                                    </div>
+                                    <div className="space-y-2 col-span-2">
+                                        <Label>Name</Label>
+                                        <Input
+                                            value={formData.name}
+                                            disabled
+                                            className="bg-muted"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Color</Label>
+                                        <div className="flex flex-wrap gap-1">
+                                            {LEAVE_COLORS.map((color) => (
+                                                <button
+                                                    key={color}
+                                                    type="button"
+                                                    className={cn(
+                                                        "w-6 h-6 rounded-full transition-transform",
+                                                        formData.color === color && "ring-2 ring-offset-2 ring-primary scale-110"
+                                                    )}
+                                                    style={{ backgroundColor: color }}
+                                                    onClick={() => setFormData({ ...formData, color })}
+                                                />
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
 
-                        {/* Quota Settings */}
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <div className="space-y-2">
-                                <Label>Annual Quota</Label>
-                                <Input
-                                    type="number"
-                                    min={0}
-                                    value={formData.annual_quota}
-                                    onChange={(e) =>
-                                        setFormData({ ...formData, annual_quota: parseInt(e.target.value) || 0 })
-                                    }
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Max Consecutive</Label>
-                                <Input
-                                    type="number"
-                                    min={1}
-                                    value={formData.max_consecutive}
-                                    onChange={(e) =>
-                                        setFormData({ ...formData, max_consecutive: parseInt(e.target.value) || 1 })
-                                    }
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Min Notice (days)</Label>
-                                <Input
-                                    type="number"
-                                    min={0}
-                                    value={formData.min_notice_days}
-                                    onChange={(e) =>
-                                        setFormData({ ...formData, min_notice_days: parseInt(e.target.value) || 0 })
-                                    }
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Gender</Label>
-                                <Select
-                                    value={formData.gender_specific || "all"}
-                                    onValueChange={(v) =>
-                                        setFormData({
-                                            ...formData,
-                                            gender_specific: v === "all" ? null : (v as 'M' | 'F'),
-                                        })
-                                    }
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">All</SelectItem>
-                                        <SelectItem value="M">Male Only</SelectItem>
-                                        <SelectItem value="F">Female Only</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </div>
-
-                        {/* Toggle Options */}
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                            <div className="flex items-center justify-between p-3 rounded-lg border">
-                                <Label>Paid Leave</Label>
-                                <Switch
-                                    checked={formData.is_paid}
-                                    onCheckedChange={(v) => setFormData({ ...formData, is_paid: v })}
-                                />
-                            </div>
-                            <div className="flex items-center justify-between p-3 rounded-lg border">
-                                <Label>Half Day Allowed</Label>
-                                <Switch
-                                    checked={formData.half_day_allowed}
-                                    onCheckedChange={(v) => setFormData({ ...formData, half_day_allowed: v })}
-                                />
-                            </div>
-                            <div className="flex items-center justify-between p-3 rounded-lg border">
-                                <Label>Document Required</Label>
-                                <Switch
-                                    checked={formData.requires_document}
-                                    onCheckedChange={(v) => setFormData({ ...formData, requires_document: v })}
-                                />
-                            </div>
-                            <div className="flex items-center justify-between p-3 rounded-lg border">
-                                <Label>Carry Forward</Label>
-                                <Switch
-                                    checked={formData.carry_forward}
-                                    onCheckedChange={(v) => setFormData({ ...formData, carry_forward: v })}
-                                />
-                            </div>
-                            {formData.carry_forward && (
-                                <div className="space-y-2 col-span-2">
-                                    <Label>Max Carry Forward</Label>
+                                {/* Description */}
+                                <div className="space-y-2">
+                                    <Label>Description</Label>
                                     <Input
-                                        type="number"
-                                        min={0}
-                                        value={formData.max_carry_forward}
+                                        value={formData.description || ""}
                                         onChange={(e) =>
-                                            setFormData({
-                                                ...formData,
-                                                max_carry_forward: parseInt(e.target.value) || 0,
-                                            })
+                                            setFormData({ ...formData, description: e.target.value })
+                                        }
+                                        placeholder="For personal matters and emergencies"
+                                    />
+                                </div>
+
+                                {/* Quota Settings */}
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    <div className="space-y-2">
+                                        <Label>Annual Quota</Label>
+                                        <Input
+                                            type="number"
+                                            min={0}
+                                            value={formData.annual_quota}
+                                            onChange={(e) =>
+                                                setFormData({ ...formData, annual_quota: parseInt(e.target.value) || 0 })
+                                            }
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Max Consecutive</Label>
+                                        <Input
+                                            type="number"
+                                            min={1}
+                                            value={formData.max_consecutive}
+                                            onChange={(e) =>
+                                                setFormData({ ...formData, max_consecutive: parseInt(e.target.value) || 1 })
+                                            }
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Min Notice (days)</Label>
+                                        <Input
+                                            type="number"
+                                            min={0}
+                                            value={formData.min_notice_days}
+                                            onChange={(e) =>
+                                                setFormData({ ...formData, min_notice_days: parseInt(e.target.value) || 0 })
+                                            }
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Gender</Label>
+                                        <Select
+                                            value={formData.gender_specific || "all"}
+                                            onValueChange={(v) =>
+                                                setFormData({
+                                                    ...formData,
+                                                    gender_specific: v === "all" ? null : (v as 'M' | 'F'),
+                                                })
+                                            }
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="all">All</SelectItem>
+                                                <SelectItem value="M">Male Only</SelectItem>
+                                                <SelectItem value="F">Female Only</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                </div>
+
+                                {/* Toggle Options */}
+                                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                    <div className="flex items-center justify-between p-3 rounded-lg border">
+                                        <Label>Paid Leave</Label>
+                                        <Switch
+                                            checked={formData.is_paid}
+                                            onCheckedChange={(v) => setFormData({ ...formData, is_paid: v })}
+                                        />
+                                    </div>
+                                    <div className="flex items-center justify-between p-3 rounded-lg border">
+                                        <Label>Half Day Allowed</Label>
+                                        <Switch
+                                            checked={formData.half_day_allowed}
+                                            onCheckedChange={(v) => setFormData({ ...formData, half_day_allowed: v })}
+                                        />
+                                    </div>
+                                    <div className="flex items-center justify-between p-3 rounded-lg border">
+                                        <Label>Document Required</Label>
+                                        <Switch
+                                            checked={formData.requires_document}
+                                            onCheckedChange={(v) => setFormData({ ...formData, requires_document: v })}
+                                        />
+                                    </div>
+                                    <div className="flex items-center justify-between p-3 rounded-lg border">
+                                        <Label>Carry Forward</Label>
+                                        <Switch
+                                            checked={formData.carry_forward}
+                                            onCheckedChange={(v) => setFormData({ ...formData, carry_forward: v })}
+                                        />
+                                    </div>
+                                    {formData.carry_forward && (
+                                        <div className="space-y-2 col-span-2">
+                                            <Label>Max Carry Forward</Label>
+                                            <Input
+                                                type="number"
+                                                min={0}
+                                                value={formData.max_carry_forward}
+                                                onChange={(e) =>
+                                                    setFormData({
+                                                        ...formData,
+                                                        max_carry_forward: parseInt(e.target.value) || 0,
+                                                    })
+                                                }
                                         }
                                     />
                                 </div>
