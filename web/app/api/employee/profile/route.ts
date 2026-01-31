@@ -9,6 +9,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 
+// Prevent caching
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export async function GET(request: NextRequest) {
   try {
     const user = await currentUser();
@@ -17,7 +21,7 @@ export async function GET(request: NextRequest) {
     if (!user) {
       return NextResponse.json(
         { success: false, error: "Unauthorized - Please sign in" },
-        { status: 401 }
+        { status: 401, headers: { "Cache-Control": "no-store" } }
       );
     }
 
@@ -59,7 +63,7 @@ export async function GET(request: NextRequest) {
     if (!employee) {
       return NextResponse.json(
         { success: false, error: `Employee not found for Clerk ID: ${user.id}` },
-        { status: 404 }
+        { status: 404, headers: { "Cache-Control": "no-store" } }
       );
     }
 
@@ -70,12 +74,12 @@ export async function GET(request: NextRequest) {
         // Ensure org_id is set (use company.id if org_id is null)
         org_id: employee.org_id || employee.company?.id,
       },
-    });
+    }, { headers: { "Cache-Control": "no-store" } });
   } catch (error: any) {
     console.error("[Employee Profile] Error:", error);
     return NextResponse.json(
       { success: false, error: error.message || "Failed to fetch profile" },
-      { status: 500 }
+      { status: 500, headers: { "Cache-Control": "no-store" } }
     );
   }
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     Clock,
@@ -28,7 +28,11 @@ import {
     Mail,
     KeyRound,
     ShieldCheck,
-    RotateCcw
+    RotateCcw,
+    ToggleLeft,
+    ToggleRight,
+    Zap,
+    ChevronRight
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -70,6 +74,12 @@ import {
     type LeaveTypeInput,
     type ApprovalSettingsInput
 } from "@/app/actions/company-settings";
+import {
+    getCompanyConstraintRules,
+    toggleRuleStatus,
+    updateRuleConfig,
+    type ConstraintRule
+} from "@/app/actions/constraint-rules";
 import {
     Dialog,
     DialogContent,
@@ -290,6 +300,25 @@ export default function HRSettingsPage() {
         error: null,
     });
 
+    // Constraint Rules state
+    const [constraintRules, setConstraintRules] = useState<ConstraintRule[]>([]);
+    const [originalConstraintRules, setOriginalConstraintRules] = useState<ConstraintRule[]>([]);
+    const [pendingRuleChanges, setPendingRuleChanges] = useState<{
+        toggled: { rule_id: string; is_active: boolean }[];
+        updated: { rule_id: string; config: Record<string, any> }[];
+    }>({ toggled: [], updated: [] });
+    const [expandedRuleCategories, setExpandedRuleCategories] = useState<Set<string>>(new Set(["limits", "balance", "coverage"]));
+
+    // Grouped constraint rules by category
+    const groupedConstraintRules = useMemo(() => {
+        const groups: Record<string, ConstraintRule[]> = {};
+        for (const rule of constraintRules) {
+            if (!groups[rule.category]) groups[rule.category] = [];
+            groups[rule.category].push(rule);
+        }
+        return groups;
+    }, [constraintRules]);
+
     // Check if there are unsaved changes
     const hasUnsavedChanges = useCallback(() => {
         if (!originalWorkSchedule || !originalLeaveSettings || !originalApprovalSettings) {
@@ -305,14 +334,17 @@ export default function HRSettingsPage() {
         // Check approval settings changes
         const approvalSettingsChanged = JSON.stringify(approvalSettings) !== JSON.stringify(originalApprovalSettings);
         
+        // Check constraint rule changes
+        const constraintRulesChanged = pendingRuleChanges.toggled.length > 0 || pendingRuleChanges.updated.length > 0;
+        
         // Check leave type changes
         const leaveTypesChanged = 
             pendingLeaveTypeChanges.added.length > 0 ||
             pendingLeaveTypeChanges.updated.length > 0 ||
             pendingLeaveTypeChanges.deleted.length > 0;
         
-        return workScheduleChanged || leaveSettingsChanged || approvalSettingsChanged || leaveTypesChanged;
-    }, [workSchedule, leaveSettings, approvalSettings, originalWorkSchedule, originalLeaveSettings, originalApprovalSettings, pendingLeaveTypeChanges]);
+        return workScheduleChanged || leaveSettingsChanged || approvalSettingsChanged || leaveTypesChanged || constraintRulesChanged;
+    }, [workSchedule, leaveSettings, approvalSettings, originalWorkSchedule, originalLeaveSettings, originalApprovalSettings, pendingLeaveTypeChanges, pendingRuleChanges]);
 
     // Send OTP for verification
     const sendOtp = useCallback(async (action: OtpAction, callback: () => Promise<void>) => {
@@ -470,6 +502,18 @@ export default function HRSettingsPage() {
                 // Set original approval settings
                 setOriginalApprovalSettings(JSON.parse(JSON.stringify(DEFAULT_APPROVAL_SETTINGS)));
                 
+                // Fetch constraint rules
+                try {
+                    const rulesResult = await getCompanyConstraintRules();
+                    if (rulesResult.success && rulesResult.rules) {
+                        setConstraintRules(rulesResult.rules);
+                        setOriginalConstraintRules(JSON.parse(JSON.stringify(rulesResult.rules)));
+                    }
+                } catch (rulesErr) {
+                    console.warn("Failed to load constraint rules:", rulesErr);
+                    // Don't block the page if rules fail to load
+                }
+                
             } catch (err: any) {
                 console.error("Failed to load settings:", err);
                 setError(err.message || "Failed to load settings");
@@ -551,7 +595,7 @@ export default function HRSettingsPage() {
                             half_day_allowed: result.leaveType.half_day_allowed,
                             gender_specific: result.leaveType.gender_specific as 'M' | 'F' | 'O' | null,
                             carry_forward: result.leaveType.carry_forward,
-                            max_carry_forward: result.leaveType.max_carry_forward,
+                            max_carry_forward: result.leaveType.max_carry_forward ?? 0,
                             is_paid: result.leaveType.is_paid,
                         };
                         setLeaveTypes(prev => [...prev.filter(t => t.code !== lt.code), newLt]);
@@ -585,11 +629,32 @@ export default function HRSettingsPage() {
                     }
                 }
                 
+                // Save constraint rule changes
+                for (const { rule_id, is_active } of pendingRuleChanges.toggled) {
+                    const result = await toggleRuleStatus(rule_id, is_active);
+                    if (result.success) {
+                        successes.push(`${is_active ? 'Enabled' : 'Disabled'} rule`);
+                    } else {
+                        errors.push(`Rule toggle: ${result.error}`);
+                    }
+                }
+                
+                for (const { rule_id, config } of pendingRuleChanges.updated) {
+                    const result = await updateRuleConfig(rule_id, { config });
+                    if (result.success) {
+                        successes.push(`Updated rule config`);
+                    } else {
+                        errors.push(`Rule update: ${result.error}`);
+                    }
+                }
+                
                 // Clear pending changes
                 setPendingLeaveTypeChanges({ added: [], updated: [], deleted: [] });
+                setPendingRuleChanges({ toggled: [], updated: [] });
                 
-                // Update original leave types
+                // Update original values
                 setOriginalLeaveTypes(JSON.parse(JSON.stringify(leaveTypes)));
+                setOriginalConstraintRules(JSON.parse(JSON.stringify(constraintRules)));
                 
                 // Show result
                 if (errors.length === 0) {
@@ -613,8 +678,39 @@ export default function HRSettingsPage() {
         if (originalLeaveSettings) setLeaveSettings(JSON.parse(JSON.stringify(originalLeaveSettings)));
         if (originalApprovalSettings) setApprovalSettings(JSON.parse(JSON.stringify(originalApprovalSettings)));
         setLeaveTypes(JSON.parse(JSON.stringify(originalLeaveTypes)));
+        setConstraintRules(JSON.parse(JSON.stringify(originalConstraintRules)));
         setPendingLeaveTypeChanges({ added: [], updated: [], deleted: [] });
+        setPendingRuleChanges({ toggled: [], updated: [] });
         setSuccess("Changes discarded");
+    };
+
+    // Handle constraint rule toggle (just update local state, save on "Save All")
+    const handleToggleRule = (rule: ConstraintRule) => {
+        const newStatus = !rule.is_active;
+        
+        // Update local state
+        setConstraintRules(prev => prev.map(r => 
+            r.rule_id === rule.rule_id ? { ...r, is_active: newStatus } : r
+        ));
+        
+        // Track pending change (remove if reverting to original)
+        const originalRule = originalConstraintRules.find(r => r.rule_id === rule.rule_id);
+        if (originalRule?.is_active === newStatus) {
+            // Reverted to original - remove from pending
+            setPendingRuleChanges(prev => ({
+                ...prev,
+                toggled: prev.toggled.filter(t => t.rule_id !== rule.rule_id)
+            }));
+        } else {
+            // Changed from original - add/update pending
+            setPendingRuleChanges(prev => ({
+                ...prev,
+                toggled: [
+                    ...prev.toggled.filter(t => t.rule_id !== rule.rule_id),
+                    { rule_id: rule.rule_id, is_active: newStatus }
+                ]
+            }));
+        }
     };
 
     // Handle tab change with unsaved changes check
@@ -1015,7 +1111,7 @@ export default function HRSettingsPage() {
 
             {/* Main Tabs */}
             <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-                <TabsList className="bg-gray-100 dark:bg-gray-800/50 p-1 rounded-lg">
+                <TabsList className="bg-gray-100 dark:bg-gray-800/50 p-1 rounded-lg flex-wrap">
                     <TabsTrigger value="workSchedule" className="flex items-center gap-2">
                         <Clock className="h-4 w-4" />
                         Work Schedule
@@ -1027,6 +1123,10 @@ export default function HRSettingsPage() {
                     <TabsTrigger value="leaveTypes" className="flex items-center gap-2">
                         <FileText className="h-4 w-4" />
                         Leave Types
+                    </TabsTrigger>
+                    <TabsTrigger value="constraintRules" className="flex items-center gap-2">
+                        <Zap className="h-4 w-4" />
+                        Constraint Rules
                     </TabsTrigger>
                     <TabsTrigger value="approval" className="flex items-center gap-2">
                         <Shield className="h-4 w-4" />
@@ -1443,6 +1543,123 @@ export default function HRSettingsPage() {
                                     </div>
                                 </div>
                             </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                {/* Constraint Rules Tab */}
+                <TabsContent value="constraintRules">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Zap className="h-5 w-5 text-purple-500" />
+                                Leave Constraint Rules
+                            </CardTitle>
+                            <CardDescription>
+                                Configure validation rules for leave requests. Toggle rules on/off to enable/disable them.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            {constraintRules.length === 0 ? (
+                                <div className="text-center py-8 text-gray-500">
+                                    <Zap className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                                    <p>No constraint rules configured</p>
+                                    <p className="text-sm">Rules are automatically created during onboarding</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    {/* Stats */}
+                                    <div className="flex gap-4 mb-6 text-sm">
+                                        <Badge variant="outline" className="px-3 py-1">
+                                            {constraintRules.length} Total Rules
+                                        </Badge>
+                                        <Badge variant="outline" className="px-3 py-1 bg-green-50 text-green-700 border-green-200">
+                                            {constraintRules.filter(r => r.is_active).length} Active
+                                        </Badge>
+                                        <Badge variant="outline" className="px-3 py-1 bg-amber-50 text-amber-700 border-amber-200">
+                                            {constraintRules.filter(r => r.is_blocking).length} Blocking
+                                        </Badge>
+                                    </div>
+
+                                    {/* Rules by Category */}
+                                    {Object.entries(groupedConstraintRules).map(([category, rules]) => (
+                                        <div key={category} className="border rounded-lg overflow-hidden">
+                                            <button
+                                                onClick={() => {
+                                                    setExpandedRuleCategories(prev => {
+                                                        const next = new Set(prev);
+                                                        if (next.has(category)) next.delete(category);
+                                                        else next.add(category);
+                                                        return next;
+                                                    });
+                                                }}
+                                                className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800"
+                                            >
+                                                <div className="flex items-center gap-2">
+                                                    <span className="font-medium capitalize">{category}</span>
+                                                    <Badge variant="secondary" className="text-xs">
+                                                        {rules.length}
+                                                    </Badge>
+                                                </div>
+                                                {expandedRuleCategories.has(category) ? (
+                                                    <ChevronDown className="h-4 w-4" />
+                                                ) : (
+                                                    <ChevronRight className="h-4 w-4" />
+                                                )}
+                                            </button>
+                                            
+                                            {expandedRuleCategories.has(category) && (
+                                                <div className="divide-y">
+                                                    {rules.map(rule => (
+                                                        <div 
+                                                            key={rule.rule_id} 
+                                                            className={cn(
+                                                                "p-4 flex items-start justify-between gap-4",
+                                                                !rule.is_active && "opacity-50 bg-gray-50 dark:bg-gray-900/50"
+                                                            )}
+                                                        >
+                                                            <div className="flex-1">
+                                                                <div className="flex items-center gap-2">
+                                                                    <h4 className="font-medium">{rule.name}</h4>
+                                                                    {rule.is_blocking && (
+                                                                        <Badge variant="destructive" className="text-xs">
+                                                                            Blocking
+                                                                        </Badge>
+                                                                    )}
+                                                                    {rule.is_custom && (
+                                                                        <Badge variant="secondary" className="text-xs">
+                                                                            Custom
+                                                                        </Badge>
+                                                                    )}
+                                                                </div>
+                                                                <p className="text-sm text-gray-500 mt-1">
+                                                                    {rule.description}
+                                                                </p>
+                                                            </div>
+                                                            <button
+                                                                onClick={() => handleToggleRule(rule)}
+                                                                className={cn(
+                                                                    "flex-shrink-0 transition-colors",
+                                                                    rule.is_active 
+                                                                        ? "text-green-500 hover:text-green-600" 
+                                                                        : "text-gray-400 hover:text-gray-500"
+                                                                )}
+                                                                title={rule.is_active ? "Disable rule" : "Enable rule"}
+                                                            >
+                                                                {rule.is_active ? (
+                                                                    <ToggleRight className="h-8 w-8" />
+                                                                ) : (
+                                                                    <ToggleLeft className="h-8 w-8" />
+                                                                )}
+                                                            </button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
                 </TabsContent>
