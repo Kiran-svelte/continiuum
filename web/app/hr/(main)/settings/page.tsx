@@ -435,7 +435,10 @@ export default function HRSettingsPage() {
         async function loadSettings() {
             try {
                 // First get company ID from employee
-                const empRes = await fetch("/api/employee/profile");
+                const empRes = await fetch("/api/employee/profile", {
+                    cache: 'no-store',
+                    headers: { 'Cache-Control': 'no-cache' }
+                });
                 const empData = await empRes.json();
                 
                 if (!empRes.ok) {
@@ -458,8 +461,16 @@ export default function HRSettingsPage() {
                 
                 setCompanyId(empData.employee.org_id);
                 
-                // Now fetch company settings
-                const result = await getCompanySettings(empData.employee.org_id);
+                // Now fetch company settings with error boundary
+                let result;
+                try {
+                    result = await getCompanySettings(empData.employee.org_id);
+                } catch (settingsErr: any) {
+                    console.error("getCompanySettings error:", settingsErr);
+                    setError("Failed to load company settings. Please try again.");
+                    setLoading(false);
+                    return;
+                }
                 
                 if (!result.success) {
                     setError(result.error || "Failed to load settings");

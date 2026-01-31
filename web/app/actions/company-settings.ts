@@ -764,6 +764,7 @@ export async function deleteLeaveRule(ruleId: string) {
    ========================================================================= */
 export async function getCompanySettings(companyId: string) {
     try {
+        // Fetch company with all related data
         const company = await prisma.company.findUnique({
             where: { id: companyId },
             select: {
@@ -778,34 +779,65 @@ export async function getCompanySettings(companyId: string) {
                 carry_forward_max: true,
                 probation_leave: true,
                 negative_balance: true,
-                // Include settings relation
-                settings: true,
             }
         });
+        
+        if (!company) {
+            return { success: false, error: "Company not found" };
+        }
 
-        const leaveTypes = await prisma.leaveType.findMany({
-            where: { company_id: companyId, is_active: true },
-            orderBy: { sort_order: 'asc' }
-        });
+        // Fetch leave types separately to avoid relation issues
+        let leaveTypes: any[] = [];
+        try {
+            leaveTypes = await prisma.leaveType.findMany({
+                where: { company_id: companyId, is_active: true },
+                orderBy: { sort_order: 'asc' }
+            });
+        } catch (ltErr) {
+            console.error("[getCompanySettings] Leave types error:", ltErr);
+            leaveTypes = [];
+        }
 
-        const leaveRules = await prisma.leaveRule.findMany({
-            where: { company_id: companyId, is_active: true },
-            orderBy: { priority: 'desc' }
-        });
+        // Fetch leave rules separately
+        let leaveRules: any[] = [];
+        try {
+            leaveRules = await prisma.leaveRule.findMany({
+                where: { company_id: companyId, is_active: true },
+                orderBy: { priority: 'desc' }
+            });
+        } catch (lrErr) {
+            console.error("[getCompanySettings] Leave rules error:", lrErr);
+            leaveRules = [];
+        }
+
+        // Fetch company settings separately
+        let companySettings = null;
+        try {
+            companySettings = await prisma.companySettings.findUnique({
+                where: { company_id: companyId }
+            });
+        } catch (csErr) {
+            console.error("[getCompanySettings] Company settings error:", csErr);
+            companySettings = null;
+        }
 
         // Get constraint rules
-        const constraintPolicy = await prisma.constraintPolicy.findFirst({
-            where: { org_id: companyId },
-            select: { rules: true }
-        });
+        let selectedRules: Record<string, boolean> = {};
+        try {
+            const constraintPolicy = await prisma.constraintPolicy.findFirst({
+                where: { org_id: companyId },
+                select: { rules: true }
+            });
 
-        // Extract selected rules from policy
-        const selectedRules: Record<string, boolean> = {};
-        if (constraintPolicy?.rules && typeof constraintPolicy.rules === 'object') {
-            const rulesObj = constraintPolicy.rules as Record<string, any>;
-            for (const [ruleId, ruleData] of Object.entries(rulesObj)) {
-                selectedRules[ruleId] = ruleData?.is_active ?? true;
+            if (constraintPolicy?.rules && typeof constraintPolicy.rules === 'object') {
+                const rulesObj = constraintPolicy.rules as Record<string, any>;
+                for (const [ruleId, ruleData] of Object.entries(rulesObj)) {
+                    selectedRules[ruleId] = ruleData?.is_active ?? true;
+                }
             }
+        } catch (cpErr) {
+            console.error("[getCompanySettings] Constraint policy error:", cpErr);
+            selectedRules = {};
         }
 
         // Convert Decimal fields to numbers for serialization
@@ -817,49 +849,45 @@ export async function getCompanySettings(companyId: string) {
 
         const serializedLeaveRules = leaveRules.map(lr => ({
             ...lr,
-            // Ensure config is a plain object
             config: lr.config as Record<string, any>,
         }));
 
         return {
             success: true,
             workSchedule: {
-                work_start_time: company?.work_start_time || "09:00",
-                work_end_time: company?.work_end_time || "18:00",
-                grace_period_mins: company?.grace_period_mins || 15,
-                half_day_hours: Number(company?.half_day_hours) || 4,
-                full_day_hours: Number(company?.full_day_hours) || 8,
-                work_days: (company?.work_days as number[]) || [1,2,3,4,5],
-                timezone: company?.timezone || "Asia/Kolkata",
+                work_start_time: company.work_start_time || "09:00",
+                work_end_time: company.work_end_time || "18:00",
+                grace_period_mins: company.grace_period_mins || 15,
+                half_day_hours: Number(company.half_day_hours) || 4,
+                full_day_hours: Number(company.full_day_hours) || 8,
+                work_days: (company.work_days as number[]) || [1,2,3,4,5],
+                timezone: company.timezone || "Asia/Kolkata",
             },
             leaveSettings: {
-                leave_year_start: company?.leave_year_start || "01-01",
-                carry_forward_max: company?.carry_forward_max || 5,
-                probation_leave: company?.probation_leave || false,
-                negative_balance: company?.negative_balance || false,
+                leave_year_start: company.leave_year_start || "01-01",
+                carry_forward_max: company.carry_forward_max || 5,
+                probation_leave: company.probation_leave || false,
+                negative_balance: company.negative_balance || false,
             },
             leaveTypes: serializedLeaveTypes,
             leaveRules: serializedLeaveRules,
-            // NEW: Constraint rules selection
             constraintRules: selectedRules,
-            // NEW: Holiday settings from company_settings
-            holidaySettings: company?.settings ? {
-                holiday_mode: (company.settings.holiday_mode as "auto" | "manual") || "auto",
-                country_code: company.settings.country_code || "IN",
-                custom_holidays: (company.settings.custom_holidays as any[]) || [],
+            holidaySettings: companySettings ? {
+                holiday_mode: (companySettings.holiday_mode as "auto" | "manual") || "auto",
+                country_code: companySettings.country_code || "IN",
+                custom_holidays: (companySettings.custom_holidays as any[]) || [],
             } : null,
-            // NEW: Notification settings from company_settings
-            notificationSettings: company?.settings ? {
-                email_checkin_reminder: company.settings.email_checkin_reminder,
-                email_checkout_reminder: company.settings.email_checkout_reminder,
-                email_hr_missing_alerts: company.settings.email_hr_missing_alerts,
-                email_leave_notifications: company.settings.email_leave_notifications,
-                email_approval_reminders: company.settings.email_approval_reminders,
+            notificationSettings: companySettings ? {
+                email_checkin_reminder: companySettings.email_checkin_reminder,
+                email_checkout_reminder: companySettings.email_checkout_reminder,
+                email_hr_missing_alerts: companySettings.email_hr_missing_alerts,
+                email_leave_notifications: companySettings.email_leave_notifications,
+                email_approval_reminders: companySettings.email_approval_reminders,
             } : null,
         };
     } catch (error: any) {
         console.error("[getCompanySettings] Error:", error);
-        return { success: false, error: error.message };
+        return { success: false, error: error.message || "Failed to load settings" };
     }
 }
 
