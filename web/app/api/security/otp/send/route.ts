@@ -145,7 +145,16 @@ export async function POST(request: NextRequest) {
 
     if (!emailResult.success) {
       console.error("[OTP Send] Email failed:", emailResult.error);
-      // Still return success but note email might not have sent
+      // In development/staging, show the OTP in the response for testing
+      // WARNING: Remove this in production!
+      const isDev = process.env.NODE_ENV === 'development' || process.env.VERCEL_ENV === 'preview';
+      return NextResponse.json({
+        success: true,
+        message: `Verification code sent to ${maskEmail(employee.email)}`,
+        expiresAt: result.expiresAt,
+        // For testing: include OTP code when email fails (only in dev/staging)
+        ...(isDev && { debugCode: result.code, emailError: emailResult.error }),
+      });
     }
 
     // Return success (but don't expose the OTP code in response for security)

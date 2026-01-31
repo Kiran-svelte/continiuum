@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     Clock,
@@ -27,7 +27,8 @@ import {
     Lock,
     Mail,
     KeyRound,
-    ShieldCheck
+    ShieldCheck,
+    RotateCcw
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -96,6 +97,18 @@ interface OtpState {
     pendingCallback: (() => Promise<void>) | null;
     expiresAt: Date | null;
     error: string | null;
+}
+
+// Track which sections have unsaved changes
+interface PendingChanges {
+    workSchedule: boolean;
+    leaveSettings: boolean;
+    approvalSettings: boolean;
+    leaveTypes: {
+        added: LeaveTypeInput[];
+        updated: { id: string; data: Partial<LeaveTypeInput> }[];
+        deleted: string[];
+    };
 }
 
 // =========================================================================
@@ -228,6 +241,24 @@ export default function HRSettingsPage() {
     const [approvalSettings, setApprovalSettings] = useState<ApprovalSettings>(DEFAULT_APPROVAL_SETTINGS);
     const [leaveTypes, setLeaveTypes] = useState<LeaveType[]>([]);
 
+    // Original values to track changes (set after loading)
+    const [originalWorkSchedule, setOriginalWorkSchedule] = useState<WorkSchedule | null>(null);
+    const [originalLeaveSettings, setOriginalLeaveSettings] = useState<LeaveSettingsType | null>(null);
+    const [originalApprovalSettings, setOriginalApprovalSettings] = useState<ApprovalSettings | null>(null);
+    const [originalLeaveTypes, setOriginalLeaveTypes] = useState<LeaveType[]>([]);
+    
+    // Track pending leave type changes
+    const [pendingLeaveTypeChanges, setPendingLeaveTypeChanges] = useState<PendingChanges['leaveTypes']>({
+        added: [],
+        updated: [],
+        deleted: []
+    });
+    
+    // Unsaved changes dialog
+    const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
+    const [pendingTabChange, setPendingTabChange] = useState<string | null>(null);
+    const [activeTab, setActiveTab] = useState("workSchedule");
+
     // Leave Type Dialog state
     const [showLeaveTypeDialog, setShowLeaveTypeDialog] = useState(false);
     const [editingLeaveType, setEditingLeaveType] = useState<LeaveType | null>(null);
@@ -259,6 +290,30 @@ export default function HRSettingsPage() {
         error: null,
     });
 
+    // Check if there are unsaved changes
+    const hasUnsavedChanges = useCallback(() => {
+        if (!originalWorkSchedule || !originalLeaveSettings || !originalApprovalSettings) {
+            return false; // Still loading
+        }
+        
+        // Check work schedule changes
+        const workScheduleChanged = JSON.stringify(workSchedule) !== JSON.stringify(originalWorkSchedule);
+        
+        // Check leave settings changes
+        const leaveSettingsChanged = JSON.stringify(leaveSettings) !== JSON.stringify(originalLeaveSettings);
+        
+        // Check approval settings changes
+        const approvalSettingsChanged = JSON.stringify(approvalSettings) !== JSON.stringify(originalApprovalSettings);
+        
+        // Check leave type changes
+        const leaveTypesChanged = 
+            pendingLeaveTypeChanges.added.length > 0 ||
+            pendingLeaveTypeChanges.updated.length > 0 ||
+            pendingLeaveTypeChanges.deleted.length > 0;
+        
+        return workScheduleChanged || leaveSettingsChanged || approvalSettingsChanged || leaveTypesChanged;
+    }, [workSchedule, leaveSettings, approvalSettings, originalWorkSchedule, originalLeaveSettings, originalApprovalSettings, pendingLeaveTypeChanges]);
+
     // Send OTP for verification
     const sendOtp = useCallback(async (action: OtpAction, callback: () => Promise<void>) => {
         setOtpState(prev => ({ ...prev, isSending: true, error: null, action, pendingCallback: () => callback() }));
@@ -283,7 +338,15 @@ export default function HRSettingsPage() {
                 expiresAt: new Date(data.expiresAt),
             }));
             setShowOtpDialog(true);
-            setSuccess("Verification code sent to your email!");
+            
+            // If email failed and we're in dev/preview, show the debug code
+            if (data.debugCode) {
+                setSuccess(`⚠️ Email service unavailable. For testing, use code: ${data.debugCode}`);
+                // Auto-fill the OTP code for convenience
+                setOtpCode(data.debugCode);
+            } else {
+                setSuccess("Verification code sent to your email!");
+            }
         } catch (err: any) {
             setOtpState(prev => ({ ...prev, isSending: false, error: err.message }));
             setError(err.message || "Failed to send verification code");
@@ -362,8 +425,14 @@ export default function HRSettingsPage() {
                 }
                 
                 // Set all the state
-                if (result.workSchedule) setWorkSchedule(result.workSchedule);
-                if (result.leaveSettings) setLeaveSettings(result.leaveSettings);
+                if (result.workSchedule) {
+                    setWorkSchedule(result.workSchedule);
+                    setOriginalWorkSchedule(JSON.parse(JSON.stringify(result.workSchedule)));
+                }
+                if (result.leaveSettings) {
+                    setLeaveSettings(result.leaveSettings);
+                    setOriginalLeaveSettings(JSON.parse(JSON.stringify(result.leaveSettings)));
+                }
                 if (result.leaveTypes) {
                     // Convert Decimal fields to numbers
                     const convertedLeaveTypes: LeaveType[] = result.leaveTypes.map((lt: any) => ({
@@ -384,10 +453,11 @@ export default function HRSettingsPage() {
                         is_paid: lt.is_paid,
                     }));
                     setLeaveTypes(convertedLeaveTypes);
+                    setOriginalLeaveTypes(JSON.parse(JSON.stringify(convertedLeaveTypes)));
                 }
                 
-                // Extract approval settings from constraint rules if available
-                // This would be stored in the constraint policy
+                // Set original approval settings
+                setOriginalApprovalSettings(JSON.parse(JSON.stringify(DEFAULT_APPROVAL_SETTINGS)));
                 
             } catch (err: any) {
                 console.error("Failed to load settings:", err);
@@ -400,74 +470,153 @@ export default function HRSettingsPage() {
         loadSettings();
     }, []);
 
-    // Save handlers - NOW WITH OTP VERIFICATION
-    const handleSaveWorkSchedule = async () => {
-        // Require OTP verification for work schedule changes
-        await sendOtp("work_schedule_change", async () => {
-            setSaving("workSchedule");
-            setError(null);
-            setSuccess(null);
-            
-            try {
-                const result = await saveWorkSchedule(companyId, workSchedule);
-                if (result.success) {
-                    setSuccess("✅ Work schedule saved successfully! (OTP Verified)");
-                } else {
-                    setError(result.error || "Failed to save work schedule");
-                }
-            } catch (err: any) {
-                setError(err.message || "Failed to save work schedule");
-            } finally {
-                setSaving(null);
-            }
-        });
-    };
-
-    const handleSaveLeaveSettings = async () => {
-        // Require OTP verification for leave settings changes
+    // =========================================================================
+    // SINGLE "SAVE ALL CHANGES" HANDLER - OTP ONLY ONCE
+    // =========================================================================
+    const handleSaveAllChanges = async () => {
+        if (!hasUnsavedChanges()) {
+            setSuccess("No changes to save");
+            return;
+        }
+        
+        // Send OTP for verification (only once for all changes)
         await sendOtp("settings_change", async () => {
-            setSaving("leaveSettings");
+            setSaving("all");
             setError(null);
-            setSuccess(null);
+            
+            const errors: string[] = [];
+            const successes: string[] = [];
             
             try {
-                const result = await saveLeaveSettings(companyId, leaveSettings);
-                if (result.success) {
-                    setSuccess("✅ Leave settings saved successfully! (OTP Verified)");
+                // Save work schedule if changed
+                if (originalWorkSchedule && JSON.stringify(workSchedule) !== JSON.stringify(originalWorkSchedule)) {
+                    const result = await saveWorkSchedule(companyId, workSchedule);
+                    if (result.success) {
+                        successes.push("Work schedule");
+                        setOriginalWorkSchedule(JSON.parse(JSON.stringify(workSchedule)));
+                    } else {
+                        errors.push(`Work schedule: ${result.error}`);
+                    }
+                }
+                
+                // Save leave settings if changed
+                if (originalLeaveSettings && JSON.stringify(leaveSettings) !== JSON.stringify(originalLeaveSettings)) {
+                    const result = await saveLeaveSettings(companyId, leaveSettings);
+                    if (result.success) {
+                        successes.push("Leave settings");
+                        setOriginalLeaveSettings(JSON.parse(JSON.stringify(leaveSettings)));
+                    } else {
+                        errors.push(`Leave settings: ${result.error}`);
+                    }
+                }
+                
+                // Save approval settings if changed
+                if (originalApprovalSettings && JSON.stringify(approvalSettings) !== JSON.stringify(originalApprovalSettings)) {
+                    const result = await saveApprovalSettings(companyId, approvalSettings);
+                    if (result.success) {
+                        successes.push("Approval settings");
+                        setOriginalApprovalSettings(JSON.parse(JSON.stringify(approvalSettings)));
+                    } else {
+                        errors.push(`Approval settings: ${result.error}`);
+                    }
+                }
+                
+                // Process leave type changes
+                // Add new leave types
+                for (const lt of pendingLeaveTypeChanges.added) {
+                    const result = await createLeaveType(companyId, lt);
+                    if (result.success && result.leaveType) {
+                        const newLt: LeaveType = {
+                            id: result.leaveType.id,
+                            code: result.leaveType.code,
+                            name: result.leaveType.name,
+                            description: result.leaveType.description,
+                            color: result.leaveType.color,
+                            annual_quota: Number(result.leaveType.annual_quota),
+                            max_consecutive: result.leaveType.max_consecutive,
+                            min_notice_days: result.leaveType.min_notice_days,
+                            requires_document: result.leaveType.requires_document,
+                            requires_approval: result.leaveType.requires_approval,
+                            half_day_allowed: result.leaveType.half_day_allowed,
+                            gender_specific: result.leaveType.gender_specific as 'M' | 'F' | 'O' | null,
+                            carry_forward: result.leaveType.carry_forward,
+                            max_carry_forward: result.leaveType.max_carry_forward,
+                            is_paid: result.leaveType.is_paid,
+                        };
+                        setLeaveTypes(prev => [...prev.filter(t => t.code !== lt.code), newLt]);
+                        successes.push(`Added leave type: ${lt.name}`);
+                    } else {
+                        errors.push(`Add ${lt.name}: ${result.error}`);
+                    }
+                }
+                
+                // Update existing leave types
+                for (const { id, data } of pendingLeaveTypeChanges.updated) {
+                    const result = await updateLeaveType(id, data);
+                    if (result.success) {
+                        setLeaveTypes(prev => prev.map(lt => 
+                            lt.id === id ? { ...lt, ...data } as LeaveType : lt
+                        ));
+                        successes.push(`Updated leave type`);
+                    } else {
+                        errors.push(`Update: ${result.error}`);
+                    }
+                }
+                
+                // Delete leave types
+                for (const id of pendingLeaveTypeChanges.deleted) {
+                    const result = await deleteLeaveType(id);
+                    if (result.success) {
+                        setLeaveTypes(prev => prev.filter(lt => lt.id !== id));
+                        successes.push(`Deleted leave type`);
+                    } else {
+                        errors.push(`Delete: ${result.error}`);
+                    }
+                }
+                
+                // Clear pending changes
+                setPendingLeaveTypeChanges({ added: [], updated: [], deleted: [] });
+                
+                // Update original leave types
+                setOriginalLeaveTypes(JSON.parse(JSON.stringify(leaveTypes)));
+                
+                // Show result
+                if (errors.length === 0) {
+                    setSuccess(`✅ All changes saved successfully! (${successes.length} items)`);
+                } else if (successes.length > 0) {
+                    setSuccess(`⚠️ Partially saved. Successes: ${successes.join(", ")}. Errors: ${errors.join("; ")}`);
                 } else {
-                    setError(result.error || "Failed to save leave settings");
+                    setError(`Failed to save: ${errors.join("; ")}`);
                 }
             } catch (err: any) {
-                setError(err.message || "Failed to save leave settings");
+                setError(err.message || "Failed to save changes");
             } finally {
                 setSaving(null);
             }
         });
     };
 
-    const handleSaveApprovalSettings = async () => {
-        // Require OTP verification for approval rule changes
-        await sendOtp("rule_change", async () => {
-            setSaving("approvalSettings");
-            setError(null);
-            setSuccess(null);
-            
-            try {
-                const result = await saveApprovalSettings(companyId, approvalSettings);
-                if (result.success) {
-                    setSuccess("✅ Approval settings saved successfully! (OTP Verified)");
-                } else {
-                    setError(result.error || "Failed to save approval settings");
-                }
-            } catch (err: any) {
-                setError(err.message || "Failed to save approval settings");
-            } finally {
-                setSaving(null);
-            }
-        });
+    // Discard all changes
+    const handleDiscardChanges = () => {
+        if (originalWorkSchedule) setWorkSchedule(JSON.parse(JSON.stringify(originalWorkSchedule)));
+        if (originalLeaveSettings) setLeaveSettings(JSON.parse(JSON.stringify(originalLeaveSettings)));
+        if (originalApprovalSettings) setApprovalSettings(JSON.parse(JSON.stringify(originalApprovalSettings)));
+        setLeaveTypes(JSON.parse(JSON.stringify(originalLeaveTypes)));
+        setPendingLeaveTypeChanges({ added: [], updated: [], deleted: [] });
+        setSuccess("Changes discarded");
     };
 
-    // Leave Type handlers
+    // Handle tab change with unsaved changes check
+    const handleTabChange = (newTab: string) => {
+        if (hasUnsavedChanges()) {
+            setPendingTabChange(newTab);
+            setShowUnsavedDialog(true);
+        } else {
+            setActiveTab(newTab);
+        }
+    };
+
+    // Leave Type handlers - NO OTP here, just update local state
     const handleAddLeaveType = () => {
         setEditingLeaveType(null);
         setLeaveTypeForm({
@@ -509,85 +658,90 @@ export default function HRSettingsPage() {
         setShowLeaveTypeDialog(true);
     };
 
+    // Save leave type to PENDING changes (not to DB yet)
     const handleSaveLeaveType = async () => {
-        // Require OTP verification for leave type changes
-        await sendOtp("leave_type_create", async () => {
-            setSaving("leaveType");
-            setError(null);
-            
-            try {
-                if (editingLeaveType) {
-                    // Update existing - updateLeaveType only takes (leaveTypeId, data)
-                    const result = await updateLeaveType(editingLeaveType.id, leaveTypeForm);
-                    if (result.success) {
-                        setLeaveTypes(prev => prev.map(lt => 
-                            lt.id === editingLeaveType.id 
-                                ? { ...lt, ...leaveTypeForm } as LeaveType
-                                : lt
-                        ));
-                        setSuccess("✅ Leave type updated successfully! (OTP Verified)");
-                        setShowLeaveTypeDialog(false);
-                    } else {
-                        setError(result.error || "Failed to update leave type");
-                    }
-                } else {
-                    // Create new
-                    const result = await createLeaveType(companyId, leaveTypeForm);
-                    if (result.success && result.leaveType) {
-                        // Convert Decimal to number for annual_quota
-                        const newLeaveType: LeaveType = {
-                            id: result.leaveType.id,
-                            code: result.leaveType.code,
-                            name: result.leaveType.name,
-                            description: result.leaveType.description,
-                            color: result.leaveType.color,
-                            annual_quota: Number(result.leaveType.annual_quota),
-                            max_consecutive: result.leaveType.max_consecutive,
-                            min_notice_days: result.leaveType.min_notice_days,
-                            requires_document: result.leaveType.requires_document,
-                            requires_approval: result.leaveType.requires_approval,
-                            half_day_allowed: result.leaveType.half_day_allowed,
-                            gender_specific: result.leaveType.gender_specific as 'M' | 'F' | 'O' | null,
-                            carry_forward: result.leaveType.carry_forward,
-                            max_carry_forward: result.leaveType.max_carry_forward,
-                            is_paid: result.leaveType.is_paid,
-                        };
-                        setLeaveTypes(prev => [...prev, newLeaveType]);
-                        setSuccess("✅ Leave type created successfully! (OTP Verified)");
-                        setShowLeaveTypeDialog(false);
-                    } else {
-                        setError(result.error || "Failed to create leave type");
-                    }
-                }
-            } catch (err: any) {
-                setError(err.message || "Failed to save leave type");
-            } finally {
-                setSaving(null);
+        // Validate form
+        if (!leaveTypeForm.code || !leaveTypeForm.name) {
+            setError("Code and Name are required");
+            return;
+        }
+        
+        if (editingLeaveType) {
+            // Mark as updated in pending changes
+            setPendingLeaveTypeChanges(prev => ({
+                ...prev,
+                updated: [
+                    ...prev.updated.filter(u => u.id !== editingLeaveType.id),
+                    { id: editingLeaveType.id, data: leaveTypeForm }
+                ]
+            }));
+            // Update local display
+            setLeaveTypes(prev => prev.map(lt => 
+                lt.id === editingLeaveType.id 
+                    ? { ...lt, ...leaveTypeForm } as LeaveType
+                    : lt
+            ));
+            setSuccess("Leave type updated (pending save)");
+        } else {
+            // Check for duplicate code
+            if (leaveTypes.some(lt => lt.code === leaveTypeForm.code.toUpperCase())) {
+                setError(`Leave type with code '${leaveTypeForm.code}' already exists`);
+                return;
             }
-        });
+            // Add to pending changes
+            setPendingLeaveTypeChanges(prev => ({
+                ...prev,
+                added: [...prev.added, leaveTypeForm]
+            }));
+            // Add to local display with temp ID
+            const tempLt: LeaveType = {
+                id: `temp-${Date.now()}`,
+                code: leaveTypeForm.code.toUpperCase(),
+                name: leaveTypeForm.name,
+                description: leaveTypeForm.description,
+                color: leaveTypeForm.color || "#6366f1",
+                annual_quota: leaveTypeForm.annual_quota,
+                max_consecutive: leaveTypeForm.max_consecutive || 5,
+                min_notice_days: leaveTypeForm.min_notice_days || 1,
+                requires_document: leaveTypeForm.requires_document || false,
+                requires_approval: leaveTypeForm.requires_approval ?? true,
+                half_day_allowed: leaveTypeForm.half_day_allowed ?? true,
+                gender_specific: leaveTypeForm.gender_specific || null,
+                carry_forward: leaveTypeForm.carry_forward || false,
+                max_carry_forward: leaveTypeForm.max_carry_forward || 0,
+                is_paid: leaveTypeForm.is_paid ?? true,
+            };
+            setLeaveTypes(prev => [...prev, tempLt]);
+            setSuccess("Leave type added (pending save)");
+        }
+        setShowLeaveTypeDialog(false);
     };
 
+    // Mark leave type for deletion (pending)
     const handleDeleteLeaveType = async (id: string) => {
-        if (!confirm("Are you sure you want to delete this leave type? This requires OTP verification.")) return;
+        if (!confirm("Are you sure you want to delete this leave type?")) return;
         
-        // Require OTP verification for deletion
-        await sendOtp("leave_type_delete", async () => {
-            setSaving("leaveType");
-            try {
-                // deleteLeaveType only takes leaveTypeId
-                const result = await deleteLeaveType(id);
-                if (result.success) {
-                    setLeaveTypes(prev => prev.filter(lt => lt.id !== id));
-                    setSuccess("✅ Leave type deleted successfully! (OTP Verified)");
-                } else {
-                    setError(result.error || "Failed to delete leave type");
-                }
-            } catch (err: any) {
-                setError(err.message || "Failed to delete leave type");
-            } finally {
-                setSaving(null);
+        // Check if it's a temp (newly added) item
+        if (id.startsWith('temp-')) {
+            // Just remove from pending added
+            const ltToRemove = leaveTypes.find(lt => lt.id === id);
+            if (ltToRemove) {
+                setPendingLeaveTypeChanges(prev => ({
+                    ...prev,
+                    added: prev.added.filter(a => a.code !== ltToRemove.code)
+                }));
             }
-        });
+        } else {
+            // Mark for deletion
+            setPendingLeaveTypeChanges(prev => ({
+                ...prev,
+                deleted: [...prev.deleted, id]
+            }));
+        }
+        
+        // Remove from local display
+        setLeaveTypes(prev => prev.filter(lt => lt.id !== id));
+        setSuccess("Leave type marked for deletion (pending save)");
     };
 
     // Toggle work day
@@ -619,7 +773,7 @@ export default function HRSettingsPage() {
     }
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 pb-24">
             {/* OTP Verification Dialog */}
             <Dialog open={showOtpDialog} onOpenChange={setShowOtpDialog}>
                 <DialogContent className="sm:max-w-md">
@@ -712,6 +866,59 @@ export default function HRSettingsPage() {
                 </DialogContent>
             </Dialog>
 
+            {/* Unsaved Changes Dialog */}
+            <Dialog open={showUnsavedDialog} onOpenChange={setShowUnsavedDialog}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <AlertCircle className="h-5 w-5 text-amber-500" />
+                            Unsaved Changes
+                        </DialogTitle>
+                        <DialogDescription>
+                            You have unsaved changes. What would you like to do?
+                        </DialogDescription>
+                    </DialogHeader>
+                    
+                    <DialogFooter className="flex gap-2 sm:justify-between">
+                        <Button 
+                            variant="outline" 
+                            onClick={() => {
+                                setShowUnsavedDialog(false);
+                                setPendingTabChange(null);
+                            }}
+                        >
+                            Continue Editing
+                        </Button>
+                        <div className="flex gap-2">
+                            <Button
+                                variant="destructive"
+                                onClick={() => {
+                                    handleDiscardChanges();
+                                    setShowUnsavedDialog(false);
+                                    if (pendingTabChange) {
+                                        setActiveTab(pendingTabChange);
+                                        setPendingTabChange(null);
+                                    }
+                                }}
+                            >
+                                <RotateCcw className="h-4 w-4 mr-2" />
+                                Discard
+                            </Button>
+                            <Button
+                                className="bg-purple-600 hover:bg-purple-700"
+                                onClick={() => {
+                                    setShowUnsavedDialog(false);
+                                    handleSaveAllChanges();
+                                }}
+                            >
+                                <Save className="h-4 w-4 mr-2" />
+                                Save All
+                            </Button>
+                        </div>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
@@ -726,6 +933,41 @@ export default function HRSettingsPage() {
                     <span className="text-xs font-medium text-green-700 dark:text-green-300">OTP Protected</span>
                 </div>
             </div>
+
+            {/* Unsaved Changes Banner */}
+            {hasUnsavedChanges() && (
+                <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4 flex items-center justify-between"
+                >
+                    <div className="flex items-center gap-3">
+                        <AlertCircle className="h-5 w-5 text-amber-500" />
+                        <p className="text-amber-700 dark:text-amber-300 font-medium">
+                            You have unsaved changes
+                        </p>
+                    </div>
+                    <div className="flex gap-2">
+                        <Button variant="outline" size="sm" onClick={handleDiscardChanges}>
+                            <RotateCcw className="h-4 w-4 mr-1" />
+                            Discard
+                        </Button>
+                        <Button 
+                            size="sm" 
+                            className="bg-purple-600 hover:bg-purple-700"
+                            onClick={handleSaveAllChanges}
+                            disabled={saving === "all" || otpState.isSending}
+                        >
+                            {saving === "all" || otpState.isSending ? (
+                                <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                            ) : (
+                                <Save className="h-4 w-4 mr-1" />
+                            )}
+                            Save All Changes
+                        </Button>
+                    </div>
+                </motion.div>
+            )}
 
             {/* Alerts */}
             <AnimatePresence>
@@ -761,17 +1003,17 @@ export default function HRSettingsPage() {
             </AnimatePresence>
 
             {/* Main Tabs */}
-            <Tabs defaultValue="schedule" className="space-y-6">
+            <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
                 <TabsList className="bg-gray-100 dark:bg-gray-800/50 p-1 rounded-lg">
-                    <TabsTrigger value="schedule" className="flex items-center gap-2">
+                    <TabsTrigger value="workSchedule" className="flex items-center gap-2">
                         <Clock className="h-4 w-4" />
                         Work Schedule
                     </TabsTrigger>
-                    <TabsTrigger value="leave-settings" className="flex items-center gap-2">
+                    <TabsTrigger value="leaveSettings" className="flex items-center gap-2">
                         <Calendar className="h-4 w-4" />
                         Leave Settings
                     </TabsTrigger>
-                    <TabsTrigger value="leave-types" className="flex items-center gap-2">
+                    <TabsTrigger value="leaveTypes" className="flex items-center gap-2">
                         <FileText className="h-4 w-4" />
                         Leave Types
                     </TabsTrigger>
@@ -782,7 +1024,7 @@ export default function HRSettingsPage() {
                 </TabsList>
 
                 {/* Work Schedule Tab */}
-                <TabsContent value="schedule">
+                <TabsContent value="workSchedule">
                     <Card>
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
@@ -889,25 +1131,12 @@ export default function HRSettingsPage() {
                                     </SelectContent>
                                 </Select>
                             </div>
-
-                            <Button 
-                                onClick={handleSaveWorkSchedule}
-                                disabled={saving === "workSchedule"}
-                                className="bg-purple-500 hover:bg-purple-600"
-                            >
-                                {saving === "workSchedule" ? (
-                                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                                ) : (
-                                    <Save className="h-4 w-4 mr-2" />
-                                )}
-                                Save Work Schedule
-                            </Button>
                         </CardContent>
                     </Card>
                 </TabsContent>
 
                 {/* Leave Settings Tab */}
-                <TabsContent value="leave-settings">
+                <TabsContent value="leaveSettings">
                     <Card>
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
@@ -973,25 +1202,12 @@ export default function HRSettingsPage() {
                                     />
                                 </div>
                             </div>
-
-                            <Button 
-                                onClick={handleSaveLeaveSettings}
-                                disabled={saving === "leaveSettings"}
-                                className="bg-purple-500 hover:bg-purple-600"
-                            >
-                                {saving === "leaveSettings" ? (
-                                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                                ) : (
-                                    <Save className="h-4 w-4 mr-2" />
-                                )}
-                                Save Leave Settings
-                            </Button>
                         </CardContent>
                     </Card>
                 </TabsContent>
 
                 {/* Leave Types Tab */}
-                <TabsContent value="leave-types">
+                <TabsContent value="leaveTypes">
                     <Card>
                         <CardHeader>
                             <div className="flex items-center justify-between">
@@ -1216,23 +1432,47 @@ export default function HRSettingsPage() {
                                     </div>
                                 </div>
                             </div>
-
-                            <Button 
-                                onClick={handleSaveApprovalSettings}
-                                disabled={saving === "approvalSettings"}
-                                className="bg-purple-500 hover:bg-purple-600"
-                            >
-                                {saving === "approvalSettings" ? (
-                                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                                ) : (
-                                    <Save className="h-4 w-4 mr-2" />
-                                )}
-                                Save Approval Rules
-                            </Button>
                         </CardContent>
                     </Card>
                 </TabsContent>
             </Tabs>
+
+            {/* Sticky Save Footer - Only show when there are unsaved changes */}
+            {hasUnsavedChanges() && (
+                <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 p-4 shadow-lg z-50">
+                    <div className="max-w-5xl mx-auto flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <AlertCircle className="h-5 w-5 text-amber-500" />
+                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                You have unsaved changes
+                            </span>
+                        </div>
+                        <div className="flex gap-3">
+                            <Button variant="outline" onClick={handleDiscardChanges}>
+                                <RotateCcw className="h-4 w-4 mr-2" />
+                                Discard Changes
+                            </Button>
+                            <Button 
+                                className="bg-purple-600 hover:bg-purple-700"
+                                onClick={handleSaveAllChanges}
+                                disabled={saving === "all" || otpState.isSending}
+                            >
+                                {saving === "all" || otpState.isSending ? (
+                                    <>
+                                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                        Saving...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Save className="h-4 w-4 mr-2" />
+                                        Save All Changes (OTP Required)
+                                    </>
+                                )}
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Leave Type Dialog */}
             <Dialog open={showLeaveTypeDialog} onOpenChange={setShowLeaveTypeDialog}>
