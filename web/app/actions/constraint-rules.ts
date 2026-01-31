@@ -11,8 +11,7 @@ import {
 const POLICY_ADMIN_ROLES = new Set(["hr", "hr_manager", "admin", "super_admin"]);
 const hasPolicyAccess = (role?: string | null) => POLICY_ADMIN_ROLES.has((role || "").toLowerCase());
 
-// Re-export for backward compatibility
-export { DEFAULT_CONSTRAINT_RULES, RULE_CATEGORIES };
+// Re-export type only (not constants from server actions)
 export type { ConstraintRule };
 
 // ============================================================================

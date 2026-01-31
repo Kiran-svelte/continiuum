@@ -19,10 +19,9 @@ import {
     deleteRule,
     resetToDefaultRules,
     bulkUpdateRuleStatus,
-    RULE_CATEGORIES,
-    DEFAULT_CONSTRAINT_RULES,
     type ConstraintRule
 } from "@/app/actions/constraint-rules";
+import { DEFAULT_CONSTRAINT_RULES, RULE_CATEGORIES } from "@/lib/constraint-rules-config";
 
 // Category icons mapping
 const categoryIcons: Record<string, any> = {

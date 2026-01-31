@@ -137,15 +137,15 @@ export async function GET() {
 
         // Test 6: Leave Types (Company-specific)
         const leaveTypes = await prisma.leaveType.findMany({
-            where: { org_id: orgId },
-            select: { id: true, name: true, default_days: true, is_active: true }
+            where: { company_id: orgId },
+            select: { id: true, name: true, annual_quota: true, is_active: true }
         });
 
         if (leaveTypes.length > 0) {
             results.tests.leaveTypes = {
                 passed: true,
                 count: leaveTypes.length,
-                types: leaveTypes.map(lt => ({ name: lt.name, days: lt.default_days, active: lt.is_active }))
+                types: leaveTypes.map(lt => ({ name: lt.name, quota: lt.annual_quota, active: lt.is_active }))
             };
             results.summary.passed++;
         } else {
