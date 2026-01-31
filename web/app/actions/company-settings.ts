@@ -762,6 +762,8 @@ export async function getCompanySettings(companyId: string) {
                 carry_forward_max: true,
                 probation_leave: true,
                 negative_balance: true,
+                // Include settings relation
+                settings: true,
             }
         });
 
@@ -774,6 +776,21 @@ export async function getCompanySettings(companyId: string) {
             where: { company_id: companyId, is_active: true },
             orderBy: { priority: 'desc' }
         });
+
+        // Get constraint rules
+        const constraintPolicy = await prisma.constraintPolicy.findFirst({
+            where: { org_id: companyId },
+            select: { rules: true }
+        });
+
+        // Extract selected rules from policy
+        const selectedRules: Record<string, boolean> = {};
+        if (constraintPolicy?.rules && typeof constraintPolicy.rules === 'object') {
+            const rulesObj = constraintPolicy.rules as Record<string, any>;
+            for (const [ruleId, ruleData] of Object.entries(rulesObj)) {
+                selectedRules[ruleId] = ruleData?.is_active ?? true;
+            }
+        }
 
         return {
             success: true,
@@ -794,6 +811,22 @@ export async function getCompanySettings(companyId: string) {
             },
             leaveTypes,
             leaveRules,
+            // NEW: Constraint rules selection
+            constraintRules: selectedRules,
+            // NEW: Holiday settings from company_settings
+            holidaySettings: company?.settings ? {
+                holiday_mode: (company.settings.holiday_mode as "auto" | "manual") || "auto",
+                country_code: company.settings.country_code || "IN",
+                custom_holidays: (company.settings.custom_holidays as any[]) || [],
+            } : null,
+            // NEW: Notification settings from company_settings
+            notificationSettings: company?.settings ? {
+                email_checkin_reminder: company.settings.email_checkin_reminder,
+                email_checkout_reminder: company.settings.email_checkout_reminder,
+                email_hr_missing_alerts: company.settings.email_hr_missing_alerts,
+                email_leave_notifications: company.settings.email_leave_notifications,
+                email_approval_reminders: company.settings.email_approval_reminders,
+            } : null,
         };
     } catch (error: any) {
         console.error("[getCompanySettings] Error:", error);

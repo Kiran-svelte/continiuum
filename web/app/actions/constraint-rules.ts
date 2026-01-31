@@ -11,6 +11,14 @@ import {
 const POLICY_ADMIN_ROLES = new Set(["hr", "hr_manager", "admin", "super_admin"]);
 const hasPolicyAccess = (role?: string | null) => POLICY_ADMIN_ROLES.has((role || "").toLowerCase());
 
+// Helper to convert string to camelCase
+function toCamelCase(str: string): string {
+    return str
+        .toLowerCase()
+        .replace(/[^a-zA-Z0-9]+(.)/g, (_, chr) => chr.toUpperCase())
+        .replace(/^./, (chr) => chr.toLowerCase());
+}
+
 // Re-export type only (not constants from server actions)
 export type { ConstraintRule };
 
@@ -47,23 +55,63 @@ export async function getCompanyConstraintRules(): Promise<{
 
         if (policy && policy.rules) {
             const customRules = policy.rules as Record<string, any>;
-            const hasValidRules = Object.keys(customRules).some((key) => key.startsWith("RULE"));
+            const ruleKeys = Object.keys(customRules).filter(k => k !== '_auto_approve_config');
+            
+            // Check if we have valid rules (either RULE### format or custom format)
+            const hasRulePrefixRules = ruleKeys.some((key) => key.startsWith("RULE"));
+            const hasCustomRules = ruleKeys.length > 0 && !hasRulePrefixRules;
 
-            if (hasValidRules) {
-                const rules: ConstraintRule[] = Object.entries(customRules).map(([ruleId, ruleData]: [string, any]) => ({
-                    id: ruleId,
-                    rule_id: ruleId,
-                    name: ruleData.name,
-                    description: ruleData.description,
-                    category: ruleData.category,
-                    is_active: ruleData.is_active !== false,
-                    is_blocking: ruleData.is_blocking ?? true,
-                    priority: ruleData.priority ?? 50,
-                    config: ruleData.config || {},
-                    is_custom: ruleData.is_custom ?? false,
-                    created_at: new Date(ruleData.created_at || Date.now()),
-                    updated_at: new Date(ruleData.updated_at || Date.now())
-                }));
+            if (hasRulePrefixRules) {
+                // Standard format with RULE### keys
+                const rules: ConstraintRule[] = Object.entries(customRules)
+                    .filter(([key]) => key.startsWith("RULE"))
+                    .map(([ruleId, ruleData]: [string, any]) => ({
+                        id: ruleId,
+                        rule_id: ruleId,
+                        name: ruleData.name || ruleId,
+                        description: ruleData.description || "",
+                        category: ruleData.category || "limits",
+                        is_active: ruleData.is_active !== false,
+                        is_blocking: ruleData.is_blocking ?? true,
+                        priority: ruleData.priority ?? 50,
+                        config: ruleData.config || {},
+                        is_custom: ruleData.is_custom ?? false,
+                        created_at: new Date(ruleData.created_at || Date.now()),
+                        updated_at: new Date(ruleData.updated_at || Date.now())
+                    }));
+
+                return { success: true, rules };
+            } else if (hasCustomRules) {
+                // Custom format from onboarding (key is rule name like 'maxConsecutiveDays')
+                // Map back to default rules with active state from saved data
+                const rules: ConstraintRule[] = Object.entries(DEFAULT_CONSTRAINT_RULES).map(
+                    ([ruleId, rule]) => {
+                        // Try to find matching saved state by checking various key formats
+                        const savedRule = customRules[ruleId] || 
+                                          customRules[rule.name] ||
+                                          customRules[rule.name.toLowerCase().replace(/\s+/g, '')] ||
+                                          customRules[toCamelCase(rule.name)];
+                        
+                        const isActive = savedRule !== undefined 
+                            ? (typeof savedRule === 'boolean' ? savedRule : savedRule?.is_active !== false)
+                            : true;
+                        
+                        return {
+                            id: ruleId,
+                            rule_id: ruleId,
+                            name: rule.name,
+                            description: rule.description,
+                            category: rule.category,
+                            is_active: isActive,
+                            is_blocking: rule.is_blocking,
+                            priority: rule.priority,
+                            config: rule.config,
+                            is_custom: false,
+                            created_at: new Date(),
+                            updated_at: new Date()
+                        };
+                    }
+                );
 
                 return { success: true, rules };
             }

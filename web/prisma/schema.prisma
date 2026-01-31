@@ -271,6 +271,7 @@ model Company {
   payments      Payment[]
   leave_types   LeaveType[]
   leave_rules   LeaveRule[]
+  settings      CompanySettings?   // One-to-one relation
 
   // Metadata
   size     String?
@@ -506,16 +507,35 @@ model Document {
   @@map("documents")
 }
 
-// 14. Company Settings (Holiday Calendar Mode)
+// 14. Company Settings (Holiday Calendar & Email Notifications)
 model CompanySettings {
   id                  String   @id @default(uuid())
   company_id          String   @unique
+  
+  // Holiday Settings
   holiday_mode        String   @default("auto") // "auto" or "manual"
   country_code        String   @default("IN")
   custom_holidays     Json?    // For additional custom holidays
   blocked_dates       Json?    // Dates blocked for leave requests
+  
+  // Email Notification Settings (per-company control)
+  email_checkin_reminder    Boolean @default(true)   // Send check-in reminder emails
+  email_checkout_reminder   Boolean @default(true)   // Send check-out reminder emails  
+  email_hr_missing_alerts   Boolean @default(true)   // Alert HR about missing check-ins
+  email_leave_notifications Boolean @default(true)   // Leave request/approval emails
+  email_approval_reminders  Boolean @default(true)   // Remind HR about pending approvals
+  
+  // Reminder Timing (minutes after/before work time)
+  checkin_reminder_1_mins   Int     @default(10)     // First reminder X mins after start
+  checkin_reminder_2_mins   Int     @default(60)     // Second reminder X mins after start
+  checkout_reminder_1_mins  Int     @default(60)     // First reminder X mins before end
+  checkout_reminder_2_mins  Int     @default(10)     // Second reminder X mins after end
+  
   created_at          DateTime @default(now())
   updated_at          DateTime @updatedAt
+
+  // Relation to Company
+  company             Company  @relation(fields: [company_id], references: [id], onDelete: Cascade)
 
   @@map("company_settings")
 }

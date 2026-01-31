@@ -65,12 +65,9 @@ export async function processAttendanceReminder(
 ): Promise<ReminderResult> {
     const now = options?.now ?? new Date();
     const companies = await prisma.company.findMany({
-        select: {
-            id: true,
-            timezone: true,
-            work_start_time: true,
-            work_end_time: true,
-            work_days: true,
+        include: {
+            // Include company settings for email configuration
+            settings: true
         },
     });
 
@@ -78,9 +75,34 @@ export async function processAttendanceReminder(
     let totalMissing = 0;
     let totalEmployees = 0;
     let totalHrNotified = 0;
-    const details: Array<{ orgId: string; sent: number; missing: number }> = [];
+    const details: Array<{ orgId: string; sent: number; missing: number; skipped?: string }> = [];
 
     for (const company of companies) {
+        // Get email settings with defaults
+        const emailSettings = company.settings ?? {
+            email_checkin_reminder: true,
+            email_checkout_reminder: true,
+            email_hr_missing_alerts: true,
+            checkin_reminder_1_mins: 10,
+            checkin_reminder_2_mins: 60,
+            checkout_reminder_1_mins: 60,
+            checkout_reminder_2_mins: 10,
+        };
+
+        // Check if this company has disabled the relevant email type
+        if (action === "check_in_reminder" && !emailSettings.email_checkin_reminder) {
+            details.push({ orgId: company.id, sent: 0, missing: 0, skipped: "check-in reminders disabled" });
+            continue;
+        }
+        if (action === "check_out_reminder" && !emailSettings.email_checkout_reminder) {
+            details.push({ orgId: company.id, sent: 0, missing: 0, skipped: "check-out reminders disabled" });
+            continue;
+        }
+        if (action === "hr_notification" && !emailSettings.email_hr_missing_alerts) {
+            details.push({ orgId: company.id, sent: 0, missing: 0, skipped: "HR alerts disabled" });
+            continue;
+        }
+
         const timeZone = company.timezone || "UTC";
         const localNow = getLocalNow(now, timeZone);
         const localMinutes = localNow.getHours() * 60 + localNow.getMinutes();
@@ -96,10 +118,12 @@ export async function processAttendanceReminder(
 
         const startMinutes = startHour * 60 + startMinute;
         const endMinutes = endHour * 60 + endMinute;
-        const checkInPrimary = startMinutes + 10;
-        const checkInSecondary = startMinutes + 60;
-        const checkOutPrimary = Math.max(0, endMinutes - 60);
-        const checkOutSecondary = endMinutes + 10;
+        
+        // Use company-specific reminder timing
+        const checkInPrimary = startMinutes + (emailSettings.checkin_reminder_1_mins ?? 10);
+        const checkInSecondary = startMinutes + (emailSettings.checkin_reminder_2_mins ?? 60);
+        const checkOutPrimary = Math.max(0, endMinutes - (emailSettings.checkout_reminder_1_mins ?? 60));
+        const checkOutSecondary = endMinutes + (emailSettings.checkout_reminder_2_mins ?? 10);
 
         const reminderNumber =
             action === "check_in_reminder"
