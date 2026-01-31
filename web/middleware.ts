@@ -19,9 +19,9 @@ const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
 
 // Rate limit configuration per route type
 const RATE_LIMITS = {
-    api: { windowMs: 60000, maxRequests: 100 },      // 100 req/min for API
-    auth: { windowMs: 300000, maxRequests: 10 },     // 10 req/5min for auth
-    default: { windowMs: 60000, maxRequests: 200 }   // 200 req/min default
+    api: { windowMs: 60000, maxRequests: 200 },      // 200 req/min for API
+    auth: { windowMs: 300000, maxRequests: 20 },     // 20 req/5min for auth
+    default: { windowMs: 60000, maxRequests: 500 }   // 500 req/min default
 };
 
 // ============================================================
@@ -36,9 +36,11 @@ const isPublicRoute = createRouteMatcher([
     '/waitlist(.*)',
     '/sign-in(.*)',
     '/sign-up(.*)',
+    '/onboarding(.*)',           // Onboarding flow
     '/employee/auth(.*)',
     '/employee/sign-in(.*)',
     '/employee/sign-up(.*)',
+    '/employee/register(.*)',    // Employee registration
     '/hr/auth(.*)',
     '/hr/sign-in(.*)',
     '/hr/sign-up(.*)',
@@ -113,27 +115,30 @@ export default clerkMiddleware(async (auth, req) => {
     const path = req.nextUrl.pathname;
     
     // ============================================================
-    // RATE LIMITING
+    // RATE LIMITING - Skip for public routes to allow health checks
     // ============================================================
     
-    let rateLimitConfig = RATE_LIMITS.default;
-    let rateLimitKey = `default:${ip}`;
-    
-    if (isAuthRoute(req)) {
-        rateLimitConfig = RATE_LIMITS.auth;
-        rateLimitKey = `auth:${ip}`;
-    } else if (isAPIRoute(req)) {
-        rateLimitConfig = RATE_LIMITS.api;
-        rateLimitKey = `api:${ip}:${path}`;
-    }
-    
-    if (!checkRateLimit(rateLimitKey, rateLimitConfig)) {
-        const response = NextResponse.json(
-            { error: 'Too many requests. Please try again later.' },
-            { status: 429 }
-        );
-        response.headers.set('Retry-After', '60');
-        return applySecurityHeaders(response);
+    // Skip rate limiting for public routes
+    if (!isPublicRoute(req)) {
+        let rateLimitConfig = RATE_LIMITS.default;
+        let rateLimitKey = `default:${ip}`;
+        
+        if (isAuthRoute(req)) {
+            rateLimitConfig = RATE_LIMITS.auth;
+            rateLimitKey = `auth:${ip}`;
+        } else if (isAPIRoute(req)) {
+            rateLimitConfig = RATE_LIMITS.api;
+            rateLimitKey = `api:${ip}:${path}`;
+        }
+        
+        if (!checkRateLimit(rateLimitKey, rateLimitConfig)) {
+            const response = NextResponse.json(
+                { error: 'Too many requests. Please try again later.' },
+                { status: 429 }
+            );
+            response.headers.set('Retry-After', '60');
+            return applySecurityHeaders(response);
+        }
     }
     
     // ============================================================
