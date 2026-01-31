@@ -29,10 +29,10 @@ export async function GET() {
                 role: "hr"
             },
             select: {
-                id: true,
-                clerk_id: true,
-                org_id: true,
-                first_name: true
+                emp_id: true,
+                clerk_emp_id: true,
+                org_emp_id: true,
+                full_name: true
             }
         });
         results.sampleEmployee = employee ? { id: employee.id, org_id: employee.org_id } : null;
@@ -66,3 +66,4 @@ export async function GET() {
     
     return NextResponse.json(results);
 }
+
