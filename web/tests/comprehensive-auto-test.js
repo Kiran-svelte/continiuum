@@ -188,9 +188,9 @@ async function testOnboardingFlow() {
     const onboarding = await apiRequest('/onboarding');
     logTest('Onboarding page accessible', onboarding.ok || onboarding.status === 302, `Status: ${onboarding.status}`);
     
-    // Test employee registration flow
-    const employeeReg = await apiRequest('/employee/register');
-    logTest('Employee registration page accessible', employeeReg.ok || employeeReg.status === 302, `Status: ${employeeReg.status}`);
+    // Test employee sign-up flow
+    const employeeSignUp = await apiRequest('/employee/sign-up');
+    logTest('Employee sign-up page accessible', employeeSignUp.ok || employeeSignUp.status === 302, `Status: ${employeeSignUp.status}`);
 }
 
 async function testDatabaseConnectivity() {
