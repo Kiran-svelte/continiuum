@@ -148,11 +148,7 @@ export default function ConstraintRulesPage() {
             setLoading(true);
             setError(null);
             
-            // First try to initialize if needed
-            const initResult = await initializeCompanyRules();
-            if (!initResult.success) {
-                console.error("Init failed:", initResult.error);
-            }
+            // Skip initialization - policy should already exist from onboarding
             
             const result = await getCompanyConstraintRules();
             if (result.success && result.rules) {
@@ -1247,3 +1243,4 @@ export default function ConstraintRulesPage() {
         </div>
     );
 }
+
