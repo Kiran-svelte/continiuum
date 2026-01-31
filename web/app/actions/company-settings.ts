@@ -532,7 +532,15 @@ export async function createLeaveType(companyId: string, leaveType: LeaveTypeInp
         });
 
         revalidatePath("/hr/settings");
-        return { success: true, leaveType: newType };
+        // Serialize Decimal fields
+        return { 
+            success: true, 
+            leaveType: {
+                ...newType,
+                annual_quota: Number(newType.annual_quota),
+                max_carry_forward: newType.max_carry_forward ? Number(newType.max_carry_forward) : null,
+            }
+        };
     } catch (error: any) {
         console.error("[createLeaveType] Error:", error);
         return { success: false, error: error.message || "Failed to create leave type" };
@@ -581,7 +589,15 @@ export async function updateLeaveType(leaveTypeId: string, data: Partial<LeaveTy
         });
 
         revalidatePath("/hr/settings");
-        return { success: true, leaveType: updated };
+        // Serialize Decimal fields
+        return { 
+            success: true, 
+            leaveType: {
+                ...updated,
+                annual_quota: Number(updated.annual_quota),
+                max_carry_forward: updated.max_carry_forward ? Number(updated.max_carry_forward) : null,
+            }
+        };
     } catch (error: any) {
         console.error("[updateLeaveType] Error:", error);
         return { success: false, error: error.message || "Failed to update leave type" };
@@ -792,6 +808,19 @@ export async function getCompanySettings(companyId: string) {
             }
         }
 
+        // Convert Decimal fields to numbers for serialization
+        const serializedLeaveTypes = leaveTypes.map(lt => ({
+            ...lt,
+            annual_quota: Number(lt.annual_quota),
+            max_carry_forward: lt.max_carry_forward ? Number(lt.max_carry_forward) : null,
+        }));
+
+        const serializedLeaveRules = leaveRules.map(lr => ({
+            ...lr,
+            // Ensure config is a plain object
+            config: lr.config as Record<string, any>,
+        }));
+
         return {
             success: true,
             workSchedule: {
@@ -809,8 +838,8 @@ export async function getCompanySettings(companyId: string) {
                 probation_leave: company?.probation_leave || false,
                 negative_balance: company?.negative_balance || false,
             },
-            leaveTypes,
-            leaveRules,
+            leaveTypes: serializedLeaveTypes,
+            leaveRules: serializedLeaveRules,
             // NEW: Constraint rules selection
             constraintRules: selectedRules,
             // NEW: Holiday settings from company_settings
