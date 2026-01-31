@@ -32,15 +32,25 @@ export async function getCompanyConstraintRules(): Promise<{
     error?: string;
 }> {
     try {
-        console.log('[CONSTRAINT-RULES] getCompanyConstraintRules called');
         const user = await currentUser();
-        console.log('[CONSTRAINT-RULES] user:', user?.id || 'null');
         if (!user) return { success: false, error: "Unauthorized" };
 
-        const employee = await prisma.employee.findUnique({
-            where: { clerk_id: user.id },
-            include: { company: true }
-        });
+        let employee;
+        try {
+            employee = await prisma.employee.findUnique({
+                where: { clerk_id: user.id },
+                include: { company: true }
+            });
+        } catch (dbError: any) {
+            console.error("[CONSTRAINT-RULES] Database error:", dbError);
+            const errorMessage = dbError?.message || '';
+            if (errorMessage.includes('MaxClientsInSessionMode') || 
+                errorMessage.includes('max clients') ||
+                errorMessage.includes('pool_size')) {
+                return { success: false, error: "Server is busy. Please try again in a moment." };
+            }
+            return { success: false, error: "Database connection error. Please try again." };
+        }
 
         if (!employee) {
             return { success: false, error: "Employee profile not found. Please complete onboarding first." };
@@ -51,9 +61,16 @@ export async function getCompanyConstraintRules(): Promise<{
         }
 
         // Get company's custom rules from ConstraintPolicy
-        const policy = await prisma.constraintPolicy.findFirst({
-            where: { org_id: employee.org_id, is_active: true }
-        });
+        let policy;
+        try {
+            policy = await prisma.constraintPolicy.findFirst({
+                where: { org_id: employee.org_id, is_active: true }
+            });
+        } catch (dbError: any) {
+            console.error("[CONSTRAINT-RULES] Policy lookup error:", dbError);
+            // Continue with defaults if policy lookup fails
+            policy = null;
+        }
 
         if (policy && policy.rules) {
             const customRules = policy.rules as Record<string, any>;

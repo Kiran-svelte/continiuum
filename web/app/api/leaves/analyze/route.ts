@@ -276,16 +276,32 @@ export async function POST(req: NextRequest) {
         const parsed = parseLeaveRequest(text);
         aiLogger.debug("Parsed leave request", parsed);
 
-        // Get employee from database
-        const employee = await prisma.employee.findUnique({
-            where: { clerk_id: userId },
-            include: {
-                company: true,
-                leave_balances: {
-                    where: { year: new Date().getFullYear() }
+        // Get employee from database with retry for connection issues
+        let employee;
+        try {
+            employee = await prisma.employee.findUnique({
+                where: { clerk_id: userId },
+                include: {
+                    company: true,
+                    leave_balances: {
+                        where: { year: new Date().getFullYear() }
+                    }
                 }
+            });
+        } catch (dbError: any) {
+            // Handle database connection errors gracefully
+            console.error("[Analyze] Database error:", dbError);
+            const errorMessage = dbError?.message || '';
+            if (errorMessage.includes('MaxClientsInSessionMode') || 
+                errorMessage.includes('max clients') ||
+                errorMessage.includes('pool_size')) {
+                return NextResponse.json({ 
+                    success: false, 
+                    error: "Server is experiencing high load. Please try again in a moment." 
+                }, { status: 503 });
             }
-        });
+            throw dbError;
+        }
 
         if (!employee) {
             return NextResponse.json({ success: false, error: "Employee profile not found. Please complete onboarding." }, { status: 404 });

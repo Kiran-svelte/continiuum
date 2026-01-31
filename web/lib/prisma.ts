@@ -1,31 +1,28 @@
 import { PrismaClient } from '@prisma/client';
 
 // ============================================================
-// CONNECTION POOL CONFIGURATION
+// CONNECTION POOL CONFIGURATION FOR SUPABASE + VERCEL
 // ============================================================
 
 /**
- * Connection Pool Settings for Supabase PostgreSQL
+ * Connection Pool Settings for Supabase PostgreSQL with Vercel Serverless
  * 
- * Supabase provides two connection modes:
- * 1. Direct connection (port 5432) - for migrations
- * 2. Pooled connection (port 6543) - for application queries
+ * CRITICAL: Supabase Session Mode (port 6543) has strict pooler limits:
+ * - Free tier: ~20 concurrent connections across all serverless functions
+ * - Each function instance creates its own connection
  * 
- * For serverless environments like Vercel:
- * - Use connection pooling to prevent connection exhaustion
- * - Keep pool small since each serverless function instance has its own pool
- * - Use pgbouncer mode when available
+ * Solution: Use minimal connection_limit per instance and rely on pgbouncer
  */
 
 const CONNECTION_POOL_CONFIG = {
-    // Connection limits optimized for serverless
-    connection_limit: parseInt(process.env.DATABASE_POOL_SIZE || '5'),
+    // CRITICAL: Keep very low for serverless - Supabase pooler handles the rest
+    connection_limit: 1,  // One connection per serverless function instance
     
     // Statement timeout (prevents long-running queries)
-    statement_timeout: parseInt(process.env.DATABASE_STATEMENT_TIMEOUT || '30000'), // 30 seconds
+    statement_timeout: 30000, // 30 seconds
     
-    // Idle timeout for connections
-    pool_timeout: parseInt(process.env.DATABASE_POOL_TIMEOUT || '10'), // seconds
+    // Idle timeout - release connections quickly
+    pool_timeout: 10, // seconds
 };
 
 /**
@@ -35,16 +32,28 @@ const CONNECTION_POOL_CONFIG = {
 function getConnectionUrl(): string {
     const baseUrl = process.env.DATABASE_URL || '';
     
-    // If already using Supabase pooler (port 6543), add pgbouncer param
-    if (baseUrl.includes(':6543')) {
-        const url = new URL(baseUrl);
-        url.searchParams.set('pgbouncer', 'true');
-        url.searchParams.set('connection_limit', String(CONNECTION_POOL_CONFIG.connection_limit));
-        url.searchParams.set('pool_timeout', String(CONNECTION_POOL_CONFIG.pool_timeout));
-        return url.toString();
+    if (!baseUrl) {
+        console.error('[Prisma] DATABASE_URL is not set!');
+        return '';
     }
     
-    return baseUrl;
+    try {
+        const url = new URL(baseUrl);
+        
+        // Always set pgbouncer mode for Supabase
+        url.searchParams.set('pgbouncer', 'true');
+        
+        // Set connection_limit to 1 for serverless
+        url.searchParams.set('connection_limit', '1');
+        
+        // Add pool_timeout for faster release
+        url.searchParams.set('pool_timeout', '10');
+        
+        return url.toString();
+    } catch (e) {
+        console.error('[Prisma] Failed to parse DATABASE_URL:', e);
+        return baseUrl;
+    }
 }
 
 const prismaClientSingleton = () => {
