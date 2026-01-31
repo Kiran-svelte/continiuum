@@ -561,6 +561,203 @@ def test_db_connection():
 test_db_connection()
 
 
+# ============================================================
+# DYNAMIC LEAVE TYPES FETCHER
+# Fetches company-specific leave types from DB instead of hardcoded values
+# ============================================================
+_company_leave_types_cache = {}
+_company_cache_ttl = {}
+LEAVE_TYPES_CACHE_TTL = 300  # 5 minutes
+
+def get_company_leave_types(company_id: str) -> List[Dict]:
+    """
+    Fetch company's configured leave types from database.
+    Returns list of leave type dicts with code, name, annual_quota, etc.
+    Falls back to empty list if DB error (never hardcoded fallback).
+    """
+    global _company_leave_types_cache, _company_cache_ttl
+    
+    # Check cache
+    now = datetime.now().timestamp()
+    if company_id in _company_leave_types_cache:
+        if now - _company_cache_ttl.get(company_id, 0) < LEAVE_TYPES_CACHE_TTL:
+            return _company_leave_types_cache[company_id]
+    
+    conn = get_db_connection()
+    if not conn:
+        print(f"⚠️ No DB connection, cannot fetch leave types for company {company_id}")
+        return _company_leave_types_cache.get(company_id, [])
+    
+    try:
+        cur = conn.cursor(row_factory=dict_row)
+        cur.execute("""
+            SELECT 
+                code, 
+                name, 
+                description, 
+                annual_quota::float as annual_quota,
+                max_consecutive,
+                min_notice_days,
+                requires_document,
+                half_day_allowed,
+                is_paid,
+                color
+            FROM leave_types 
+            WHERE company_id = %s AND is_active = true
+            ORDER BY sort_order, code
+        """, (company_id,))
+        leave_types = cur.fetchall()
+        cur.close()
+        
+        # Cache the result
+        _company_leave_types_cache[company_id] = leave_types
+        _company_cache_ttl[company_id] = now
+        
+        print(f"✅ Fetched {len(leave_types)} leave types for company {company_id}")
+        return leave_types
+    except Exception as e:
+        print(f"❌ Error fetching leave types: {e}")
+        return _company_leave_types_cache.get(company_id, [])
+
+
+def get_company_id_for_employee(emp_id: str) -> Optional[str]:
+    """Get the company_id for an employee"""
+    conn = get_db_connection()
+    if not conn:
+        return None
+    
+    try:
+        cur = conn.cursor(row_factory=dict_row)
+        cur.execute("""
+            SELECT company_id FROM employees WHERE emp_id = %s
+        """, (emp_id,))
+        result = cur.fetchone()
+        cur.close()
+        
+        if result:
+            return result['company_id']
+        return None
+    except Exception as e:
+        print(f"❌ Error getting company_id for employee: {e}")
+        return None
+
+
+def match_leave_type_dynamic(text: str, company_leave_types: List[Dict]) -> Dict:
+    """
+    Match user input text against company's configured leave types.
+    Returns the matching leave type dict with code, name, etc.
+    """
+    text_lower = text.lower()
+    
+    if not company_leave_types:
+        # No leave types configured - return a default structure
+        return {
+            "code": "UNK",
+            "name": "Unknown Leave",
+            "annual_quota": 0,
+            "max_consecutive": 5,
+            "min_notice_days": 1,
+            "matched": False
+        }
+    
+    # Priority 1: Exact code match (e.g., user types "CL" or "cl")
+    for lt in company_leave_types:
+        if lt['code'].lower() == text_lower or lt['code'].lower() in text_lower.split():
+            return {**lt, "matched": True, "match_reason": "code_exact"}
+    
+    # Priority 2: Exact name match
+    for lt in company_leave_types:
+        if lt['name'].lower() == text_lower:
+            return {**lt, "matched": True, "match_reason": "name_exact"}
+    
+    # Priority 3: Name contains in text
+    for lt in company_leave_types:
+        if lt['name'].lower() in text_lower:
+            return {**lt, "matched": True, "match_reason": "name_contains"}
+    
+    # Priority 4: Description match (if description exists)
+    for lt in company_leave_types:
+        if lt.get('description') and lt['description'].lower() in text_lower:
+            return {**lt, "matched": True, "match_reason": "description_match"}
+    
+    # Priority 5: Keyword matching against common leave type keywords
+    keyword_map = {
+        # Sick leave keywords
+        "sick": ["sick", "ill", "fever", "cold", "flu", "doctor", "medical", "hospital", "health", "unwell", "not feeling well"],
+        # Emergency keywords
+        "emergency": ["emergency", "urgent", "crisis"],
+        # Casual/Annual leave keywords
+        "casual": ["casual", "annual", "vacation", "holiday", "trip", "travel", "wedding", "function", "attend"],
+        # Personal leave keywords  
+        "personal": ["personal", "private"],
+        # Maternity keywords
+        "maternity": ["maternity", "pregnancy", "pregnant"],
+        # Paternity keywords
+        "paternity": ["paternity", "father", "newborn", "baby"],
+        # Bereavement keywords
+        "bereavement": ["funeral", "bereavement", "death", "passed away", "mourning"],
+        # Study/Training keywords
+        "study": ["study", "exam", "course", "training", "education"]
+    }
+    
+    # Try to match keywords to leave type names/codes
+    for lt in company_leave_types:
+        lt_code_lower = lt['code'].lower()
+        lt_name_lower = lt['name'].lower()
+        
+        for keyword_type, keywords in keyword_map.items():
+            # Check if leave type matches this keyword category
+            if keyword_type in lt_code_lower or keyword_type in lt_name_lower:
+                # Check if user text contains any of these keywords
+                if any(kw in text_lower for kw in keywords):
+                    return {**lt, "matched": True, "match_reason": f"keyword_{keyword_type}"}
+    
+    # Priority 6: Partial name match (e.g., "sick" matches "Sick Leave")
+    for lt in company_leave_types:
+        name_parts = lt['name'].lower().split()
+        if any(part in text_lower for part in name_parts if len(part) > 2):
+            return {**lt, "matched": True, "match_reason": "name_partial"}
+    
+    # Default: Return first leave type (usually casual/annual) with low confidence
+    first_lt = company_leave_types[0]
+    return {**first_lt, "matched": False, "match_reason": "default_fallback"}
+
+
+def build_dynamic_limits(company_leave_types: List[Dict]) -> Dict[str, float]:
+    """
+    Build a limits dictionary from company's leave types.
+    Maps leave type name/code -> annual_quota
+    """
+    limits = {}
+    for lt in company_leave_types:
+        # Store by both name and code for flexible lookup
+        limits[lt['name']] = lt['annual_quota']
+        limits[lt['code']] = lt['annual_quota']
+    return limits
+
+
+def build_dynamic_notice_days(company_leave_types: List[Dict]) -> Dict[str, int]:
+    """
+    Build notice days dictionary from company's leave types.
+    """
+    notice_days = {}
+    for lt in company_leave_types:
+        notice_days[lt['name']] = lt['min_notice_days']
+        notice_days[lt['code']] = lt['min_notice_days']
+    return notice_days
+
+
+def build_dynamic_consecutive_limits(company_leave_types: List[Dict]) -> Dict[str, int]:
+    """
+    Build max consecutive days dictionary from company's leave types.
+    """
+    consecutive = {}
+    for lt in company_leave_types:
+        consecutive[lt['name']] = lt['max_consecutive']
+        consecutive[lt['code']] = lt['max_consecutive']
+    return consecutive
+
+
 def calculate_business_days(start_date: str, end_date: str) -> int:
     """Calculate business days between two dates (excluding weekends)"""
     start = datetime.strptime(start_date, "%Y-%m-%d")
@@ -576,25 +773,44 @@ def calculate_business_days(start_date: str, end_date: str) -> int:
     return business_days
 
 
-def get_leave_balance(emp_id: str, leave_type: str) -> int:
-    """Get leave balance for specific type"""
+def get_leave_balance(emp_id: str, leave_type: str, leave_type_code: str = None) -> float:
+    """
+    Get leave balance for specific leave type.
+    
+    Now FULLY DYNAMIC - uses leave_type_code directly from company's configuration.
+    No more hardcoded mapping!
+    
+    Args:
+        emp_id: Employee ID
+        leave_type: Leave type name (e.g., "Sick Leave") - for backward compat
+        leave_type_code: Leave type code (e.g., "SL", "CL") - preferred
+    """
     conn = get_db_connection()
     if not conn:
-        # Fallback to default limit if DB down
-        return CONSTRAINT_RULES["RULE001"]["limits"].get(leave_type, 0)
+        print(f"⚠️ No DB connection for balance check")
+        return 0
     
-    # Map leave types to database values
-    leave_type_map = {
-        "Annual Leave": "vacation",
-        "Sick Leave": "sick",
-        "Emergency Leave": "emergency",
-        "Personal Leave": "personal",
-        "Maternity Leave": "maternity",
-        "Paternity Leave": "paternity",
-        "Bereavement Leave": "bereavement",
-        "Study Leave": "study"
-    }
-    db_leave_type = leave_type_map.get(leave_type, leave_type.lower().replace(" leave", ""))
+    # Determine the leave type code to query
+    # Priority: explicit code > derive from leave_type name
+    db_leave_type = leave_type_code
+    
+    if not db_leave_type:
+        # Try to find the code from the name by querying company's leave types
+        company_id = get_company_id_for_employee(emp_id)
+        if company_id:
+            leave_types = get_company_leave_types(company_id)
+            for lt in leave_types:
+                if lt['name'].lower() == leave_type.lower():
+                    db_leave_type = lt['code']
+                    break
+                # Also check partial match
+                if leave_type.lower().replace(" leave", "") in lt['name'].lower():
+                    db_leave_type = lt['code']
+                    break
+        
+        # Ultimate fallback: use the leave_type as-is (lowercased, spaces removed)
+        if not db_leave_type:
+            db_leave_type = leave_type.lower().replace(" leave", "").replace(" ", "_")
     
     try:
         cur = conn.cursor(row_factory=dict_row)
@@ -605,7 +821,6 @@ def get_leave_balance(emp_id: str, leave_type: str) -> int:
         """, (emp_id, db_leave_type))
         result = cur.fetchone()
         cur.close()
-        conn.close()
         
         if result:
             entitlement = float(result['annual_entitlement'] or 0)
@@ -613,21 +828,37 @@ def get_leave_balance(emp_id: str, leave_type: str) -> int:
             used = float(result['used_days'] or 0)
             pending = float(result['pending_days'] or 0)
             remaining = entitlement + carried - used - pending
+            print(f"📊 Balance for {leave_type} ({db_leave_type}): {remaining} days remaining")
             return remaining
         else:
-            # If no record, assume full entitlement (default)
-            print(f"⚠️ No balance record for {leave_type}, assuming default entitlement.")
-            return CONSTRAINT_RULES["RULE001"]["limits"].get(leave_type, 0)
+            # No balance record - check company's leave type for default quota
+            company_id = get_company_id_for_employee(emp_id)
+            if company_id:
+                leave_types = get_company_leave_types(company_id)
+                for lt in leave_types:
+                    if lt['code'] == db_leave_type or lt['name'].lower() == leave_type.lower():
+                        print(f"⚠️ No balance record for {leave_type}, using configured quota: {lt['annual_quota']}")
+                        return lt['annual_quota']
+            
+            print(f"⚠️ No balance record and no configured quota for {leave_type}")
+            return 0
             
     except Exception as e:
         print(f"❌ Error getting balance: {e}")
-        if conn:
-            conn.close()
         return 0
 
 
-def extract_leave_info(text: str) -> Dict:
-    """Extract leave information from natural language text"""
+def extract_leave_info(text: str, company_leave_types: List[Dict] = None) -> Dict:
+    """
+    Extract leave information from natural language text.
+    
+    NOW FULLY DYNAMIC - if company_leave_types provided, uses them for leave type detection
+    instead of hardcoded mapping.
+    
+    Args:
+        text: Natural language leave request text
+        company_leave_types: List of company's configured leave types from DB
+    """
     text_lower = text.lower()
     today = datetime.now()
     
@@ -655,29 +886,42 @@ def extract_leave_info(text: str) -> Dict:
     elif "a month" in text_lower or "one month" in text_lower or "1 month" in text_lower:
         days_requested = 22  # ~22 business days in a month
     
-    # Detect leave type - check for specific event types first, then general categories
-    leave_type = "Annual Leave"  # Default
+    # ============================================================
+    # DYNAMIC LEAVE TYPE DETECTION
+    # Uses company's configured leave types if available
+    # ============================================================
+    leave_type = "Annual Leave"  # Default fallback
+    leave_type_code = None
+    leave_type_matched_info = None
     
-    # Personal events (wedding, family events) - Casual/Annual Leave
-    if any(kw in text_lower for kw in ["wedding", "marriage", "attend", "ceremony", "function", "celebration", "party", "event"]):
-        leave_type = "Annual Leave"
-    # Sick leave indicators
-    elif any(kw in text_lower for kw in ["sick", "ill", "fever", "cold", "flu", "doctor", "medical", "hospital", "health", "unwell", "not feeling well", "feeling unwell", "not well"]):
-        leave_type = "Sick Leave"
-    elif any(kw in text_lower for kw in ["emergency", "urgent", "crisis", "family emergency"]):
-        leave_type = "Emergency Leave"
-    elif any(kw in text_lower for kw in ["vacation", "holiday", "trip", "travel", "casual"]):
-        leave_type = "Annual Leave"
-    elif any(kw in text_lower for kw in ["personal", "private"]):
-        leave_type = "Personal Leave"
-    elif any(kw in text_lower for kw in ["maternity", "pregnancy"]):
-        leave_type = "Maternity Leave"
-    elif any(kw in text_lower for kw in ["paternity", "father", "newborn"]):
-        leave_type = "Paternity Leave"
-    elif any(kw in text_lower for kw in ["funeral", "bereavement", "death", "passed away"]):
-        leave_type = "Bereavement Leave"
-    elif any(kw in text_lower for kw in ["study", "exam", "course", "training"]):
-        leave_type = "Study Leave"
+    if company_leave_types:
+        # USE DYNAMIC MATCHING against company's leave types
+        matched = match_leave_type_dynamic(text, company_leave_types)
+        leave_type = matched.get('name', 'Annual Leave')
+        leave_type_code = matched.get('code')
+        leave_type_matched_info = matched
+        print(f"🎯 Dynamic leave type match: {leave_type} ({leave_type_code}) - {matched.get('match_reason', 'unknown')}")
+    else:
+        # LEGACY fallback for when company leave types not provided
+        # This path should rarely be used in production
+        if any(kw in text_lower for kw in ["wedding", "marriage", "attend", "ceremony", "function", "celebration", "party", "event"]):
+            leave_type = "Annual Leave"
+        elif any(kw in text_lower for kw in ["sick", "ill", "fever", "cold", "flu", "doctor", "medical", "hospital", "health", "unwell", "not feeling well", "feeling unwell", "not well"]):
+            leave_type = "Sick Leave"
+        elif any(kw in text_lower for kw in ["emergency", "urgent", "crisis", "family emergency"]):
+            leave_type = "Emergency Leave"
+        elif any(kw in text_lower for kw in ["vacation", "holiday", "trip", "travel", "casual"]):
+            leave_type = "Annual Leave"
+        elif any(kw in text_lower for kw in ["personal", "private"]):
+            leave_type = "Personal Leave"
+        elif any(kw in text_lower for kw in ["maternity", "pregnancy"]):
+            leave_type = "Maternity Leave"
+        elif any(kw in text_lower for kw in ["paternity", "father", "newborn"]):
+            leave_type = "Paternity Leave"
+        elif any(kw in text_lower for kw in ["funeral", "bereavement", "death", "passed away"]):
+            leave_type = "Bereavement Leave"
+        elif any(kw in text_lower for kw in ["study", "exam", "course", "training"]):
+            leave_type = "Study Leave"
     
     # Extract dates
     start_date = None
@@ -799,13 +1043,29 @@ def extract_leave_info(text: str) -> Dict:
     # Recalculate actual days if we have both dates
     actual_days = calculate_business_days(start_date, end_date)
     
-    return {
+    result = {
         "leave_type": leave_type,
+        "leave_type_code": leave_type_code,  # NEW: Include code for direct DB lookup
         "start_date": start_date,
         "end_date": end_date,
         "days_requested": actual_days,
         "original_text": text
     }
+    
+    # Include additional leave type info if matched dynamically
+    if leave_type_matched_info:
+        result["leave_type_info"] = {
+            "code": leave_type_matched_info.get('code'),
+            "name": leave_type_matched_info.get('name'),
+            "annual_quota": leave_type_matched_info.get('annual_quota'),
+            "max_consecutive": leave_type_matched_info.get('max_consecutive'),
+            "min_notice_days": leave_type_matched_info.get('min_notice_days'),
+            "requires_document": leave_type_matched_info.get('requires_document'),
+            "matched": leave_type_matched_info.get('matched', False),
+            "match_reason": leave_type_matched_info.get('match_reason')
+        }
+    
+    return result
 
 
 def get_employee_info(emp_id: str) -> Optional[Dict]:
@@ -833,111 +1093,66 @@ def get_employee_info(emp_id: str) -> Optional[Dict]:
         return None
 
 
-def ensure_leave_balance(emp_id: str, leave_type: str, cursor) -> None:
-    """Ensure leave balance record exists for the employee"""
+def ensure_leave_balance(emp_id: str, leave_type_code: str, cursor) -> None:
+    """
+    Ensure leave balance record exists for the employee.
+    
+    NOW FULLY DYNAMIC - uses leave_type_code directly and fetches quota from
+    company's leave type configuration instead of hardcoded values.
+    
+    Args:
+        emp_id: Employee ID
+        leave_type_code: Leave type code (e.g., "CL", "SL") - the actual DB value
+        cursor: Database cursor
+    """
     # 1. Check if exists
     cursor.execute("""
         SELECT 1 FROM leave_balances 
         WHERE emp_id = %s AND leave_type = %s
-    """, (emp_id, leave_type))
+    """, (emp_id, leave_type_code))
     
     if cursor.fetchone():
         return
 
-    # 2. Get Default Entitlement
-    # Find readable name to rule key map
-    # Reverse map for safety
-    entitlements = CONSTRAINT_RULES["RULE001"]["limits"]
-    # We need to find the Key (e.g. "Annual Leave") based on database value (e.g. "vacation")
-    # For now, simplistic mapping or default 0
+    # 2. Get Default Entitlement from company's leave type config (DYNAMIC!)
+    default_days = 0
     
-    # Map db_type back to readable for rule lookup
-    # This is rough, but effective for defaults
-    db_to_readable = {
-        "vacation": "Annual Leave",
-        "sick": "Sick Leave",
-        "emergency": "Emergency Leave",
-        "personal": "Personal Leave",
-        "maternity": "Maternity Leave",
-        "paternity": "Paternity Leave",
-        "bereavement": "Bereavement Leave",
-        "study": "Study Leave"
-    }
+    # Get company_id for this employee
+    cursor.execute("SELECT company_id, country_code FROM employees WHERE emp_id = %s", (emp_id,))
+    emp_result = cursor.fetchone()
     
-    readable_name = db_to_readable.get(leave_type, "Annual Leave")
-    default_days = entitlements.get(readable_name, 0)
+    if emp_result:
+        company_id = emp_result['company_id']
+        country = emp_result['country_code'] or 'IN'
+        
+        # Fetch the leave type configuration from company's leave_types table
+        cursor.execute("""
+            SELECT annual_quota::float as annual_quota, name 
+            FROM leave_types 
+            WHERE company_id = %s AND code = %s AND is_active = true
+        """, (company_id, leave_type_code))
+        lt_result = cursor.fetchone()
+        
+        if lt_result:
+            default_days = lt_result['annual_quota']
+            leave_type_name = lt_result['name']
+            print(f"✨ Initializing {leave_type_name} ({leave_type_code}) balance for {emp_id}: {default_days} days (from company config)")
+        else:
+            # Leave type not found in company config - shouldn't happen if using dynamic types
+            print(f"⚠️ Leave type {leave_type_code} not found in company config, defaulting to 0")
+    else:
+        country = 'IN'
+        print(f"⚠️ Employee {emp_id} not found, cannot determine company leave type config")
     
     # 3. Create Record
     current_year = datetime.now().year
-    
-    # Use country code from employee or default 'IN'
-    cursor.execute("SELECT country_code FROM employees WHERE emp_id = %s", (emp_id,))
-    res = cursor.fetchone()
-    country = res['country_code'] if res else 'IN'
-    
-    print(f"✨ Initializing {readable_name} balance for {emp_id}: {default_days} days")
     
     cursor.execute("""
         INSERT INTO leave_balances (
             emp_id, country_code, leave_type, year, 
             annual_entitlement, carried_forward, used_days, pending_days
         ) VALUES (%s, %s, %s, %s, %s, 0, 0, 0)
-    """, (emp_id, country, leave_type, current_year, default_days))
-
-
-def get_leave_balance(emp_id: str, leave_type: str) -> int:
-    """Get leave balance for specific type (Calculated from entitlement - used)"""
-    conn = get_db_connection()
-    if not conn:
-        # Fallback to default limit if DB down
-        return CONSTRAINT_RULES["RULE001"]["limits"].get(leave_type, 0)
-    
-    # Map leave types to database values
-    leave_type_map = {
-        "Annual Leave": "vacation",
-        "Sick Leave": "sick",
-        "Emergency Leave": "emergency",
-        "Personal Leave": "personal",
-        "Maternity Leave": "maternity",
-        "Paternity Leave": "paternity",
-        "Bereavement Leave": "bereavement",
-        "Study Leave": "study"
-    }
-    db_leave_type = leave_type_map.get(leave_type, leave_type.lower().replace(" leave", ""))
-    
-    try:
-        cur = conn.cursor(row_factory=dict_row)
-        
-        # LAZY INIT: Ensure record exists before querying
-        ensure_leave_balance(emp_id, db_leave_type, cur)
-        conn.commit() # Commit creation
-        
-        # Query again
-        cur.execute("""
-            SELECT annual_entitlement, carried_forward, used_days, pending_days 
-            FROM leave_balances 
-            WHERE emp_id = %s AND leave_type = %s
-        """, (emp_id, db_leave_type))
-        result = cur.fetchone()
-        cur.close()
-        conn.close()
-        
-        if result:
-            entitlement = float(result['annual_entitlement'] or 0)
-            carried = float(result['carried_forward'] or 0)
-            used = float(result['used_days'] or 0)
-            pending = float(result['pending_days'] or 0)
-            
-            # Logic: Total Available = (Entitlement + Carried) - (Used + Pending)
-            return (entitlement + carried) - (used + pending)
-        else:
-            return 0 # Should not happen after ensure
-            
-    except Exception as e:
-        print(f"❌ Error getting balance: {e}")
-        if conn:
-            conn.close()
-        return 0
+    """, (emp_id, country, leave_type_code, current_year, default_days))
 
 
 def get_team_status(emp_id: str, start_date: str, end_date: str) -> Dict:
@@ -1674,13 +1889,16 @@ def evaluate_custom_rule(rule_id: str, rule_data: Dict, emp_id: str, leave_info:
 # MAIN CONSTRAINT ENGINE - NOW FULLY DYNAMIC
 # ============================================================
 
-def evaluate_all_constraints(emp_id: str, leave_info: Dict, org_id: str = None) -> Dict:
+def evaluate_all_constraints(emp_id: str, leave_info: Dict, company_leave_types: List[Dict] = None, org_id: str = None) -> Dict:
     """
     Evaluate all active constraint rules for a leave request.
+    
+    NOW FULLY DYNAMIC - uses company_leave_types for limits instead of hardcoded defaults.
     
     Args:
         emp_id: Employee ID
         leave_info: Leave request details
+        company_leave_types: Company's configured leave types (NEW - for dynamic limits)
         org_id: Organization ID (optional - fetches org-specific rules if provided)
     
     Returns:
@@ -1705,6 +1923,30 @@ def evaluate_all_constraints(emp_id: str, leave_info: Dict, org_id: str = None) 
         else:
             rules = DEFAULT_CONSTRAINT_RULES
             print(f"⚠️ No org_id, using default rules", file=sys.stderr)
+    
+    # ============================================================
+    # DYNAMIC RULE CONFIGURATION
+    # Override hardcoded limits with company's leave type configuration
+    # ============================================================
+    if company_leave_types:
+        dynamic_limits = build_dynamic_limits(company_leave_types)
+        dynamic_notice = build_dynamic_notice_days(company_leave_types)
+        dynamic_consecutive = build_dynamic_consecutive_limits(company_leave_types)
+        
+        # Override RULE001 limits
+        if "RULE001" in rules:
+            rules["RULE001"]["config"]["limits"] = dynamic_limits
+            print(f"📊 RULE001 limits overridden with dynamic values: {list(dynamic_limits.keys())}")
+        
+        # Override RULE006 notice days
+        if "RULE006" in rules:
+            rules["RULE006"]["config"]["notice_days"] = dynamic_notice
+            print(f"📊 RULE006 notice days overridden with dynamic values")
+        
+        # Override RULE007 consecutive limits
+        if "RULE007" in rules:
+            rules["RULE007"]["config"]["max_consecutive"] = dynamic_consecutive
+            print(f"📊 RULE007 consecutive limits overridden with dynamic values")
 
     # Ensure leave_info has all necessary fields
     if 'days_requested' not in leave_info:
@@ -1771,7 +2013,10 @@ def evaluate_all_constraints(emp_id: str, leave_info: Dict, org_id: str = None) 
     # Get employee info for response
     employee = get_employee_info(emp_id)
     team_status = get_team_status(emp_id, leave_info['start_date'], leave_info['end_date'])
-    balance = get_leave_balance(emp_id, leave_info['leave_type'])
+    
+    # Get balance using DYNAMIC leave type code
+    leave_type_code = leave_info.get('leave_type_code')
+    balance = get_leave_balance(emp_id, leave_info['leave_type'], leave_type_code)
     
     return {
         "approved": all_passed,
@@ -1876,7 +2121,11 @@ def generate_suggestions(violations: List[Dict], leave_info: Dict) -> List[str]:
 # ============================================================
 
 def save_leave_request(emp_id: str, leave_info: Dict, result: Dict) -> Optional[str]:
-    """Save the analyzed leave request to the database"""
+    """
+    Save the analyzed leave request to the database.
+    
+    NOW FULLY DYNAMIC - uses leave_type_code directly instead of hardcoded mapping.
+    """
     conn = get_db_connection()
     if not conn:
         return None
@@ -1892,6 +2141,7 @@ def save_leave_request(emp_id: str, leave_info: Dict, result: Dict) -> Optional[
         # 2. Prepare Data
         # Ensure we have valid leave info
         leave_type = leave_info.get('leave_type', 'Annual Leave')
+        leave_type_code = leave_info.get('leave_type_code')  # NEW: Use dynamic code
         start = leave_info.get('start_date')
         end = leave_info.get('end_date')
         days = leave_info.get('days_requested', 1)
@@ -1907,7 +2157,6 @@ def save_leave_request(emp_id: str, leave_info: Dict, result: Dict) -> Optional[
         ai_rec = "approve" if result['approved'] else "escalate"
         
         # 3. Insert Leave Request
-        # Note: Using NOW() for dates if python datetime causes issues,        # 3. Insert Leave Request
         query = """
             INSERT INTO leave_requests (
                 request_id, emp_id, country_code, leave_type, 
@@ -1924,24 +2173,30 @@ def save_leave_request(emp_id: str, leave_info: Dict, result: Dict) -> Optional[
             )
         """
         
-        # Map readable leave type to db key for balance update
-        leave_type_map = {
-            "Annual Leave": "vacation",
-            "Sick Leave": "sick",
-            "Emergency Leave": "emergency",
-            "Personal Leave": "personal",
-            "Maternity Leave": "maternity",
-            "Paternity Leave": "paternity",
-            "Bereavement Leave": "bereavement",
-            "Study Leave": "study"
-        }
-        db_leave_type = leave_type_map.get(leave_type, "vacation")
+        # DYNAMIC: Use leave_type_code directly if available
+        # This is the actual code stored in leave_balances table (e.g., "CL", "SL")
+        db_leave_type = leave_type_code
+        
+        if not db_leave_type:
+            # Fallback: Try to find code from company's leave types
+            company_id = get_company_id_for_employee(emp_id)
+            if company_id:
+                company_leave_types = get_company_leave_types(company_id)
+                for lt in company_leave_types:
+                    if lt['name'].lower() == leave_type.lower():
+                        db_leave_type = lt['code']
+                        break
+            
+            # Ultimate fallback if still no code (shouldn't happen with dynamic setup)
+            if not db_leave_type:
+                db_leave_type = leave_type.lower().replace(" leave", "").replace(" ", "_")
+                print(f"⚠️ Using fallback leave type code: {db_leave_type}")
         
         cur.execute(query, (
             request_id,
             emp_id,
             country_code,
-            leave_info['leave_type'],
+            leave_type_code or leave_type,  # Store the code in leave_type field
             leave_info['start_date'],
             leave_info['end_date'],
             leave_info['days_requested'],
@@ -2017,7 +2272,7 @@ def health():
 # The correct implementations of get_db_connection, save_leave_request, etc., are already defined above.
 @app.route('/analyze', methods=['POST'])
 def analyze():
-    """Main constraint analysis endpoint"""
+    """Main constraint analysis endpoint - NOW FULLY DYNAMIC"""
     data = request.json or {}
     text = data.get('text', '').strip()
     emp_id = data.get('employee_id')
@@ -2029,13 +2284,25 @@ def analyze():
         return jsonify({"error": "text is required"}), 400
     
     print(f"\n{'='*60}")
-    print(f"🔍 CONSTRAINT ENGINE - Analyzing Request")
+    print(f"🔍 CONSTRAINT ENGINE - Analyzing Request (DYNAMIC)")
     print(f"{'='*60}")
     print(f"Employee: {emp_id}")
     print(f"Request: {text}")
     
-    # Extract leave information from text
-    leave_info = extract_leave_info(text)
+    # ============================================================
+    # FETCH COMPANY'S LEAVE TYPES DYNAMICALLY
+    # ============================================================
+    company_id = get_company_id_for_employee(emp_id)
+    company_leave_types = []
+    
+    if company_id:
+        company_leave_types = get_company_leave_types(company_id)
+        print(f"📋 Loaded {len(company_leave_types)} leave types for company {company_id}")
+    else:
+        print(f"⚠️ Could not determine company for employee {emp_id}")
+    
+    # Extract leave information from text using DYNAMIC leave types
+    leave_info = extract_leave_info(text, company_leave_types)
     leave_info['original_text'] = text
     
     # Check for half-day flag from request
@@ -2052,28 +2319,45 @@ def analyze():
         leave_info['end_date'] = data.get('end_date')
     if data.get('total_days'):
         leave_info['days_requested'] = int(data.get('total_days')) if not is_half_day else 0.5
+    
+    # DYNAMIC leave type handling
     if data.get('leave_type'):
-        # Map common types to our internal format
-        lt = data.get('leave_type', '').lower()
-        if 'casual' in lt or 'annual' in lt:
-            leave_info['leave_type'] = 'Annual Leave'
-        elif 'sick' in lt:
-            leave_info['leave_type'] = 'Sick Leave'
-        elif 'emergency' in lt:
-            leave_info['leave_type'] = 'Emergency Leave'
-        elif 'personal' in lt:
-            leave_info['leave_type'] = 'Personal Leave'
+        incoming_lt = data.get('leave_type', '').strip()
+        
+        # Try to match against company's leave types
+        if company_leave_types:
+            matched = match_leave_type_dynamic(incoming_lt, company_leave_types)
+            leave_info['leave_type'] = matched.get('name', incoming_lt)
+            leave_info['leave_type_code'] = matched.get('code')
+            print(f"🎯 Matched leave type: {leave_info['leave_type']} ({leave_info['leave_type_code']})")
+        else:
+            # No company leave types - use as-is
+            leave_info['leave_type'] = incoming_lt
+            leave_info['leave_type_code'] = incoming_lt
     
-    print(f"Extracted: {leave_info['days_requested']} days of {leave_info['leave_type']}")
-    print(f"Dates: {leave_info['start_date']} to {leave_info['end_date']}")
+    # Also accept leave_type_code directly if provided
+    if data.get('leave_type_code'):
+        leave_info['leave_type_code'] = data.get('leave_type_code')
+        # Find the name for this code
+        for lt in company_leave_types:
+            if lt['code'] == leave_info['leave_type_code']:
+                leave_info['leave_type'] = lt['name']
+                break
     
-    # Evaluate all constraints
-    result = evaluate_all_constraints(emp_id, leave_info)
+    print(f"📝 Extracted: {leave_info['days_requested']} days of {leave_info['leave_type']} ({leave_info.get('leave_type_code', 'N/A')})")
+    print(f"📅 Dates: {leave_info['start_date']} to {leave_info['end_date']}")
+    
+    # Evaluate all constraints (now with dynamic limits)
+    result = evaluate_all_constraints(emp_id, leave_info, company_leave_types)
     
     # Add half-day priority flag to result
     if is_half_day:
         result['is_half_day'] = True
         result['priority'] = 'HIGH'
+    
+    # Include leave type info in response
+    result['leave_type_code'] = leave_info.get('leave_type_code')
+    result['leave_type_info'] = leave_info.get('leave_type_info')
     
     # SAVE TO DATABASE
     request_id = save_leave_request(emp_id, leave_info, result)
