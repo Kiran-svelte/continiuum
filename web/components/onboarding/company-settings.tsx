@@ -1289,11 +1289,12 @@ function LeaveTypeForm({
                                                         max_carry_forward: parseInt(e.target.value) || 0,
                                                     })
                                                 }
-                                        }
-                                    />
+                                            />
+                                        </div>
+                                    )}
                                 </div>
-                            )}
-                        </div>
+                            </>
+                        )}
 
                         {/* Actions */}
                         <div className="flex justify-end gap-2 pt-4">
