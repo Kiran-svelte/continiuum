@@ -26,7 +26,8 @@ import {
     LogOut,
     Settings,
     Sun,
-    Moon
+    Moon,
+    Bell
 } from "lucide-react";
 import { SignOutButton } from "@clerk/nextjs";
 import { useState } from "react";
@@ -50,6 +51,7 @@ export default function Sidebar() {
         { href: "/hr/constraint-rules", label: "Constraint Rules", icon: ShieldAlert },
         { href: "/hr/policy-settings", label: "Legacy Policy", icon: Settings },
         { href: "/hr/holiday-settings", label: "Holiday Calendar", icon: Calendar },
+        { href: "/hr/notification-settings", label: "Email Notifications", icon: Bell },
     ];
 
     const securityLinks = [

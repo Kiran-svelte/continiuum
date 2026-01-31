@@ -104,6 +104,46 @@ export function OnboardingFlow({ user, intent, savedData }: { user: any; intent:
         return null;
     });
 
+    // State for loaded company settings (when resuming onboarding)
+    const [loadedSettings, setLoadedSettings] = useState<{
+        workSchedule?: any;
+        leaveSettings?: any;
+        leaveTypes?: any[];
+        leaveRules?: any[];
+        constraintRules?: Record<string, boolean>;
+        holidaySettings?: any;
+        notificationSettings?: any;
+    } | null>(null);
+    const [settingsLoading, setSettingsLoading] = useState(false);
+
+    // Load existing settings when resuming constraints step
+    useEffect(() => {
+        const loadSettings = async () => {
+            if (step === "constraints" && createdCompanyId && !loadedSettings) {
+                setSettingsLoading(true);
+                try {
+                    const { getCompanySettings } = await import("@/app/actions/company-settings");
+                    const result = await getCompanySettings(createdCompanyId);
+                    if (result.success) {
+                        setLoadedSettings({
+                            workSchedule: result.workSchedule,
+                            leaveSettings: result.leaveSettings,
+                            leaveTypes: result.leaveTypes,
+                            leaveRules: result.leaveRules,
+                            constraintRules: result.constraintRules,
+                            holidaySettings: result.holidaySettings,
+                            notificationSettings: result.notificationSettings,
+                        });
+                    }
+                } catch (err) {
+                    console.error("[Onboarding] Failed to load existing settings:", err);
+                }
+                setSettingsLoading(false);
+            }
+        };
+        loadSettings();
+    }, [step, createdCompanyId, loadedSettings]);
+
     // Form States - Initialize from saved data
     const [companyName, setCompanyName] = useState(savedData?.companyName || "");
     const [industry, setIndustry] = useState(savedData?.industry || "");
@@ -508,10 +548,24 @@ export function OnboardingFlow({ user, intent, savedData }: { user: any; intent:
                         animate={{ opacity: 1, scale: 1 }}
                         className="z-10 w-full max-w-5xl bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
                     >
-                        {createdCompanyId ? (
+                        {settingsLoading ? (
+                            <div className="flex-1 flex items-center justify-center py-12">
+                                <div className="text-center">
+                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500 mx-auto mb-4"></div>
+                                    <p className="text-slate-400">Loading your saved settings...</p>
+                                </div>
+                            </div>
+                        ) : createdCompanyId ? (
                             <div className="flex-1 overflow-y-auto">
                                 <CompanySettings
                                     companyId={createdCompanyId}
+                                    initialWorkSchedule={loadedSettings?.workSchedule}
+                                    initialLeaveSettings={loadedSettings?.leaveSettings}
+                                    initialLeaveTypes={loadedSettings?.leaveTypes}
+                                    initialLeaveRules={loadedSettings?.leaveRules}
+                                    initialConstraintRules={loadedSettings?.constraintRules}
+                                    initialHolidaySettings={loadedSettings?.holidaySettings}
+                                    initialNotificationSettings={loadedSettings?.notificationSettings}
                                     onComplete={handleCompanySettingsComplete}
                                     // No onBack - company is already created, can't undo
                                 />

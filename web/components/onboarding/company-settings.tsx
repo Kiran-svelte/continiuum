@@ -18,6 +18,9 @@ import {
     Building,
     FileText,
     Shield,
+    Bell,
+    CalendarDays,
+    Gauge,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,7 +51,10 @@ import {
     CollapsibleContent,
     CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { Badge } from "@/components/ui/badge";
+import { ConstraintRulesSelection } from "./constraint-rules-selection";
+import { HolidaySettingsOnboarding, type HolidaySettingsData } from "./holiday-settings-onboarding";
+import { NotificationSettingsOnboarding, type NotificationSettingsData } from "./notification-settings-onboarding";
+import { DEFAULT_CONSTRAINT_RULES } from "@/lib/constraint-rules-config";import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 // =========================================================================
@@ -123,6 +129,10 @@ interface CompanySettingsProps {
     initialLeaveTypes?: LeaveType[];
     initialLeaveRules?: LeaveRule[];
     initialApprovalSettings?: ApprovalSettings;
+    // NEW: Initial settings for the new tabs
+    initialConstraintRules?: Record<string, boolean>;
+    initialHolidaySettings?: HolidaySettingsData;
+    initialNotificationSettings?: NotificationSettingsData;
     onComplete: () => void;
     onBack?: () => void;
 }
@@ -294,6 +304,29 @@ const LEAVE_COLORS = [
 // MAIN COMPONENT
 // =========================================================================
 
+// Default settings for new features
+const DEFAULT_CONSTRAINT_RULES_SELECTION = Object.keys(DEFAULT_CONSTRAINT_RULES).reduce(
+    (acc, ruleId) => {
+        acc[ruleId] = true; // All enabled by default
+        return acc;
+    },
+    {} as Record<string, boolean>
+);
+
+const DEFAULT_HOLIDAY_SETTINGS: HolidaySettingsData = {
+    holiday_mode: "auto",
+    country_code: "IN",
+    custom_holidays: [],
+};
+
+const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettingsData = {
+    email_checkin_reminder: true,
+    email_checkout_reminder: true,
+    email_hr_missing_alerts: true,
+    email_leave_notifications: true,
+    email_approval_reminders: true,
+};
+
 export function CompanySettings({
     companyId,
     initialWorkSchedule,
@@ -301,6 +334,9 @@ export function CompanySettings({
     initialLeaveTypes,
     initialLeaveRules,
     initialApprovalSettings,
+    initialConstraintRules,
+    initialHolidaySettings,
+    initialNotificationSettings,
     onComplete,
     onBack,
 }: CompanySettingsProps) {
@@ -332,6 +368,23 @@ export function CompanySettings({
 
     // Leave Rules State
     const [leaveRules, setLeaveRules] = useState<LeaveRule[]>(initialLeaveRules || []);
+
+    // NEW: Constraint Rules Selection State - use initialConstraintRules if provided
+    const [constraintRules, setConstraintRules] = useState<Record<string, boolean>>(
+        initialConstraintRules && Object.keys(initialConstraintRules).length > 0
+            ? initialConstraintRules
+            : DEFAULT_CONSTRAINT_RULES_SELECTION
+    );
+
+    // NEW: Holiday Settings State - use initialHolidaySettings if provided
+    const [holidaySettings, setHolidaySettings] = useState<HolidaySettingsData>(
+        initialHolidaySettings || DEFAULT_HOLIDAY_SETTINGS
+    );
+
+    // NEW: Notification Settings State - use initialNotificationSettings if provided
+    const [notificationSettings, setNotificationSettings] = useState<NotificationSettingsData>(
+        initialNotificationSettings || DEFAULT_NOTIFICATION_SETTINGS
+    );
 
     // =====================================================================
     // HANDLERS
@@ -372,12 +425,17 @@ export function CompanySettings({
     const saveAllSettings = async (useDefaults: boolean = false) => {
         const { saveWorkSchedule, saveLeaveSettings, saveApprovalSettings, createLeaveType, completeCompanySetup } =
             await import("@/app/actions/company-settings");
+        const { saveConstraintRulesSelection, saveHolidaySettingsOnboarding, saveNotificationSettingsOnboarding } =
+            await import("@/app/actions/onboarding-settings");
 
         // Use current state or defaults based on flag
         const scheduleToSave = useDefaults ? DEFAULT_WORK_SCHEDULE : workSchedule;
         const settingsToSave = useDefaults ? DEFAULT_LEAVE_SETTINGS : leaveSettings;
         const approvalToSave = useDefaults ? DEFAULT_APPROVAL_SETTINGS : approvalSettings;
         const typesToSave = useDefaults ? DEFAULT_LEAVE_TYPES : leaveTypes;
+        const rulesToSave = useDefaults ? DEFAULT_CONSTRAINT_RULES_SELECTION : constraintRules;
+        const holidaysToSave = useDefaults ? DEFAULT_HOLIDAY_SETTINGS : holidaySettings;
+        const notificationsToSave = useDefaults ? DEFAULT_NOTIFICATION_SETTINGS : notificationSettings;
 
         // Save work schedule
         const scheduleResult = await saveWorkSchedule(companyId, scheduleToSave);
@@ -395,6 +453,24 @@ export function CompanySettings({
         const approvalResult = await saveApprovalSettings(companyId, approvalToSave);
         if (!approvalResult.success) {
             throw new Error(approvalResult.error || "Failed to save approval settings");
+        }
+
+        // Save constraint rules with selected active states
+        const rulesResult = await saveConstraintRulesSelection(companyId, rulesToSave);
+        if (!rulesResult.success) {
+            throw new Error(rulesResult.error || "Failed to save constraint rules");
+        }
+
+        // Save holiday settings
+        const holidayResult = await saveHolidaySettingsOnboarding(companyId, holidaysToSave);
+        if (!holidayResult.success) {
+            throw new Error(holidayResult.error || "Failed to save holiday settings");
+        }
+
+        // Save notification settings  
+        const notificationResult = await saveNotificationSettingsOnboarding(companyId, notificationsToSave);
+        if (!notificationResult.success) {
+            throw new Error(notificationResult.error || "Failed to save notification settings");
         }
 
         // Create leave types
@@ -491,21 +567,30 @@ export function CompanySettings({
 
                 {/* Tabs */}
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                    <TabsList className="grid w-full grid-cols-3">
-                        <TabsTrigger value="schedule" className="flex items-center gap-2">
+                    <TabsList className="grid w-full grid-cols-6 h-auto p-1">
+                        <TabsTrigger value="schedule" className="flex items-center gap-1 text-xs sm:text-sm py-2">
                             <Clock className="h-4 w-4" />
-                            <span className="hidden sm:inline">Work Schedule</span>
-                            <span className="sm:hidden">Schedule</span>
+                            <span className="hidden md:inline">Schedule</span>
                         </TabsTrigger>
-                        <TabsTrigger value="leaves" className="flex items-center gap-2">
+                        <TabsTrigger value="leaves" className="flex items-center gap-1 text-xs sm:text-sm py-2">
                             <Calendar className="h-4 w-4" />
-                            <span className="hidden sm:inline">Leave Types</span>
-                            <span className="sm:hidden">Leaves</span>
+                            <span className="hidden md:inline">Leaves</span>
                         </TabsTrigger>
-                        <TabsTrigger value="policies" className="flex items-center gap-2">
+                        <TabsTrigger value="policies" className="flex items-center gap-1 text-xs sm:text-sm py-2">
                             <Shield className="h-4 w-4" />
-                            <span className="hidden sm:inline">Policies</span>
-                            <span className="sm:hidden">Rules</span>
+                            <span className="hidden md:inline">Policies</span>
+                        </TabsTrigger>
+                        <TabsTrigger value="rules" className="flex items-center gap-1 text-xs sm:text-sm py-2">
+                            <Gauge className="h-4 w-4" />
+                            <span className="hidden md:inline">Rules</span>
+                        </TabsTrigger>
+                        <TabsTrigger value="holidays" className="flex items-center gap-1 text-xs sm:text-sm py-2">
+                            <CalendarDays className="h-4 w-4" />
+                            <span className="hidden md:inline">Holidays</span>
+                        </TabsTrigger>
+                        <TabsTrigger value="notifications" className="flex items-center gap-1 text-xs sm:text-sm py-2">
+                            <Bell className="h-4 w-4" />
+                            <span className="hidden md:inline">Emails</span>
                         </TabsTrigger>
                     </TabsList>
 
@@ -539,6 +624,30 @@ export function CompanySettings({
                             leaveTypes={leaveTypes}
                             onChange={setLeaveSettings}
                             onApprovalChange={setApprovalSettings}
+                        />
+                    </TabsContent>
+
+                    {/* Constraint Rules Tab */}
+                    <TabsContent value="rules" className="space-y-6 mt-6">
+                        <ConstraintRulesSelection
+                            selectedRules={constraintRules}
+                            onRulesChange={setConstraintRules}
+                        />
+                    </TabsContent>
+
+                    {/* Holiday Settings Tab */}
+                    <TabsContent value="holidays" className="space-y-6 mt-6">
+                        <HolidaySettingsOnboarding
+                            settings={holidaySettings}
+                            onSettingsChange={setHolidaySettings}
+                        />
+                    </TabsContent>
+
+                    {/* Notification Settings Tab */}
+                    <TabsContent value="notifications" className="space-y-6 mt-6">
+                        <NotificationSettingsOnboarding
+                            settings={notificationSettings}
+                            onSettingsChange={setNotificationSettings}
                         />
                     </TabsContent>
                 </Tabs>
