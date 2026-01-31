@@ -793,6 +793,7 @@ export async function getCompanySettings(companyId: string) {
                 where: { company_id: companyId, is_active: true },
                 orderBy: { sort_order: 'asc' }
             });
+            console.log("[getCompanySettings] Found leave types:", leaveTypes.length, leaveTypes.map(lt => lt.code));
         } catch (ltErr) {
             console.error("[getCompanySettings] Leave types error:", ltErr);
             leaveTypes = [];

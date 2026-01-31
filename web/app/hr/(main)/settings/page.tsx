@@ -487,7 +487,10 @@ export default function HRSettingsPage() {
                     setLeaveSettings(result.leaveSettings);
                     setOriginalLeaveSettings(JSON.parse(JSON.stringify(result.leaveSettings)));
                 }
-                if (result.leaveTypes) {
+                
+                // Always set leave types (even if empty array)
+                console.log("[Settings] Leave types from server:", result.leaveTypes?.length || 0, result.leaveTypes);
+                if (result.leaveTypes && Array.isArray(result.leaveTypes)) {
                     // Convert Decimal fields to numbers
                     const convertedLeaveTypes: LeaveType[] = result.leaveTypes.map((lt: any) => ({
                         id: lt.id,
@@ -503,9 +506,10 @@ export default function HRSettingsPage() {
                         half_day_allowed: lt.half_day_allowed,
                         gender_specific: lt.gender_specific,
                         carry_forward: lt.carry_forward,
-                        max_carry_forward: lt.max_carry_forward,
+                        max_carry_forward: lt.max_carry_forward ?? 0,
                         is_paid: lt.is_paid,
                     }));
+                    console.log("[Settings] Setting leave types:", convertedLeaveTypes.length);
                     setLeaveTypes(convertedLeaveTypes);
                     setOriginalLeaveTypes(JSON.parse(JSON.stringify(convertedLeaveTypes)));
                 }
