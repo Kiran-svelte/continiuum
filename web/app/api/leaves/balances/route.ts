@@ -114,9 +114,21 @@ export async function GET(req: NextRequest) {
             };
         });
 
+        // Also fetch leave types for this company (for dropdown)
+        let leaveTypes: { code: string; name: string; description?: string | null }[] = [];
+        if (employee.org_id) {
+            const companyLeaveTypes = await prisma.leaveType.findMany({
+                where: { company_id: employee.org_id, is_active: true },
+                select: { code: true, name: true, description: true },
+                orderBy: { sort_order: 'asc' }
+            });
+            leaveTypes = companyLeaveTypes;
+        }
+
         return NextResponse.json({
             success: true,
-            balances: formattedBalances
+            balances: formattedBalances,
+            leaveTypes: leaveTypes
         });
     } catch (error) {
         console.error("[API] Leave Balance Error:", error);

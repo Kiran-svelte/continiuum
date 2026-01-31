@@ -40,9 +40,19 @@ function getSuggestedDates(year: number, month: number, invalidDay: number): str
     return suggestions;
 }
 
-// Simple NLP parser for leave requests
-function parseLeaveRequest(text: string): {
+// Simple NLP parser for leave requests - now accepts company's leave types
+interface CompanyLeaveType {
+    code: string;
+    name: string;
+    description?: string | null;
+}
+
+function parseLeaveRequest(
+    text: string, 
+    companyLeaveTypes: CompanyLeaveType[] = []
+): {
     leaveType: string;
+    leaveTypeCode: string;
     startDate: string | null;
     endDate: string | null;
     duration: number;
@@ -50,17 +60,57 @@ function parseLeaveRequest(text: string): {
 } {
     const lowerText = text.toLowerCase();
     
-    // Detect leave type
-    let leaveType = "casual"; // default
-    if (lowerText.includes("sick")) leaveType = "sick";
-    else if (lowerText.includes("emergency") || lowerText.includes("urgent")) leaveType = "emergency";
-    else if (lowerText.includes("vacation") || lowerText.includes("annual")) leaveType = "vacation";
-    else if (lowerText.includes("casual")) leaveType = "casual";
-    else if (lowerText.includes("personal") || lowerText.includes("private")) leaveType = "personal";
-    else if (lowerText.includes("maternity")) leaveType = "maternity";
-    else if (lowerText.includes("paternity")) leaveType = "paternity";
-    else if (lowerText.includes("bereavement")) leaveType = "bereavement";
-    else if (lowerText.includes("comp off") || lowerText.includes("compensatory")) leaveType = "comp_off";
+    // Try to match against company's configured leave types first
+    let leaveType = "";
+    let leaveTypeCode = "";
+    
+    if (companyLeaveTypes.length > 0) {
+        // Build a map of keywords to leave types
+        for (const lt of companyLeaveTypes) {
+            const nameLower = lt.name.toLowerCase();
+            const codeLower = lt.code.toLowerCase();
+            const descLower = (lt.description || "").toLowerCase();
+            
+            // Check if the request mentions this leave type by name, code, or description keywords
+            if (
+                lowerText.includes(nameLower) || 
+                lowerText.includes(codeLower) ||
+                // Also match common variations
+                (nameLower.includes("sick") && lowerText.includes("sick")) ||
+                (nameLower.includes("casual") && lowerText.includes("casual")) ||
+                (nameLower.includes("annual") && lowerText.includes("annual")) ||
+                (nameLower.includes("vacation") && lowerText.includes("vacation")) ||
+                (nameLower.includes("emergency") && (lowerText.includes("emergency") || lowerText.includes("urgent"))) ||
+                (nameLower.includes("maternity") && lowerText.includes("maternity")) ||
+                (nameLower.includes("paternity") && lowerText.includes("paternity")) ||
+                (nameLower.includes("bereavement") && lowerText.includes("bereavement")) ||
+                (nameLower.includes("privilege") && (lowerText.includes("privilege") || lowerText.includes("pl"))) ||
+                (nameLower.includes("comp") && (lowerText.includes("comp off") || lowerText.includes("compensatory")))
+            ) {
+                leaveType = lt.name;
+                leaveTypeCode = lt.code;
+                break;
+            }
+        }
+        
+        // If no match found, use first available leave type as default
+        if (!leaveType && companyLeaveTypes.length > 0) {
+            leaveType = companyLeaveTypes[0].name;
+            leaveTypeCode = companyLeaveTypes[0].code;
+        }
+    }
+    
+    // Fallback to hardcoded detection if no company leave types available
+    if (!leaveType) {
+        if (lowerText.includes("sick")) { leaveType = "Sick Leave"; leaveTypeCode = "SL"; }
+        else if (lowerText.includes("emergency") || lowerText.includes("urgent")) { leaveType = "Emergency Leave"; leaveTypeCode = "EL"; }
+        else if (lowerText.includes("vacation") || lowerText.includes("annual")) { leaveType = "Vacation Leave"; leaveTypeCode = "VL"; }
+        else if (lowerText.includes("maternity")) { leaveType = "Maternity Leave"; leaveTypeCode = "ML"; }
+        else if (lowerText.includes("paternity")) { leaveType = "Paternity Leave"; leaveTypeCode = "PTL"; }
+        else if (lowerText.includes("bereavement")) { leaveType = "Bereavement Leave"; leaveTypeCode = "BL"; }
+        else if (lowerText.includes("comp off") || lowerText.includes("compensatory")) { leaveType = "Comp Off"; leaveTypeCode = "CO"; }
+        else { leaveType = "Casual Leave"; leaveTypeCode = "CL"; }
+    }
     
     // Parse dates - handle various formats
     const today = new Date();
@@ -245,6 +295,7 @@ function parseLeaveRequest(text: string): {
     
     return {
         leaveType,
+        leaveTypeCode,
         startDate: startDate ? formatDateLocal(startDate) : null,
         endDate: endDate ? formatDateLocal(endDate) : null,
         duration,
@@ -272,12 +323,10 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ success: false, error: "Request text is required" }, { status: 400 });
         }
 
-        // Parse the natural language request
-        const parsed = parseLeaveRequest(text);
-        aiLogger.debug("Parsed leave request", parsed);
-
-        // Get employee from database with retry for connection issues
+        // Get employee from database FIRST (we need org_id for leave types)
         let employee;
+        let companyLeaveTypes: CompanyLeaveType[] = [];
+        
         try {
             employee = await prisma.employee.findUnique({
                 where: { clerk_id: userId },
@@ -288,6 +337,16 @@ export async function POST(req: NextRequest) {
                     }
                 }
             });
+            
+            // Fetch company's configured leave types
+            if (employee?.org_id) {
+                const leaveTypes = await prisma.leaveType.findMany({
+                    where: { company_id: employee.org_id, is_active: true },
+                    select: { code: true, name: true, description: true },
+                    orderBy: { sort_order: 'asc' }
+                });
+                companyLeaveTypes = leaveTypes;
+            }
         } catch (dbError: any) {
             // Handle database connection errors gracefully
             console.error("[Analyze] Database error:", dbError);
@@ -307,17 +366,24 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ success: false, error: "Employee profile not found. Please complete onboarding." }, { status: 404 });
         }
 
+        // Parse the natural language request with company's leave types
+        const parsed = parseLeaveRequest(text, companyLeaveTypes);
+        aiLogger.debug("Parsed leave request", { ...parsed, companyLeaveTypes: companyLeaveTypes.map(lt => lt.code) });
+
         // Calculate remaining leave balance for the requested type
         const balanceMap: Record<string, number> = {};
         employee.leave_balances.forEach(bal => {
             const total = Number(bal.annual_entitlement) + Number(bal.carried_forward);
             const used = Number(bal.used_days) + Number(bal.pending_days);
-            const typeKey = bal.leave_type.toLowerCase().replace(/\s+/g, "_");
-            balanceMap[typeKey] = total - used;
+            // Store by both code and normalized name
+            balanceMap[bal.leave_type.toLowerCase()] = total - used;
+            balanceMap[bal.leave_type.toLowerCase().replace(/\s+/g, "_")] = total - used;
         });
         
+        // Use the leave type code for balance lookup (try code first, then name)
+        const leaveTypeCode = parsed.leaveTypeCode.toLowerCase();
         const leaveTypeKey = parsed.leaveType.toLowerCase().replace(/\s+/g, "_");
-        const remainingLeave = balanceMap[leaveTypeKey] || balanceMap['casual_leave'] || 20;
+        const remainingLeave = balanceMap[leaveTypeCode] || balanceMap[leaveTypeKey] || balanceMap['cl'] || balanceMap['casual_leave'] || 20;
 
         // Check if there's an invalid date
         if (parsed.invalidDate) {

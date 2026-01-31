@@ -19,6 +19,12 @@ interface LeaveBalance {
     total: number;
 }
 
+interface LeaveTypeOption {
+    code: string;
+    name: string;
+    description?: string | null;
+}
+
 interface EditableLeaveData {
     leaveType: string;
     startDate: string;
@@ -34,6 +40,7 @@ export default function RequestLeavePage() {
     const [result, setResult] = useState<any>(null);
     const [currentSlide, setCurrentSlide] = useState(0);
     const [balances, setBalances] = useState<LeaveBalance[]>([]);
+    const [leaveTypes, setLeaveTypes] = useState<LeaveTypeOption[]>([]);
     const [loadingBalances, setLoadingBalances] = useState(true);
     const [balanceError, setBalanceError] = useState<string | null>(null);
     const [editableData, setEditableData] = useState<EditableLeaveData | null>(null);
@@ -42,7 +49,7 @@ export default function RequestLeavePage() {
     const visibleSlides = 3;
     const maxSlide = Math.max(0, balances.length - visibleSlides);
 
-    // Fetch real leave balances on mount
+    // Fetch real leave balances and leave types on mount
     useEffect(() => {
         setLoadingBalances(true);
         fetch('/api/leaves/balances')
@@ -51,6 +58,10 @@ export default function RequestLeavePage() {
                 if (data.success && data.balances) {
                     setBalances(data.balances);
                     setBalanceError(null);
+                    // Also set leave types from API response
+                    if (data.leaveTypes && data.leaveTypes.length > 0) {
+                        setLeaveTypes(data.leaveTypes);
+                    }
                 } else {
                     setBalanceError(data.error || 'Failed to load balances');
                 }
@@ -105,8 +116,12 @@ export default function RequestLeavePage() {
                     if (data.data.leave_request || data.data.parsed) {
                         const leaveReq = data.data.leave_request || {};
                         const parsed = data.data.parsed || {};
+                        // Use the leaveTypeCode if available (company's actual code like "S", "C")
+                        // otherwise fall back to the type/leaveType name
+                        const detectedLeaveType = parsed.leaveTypeCode || leaveReq.type || parsed.leaveType || 
+                            (leaveTypes.length > 0 ? leaveTypes[0].code : 'CL');
                         setEditableData({
-                            leaveType: leaveReq.type || parsed.leaveType || 'Casual Leave',
+                            leaveType: detectedLeaveType,
                             startDate: leaveReq.start_date || parsed.startDate || '',
                             endDate: leaveReq.end_date || parsed.endDate || '',
                             duration: leaveReq.days_requested || parsed.duration || 1,
@@ -433,13 +448,20 @@ export default function RequestLeavePage() {
                                                             onChange={(e) => setEditableData({...editableData, leaveType: e.target.value})}
                                                             className="w-full px-3 py-2 rounded bg-black/40 border border-white/10 text-white font-semibold"
                                                         >
-                                                            <option value="Sick Leave">Sick Leave</option>
-                                                            <option value="Vacation Leave">Vacation Leave</option>
-                                                            <option value="Casual Leave">Casual Leave</option>
-                                                            <option value="Emergency Leave">Emergency Leave</option>
-                                                            <option value="Maternity Leave">Maternity Leave</option>
-                                                            <option value="Paternity Leave">Paternity Leave</option>
-                                                            <option value="Bereavement Leave">Bereavement Leave</option>
+                                                            {leaveTypes.length > 0 ? (
+                                                                leaveTypes.map(lt => (
+                                                                    <option key={lt.code} value={lt.code}>
+                                                                        {lt.name} ({lt.code})
+                                                                    </option>
+                                                                ))
+                                                            ) : (
+                                                                // Fallback to balances if no leave types loaded
+                                                                balances.map(b => (
+                                                                    <option key={b.type} value={b.type}>
+                                                                        {b.type}
+                                                                    </option>
+                                                                ))
+                                                            )}
                                                         </select>
                                                     </div>
                                                     <div>
