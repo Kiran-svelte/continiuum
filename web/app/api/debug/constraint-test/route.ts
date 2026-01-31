@@ -30,12 +30,12 @@ export async function GET() {
             },
             select: {
                 emp_id: true,
-                clerk_emp_id: true,
-                org_emp_id: true,
+                clerk_id: true,
+                org_id: true,
                 full_name: true
             }
         });
-        results.sampleEmployee = employee ? { id: employee.id, org_id: employee.org_id } : null;
+        results.sampleEmployee = employee ? { emp_id: employee.emp_id, org_id: employee.org_id, clerk_id: employee.clerk_id } : null;
         
         if (employee?.org_id) {
             // Step 4: Get constraint policy
