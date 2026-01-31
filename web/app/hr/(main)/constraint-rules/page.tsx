@@ -147,7 +147,7 @@ export default function ConstraintRulesPage() {
             setLoading(true);
             setError(null);
             
-            // Get the rules first - this will auto-initialize if needed
+            // Get the rules - policy should already exist from onboarding, otherwise defaults are returned
             const result = await getCompanyConstraintRules();
             if (result.success && result.rules) {
                 setRules(result.rules);
@@ -1254,3 +1254,4 @@ export default function ConstraintRulesPage() {
         </div>
     );
 }
+

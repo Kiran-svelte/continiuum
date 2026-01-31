@@ -724,7 +724,8 @@ export async function getMissingCheckIns() {
             where: {
                 org_id: hrEmployee.org_id,
                 is_active: true,
-                approval_status: 'approved'
+                approval_status: 'approved',
+                role: { notIn: ['hr', 'admin'] }
             },
             select: {
                 emp_id: true,
@@ -943,7 +944,8 @@ export async function getAttendanceOverview() {
                 where: {
                     org_id: hrEmployee.org_id,
                     is_active: true,
-                    approval_status: 'approved'
+                    approval_status: 'approved',
+                    role: { notIn: ['hr', 'admin'] }
                 }
             }),
             prisma.attendance.count({
@@ -953,7 +955,8 @@ export async function getAttendanceOverview() {
                     employee: {
                         org_id: hrEmployee.org_id,
                         is_active: true,
-                        approval_status: 'approved'
+                        approval_status: 'approved',
+                        role: { notIn: ['hr', 'admin'] }
                     }
                 }
             }),
@@ -964,7 +967,8 @@ export async function getAttendanceOverview() {
                     employee: {
                         org_id: hrEmployee.org_id,
                         is_active: true,
-                        approval_status: 'approved'
+                        approval_status: 'approved',
+                        role: { notIn: ['hr', 'admin'] }
                     }
                 }
             }),
@@ -975,7 +979,8 @@ export async function getAttendanceOverview() {
                     employee: {
                         org_id: hrEmployee.org_id,
                         is_active: true,
-                        approval_status: 'approved'
+                        approval_status: 'approved',
+                        role: { notIn: ['hr', 'admin'] }
                     }
                 }
             }),
@@ -987,7 +992,8 @@ export async function getAttendanceOverview() {
                     employee: {
                         org_id: hrEmployee.org_id,
                         is_active: true,
-                        approval_status: 'approved'
+                        approval_status: 'approved',
+                        role: { notIn: ['hr', 'admin'] }
                     }
                 }
             })

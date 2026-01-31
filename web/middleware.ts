@@ -53,6 +53,8 @@ const isPublicRoute = createRouteMatcher([
     '/api/debug/backend-check(.*)',
     '/api/platform(.*)', // Platform stats for marketing page - public
     '/api/cron(.*)',
+    '/api/admin(.*)',
+    '/api/debug(.*)',
     '/api/security(.*)',
     '/api/enterprise(.*)',
     '/api/waitlist(.*)',
@@ -189,3 +191,4 @@ export const config = {
         '/(api|trpc)(.*)',
     ],
 };
+
