@@ -1,6 +1,4 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import { ClerkProvider } from "@clerk/nextjs";
 import { Toaster } from "sonner";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
@@ -45,39 +43,34 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider
-      signInFallbackRedirectUrl="/onboarding"
-      signUpFallbackRedirectUrl="/onboarding"
-    >
-      <html lang="en" suppressHydrationWarning>
-        <head>
-          <ThemeScript />
-          <meta name="theme-color" content="#030305" />
-        </head>
-        <body className={`${inter.variable} antialiased selection:bg-primary/40 selection:text-white`}>
-          <ThemeProvider defaultTheme="system" enableTransitions>
-            <GlobalErrorBoundary>
-              <ConfirmProvider>
-                {children}
-                <ScrollToTop />
-                <ScreenReaderAnnouncer />
-                <ConsentBanner />
-              </ConfirmProvider>
-            </GlobalErrorBoundary>
-            <Analytics />
-            <SpeedInsights />
-            <Toaster 
-              position="top-right"
-              richColors
-              closeButton
-              toastOptions={{
-                className: 'toast-theme-adaptive',
-              }}
-            />
-          </ThemeProvider>
-        </body>
-      </html>
-    </ClerkProvider>
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <ThemeScript />
+        <meta name="theme-color" content="#030305" />
+      </head>
+      <body className={`${inter.variable} antialiased selection:bg-primary/40 selection:text-white`}>
+        <ThemeProvider defaultTheme="system" enableTransitions>
+          <GlobalErrorBoundary>
+            <ConfirmProvider>
+              {children}
+              <ScrollToTop />
+              <ScreenReaderAnnouncer />
+              <ConsentBanner />
+            </ConfirmProvider>
+          </GlobalErrorBoundary>
+          <Analytics />
+          <SpeedInsights />
+          <Toaster 
+            position="top-right"
+            richColors
+            closeButton
+            toastOptions={{
+              className: 'toast-theme-adaptive',
+            }}
+          />
+        </ThemeProvider>
+      </body>
+    </html>
   );
 }
 

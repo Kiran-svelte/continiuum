@@ -1,4 +1,4 @@
-import { currentUser } from "@clerk/nextjs/server";
+import { getUser } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { syncUser } from "@/app/actions/onboarding";
 import { OnboardingFlow } from "@/components/onboarding/onboarding-flow";
@@ -48,7 +48,7 @@ function OnboardingError({ error, canRetry = true }: { error?: string; canRetry?
 
 export default async function OnboardingPage(props: { searchParams: Promise<{ intent?: string }> }) {
     const searchParams = await props.searchParams;
-    const user = await currentUser();
+    const user = await getUser();
     if (!user) return redirect("/sign-in");
 
     // Attempt sync (idempotent)

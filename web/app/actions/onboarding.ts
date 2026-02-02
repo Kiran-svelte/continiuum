@@ -1,6 +1,6 @@
 "use server";
 
-import { currentUser } from "@clerk/nextjs/server";
+import { getUser } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
@@ -22,26 +22,26 @@ interface OnboardingData {
 
 /* =========================================================================
    1. IDENTITY SYNC - Enhanced with onboarding state restoration
-   Ensures the Clerk User exists in our "Employee" table and restores any 
+   Ensures the Supabase User exists in our "Employee" table and restores any 
    partial onboarding data.
    ========================================================================= */
 export async function syncUser() {
-    const user = await currentUser();
+    const user = await getUser();
     if (!user) {
         console.error("[syncUser] No authenticated user found");
         return { success: false, error: "Not authenticated. Please sign in.", employee: null };
     }
 
     try {
-        const email = user.emailAddresses[0]?.emailAddress;
+        const email = user.email;
         if (!email) {
             console.error("[syncUser] User has no email address");
             return { success: false, error: "No email address found on your account.", employee: null };
         }
 
-        const name = `${user.firstName || ""} ${user.lastName || ""}`.trim() || "Unknown";
+        const name = user.user_metadata?.full_name || user.email?.split('@')[0] || "Unknown";
 
-        // First, check if an employee with this clerk_id exists
+        // First, check if an employee with this clerk_id (now supabase user id) exists
         let employee = await prisma.employee.findUnique({
             where: { clerk_id: user.id },
             include: { company: true }
@@ -129,7 +129,7 @@ export async function saveOnboardingProgress(
     step: string,
     data: OnboardingData
 ) {
-    const user = await currentUser();
+    const user = await getUser();
     if (!user) throw new Error("Unauthorized");
 
     try {
@@ -170,7 +170,7 @@ export async function saveOnboardingProgress(
    Updates the Employee record to mark Terms & Conditions as accepted.
    ========================================================================= */
 export async function acceptTerms() {
-    const user = await currentUser();
+    const user = await getUser();
     if (!user) throw new Error("Unauthorized");
 
     try {
@@ -198,7 +198,7 @@ export async function acceptTerms() {
    HR registration is auto-approved since they are creating the company.
    ========================================================================= */
 export async function registerCompany(companyName: string, industry: string, size?: string, location?: string, website?: string) {
-    const user = await currentUser();
+    const user = await getUser();
     if (!user) throw new Error("Unauthorized");
 
     const code = Math.random().toString(36).substring(2, 10).toUpperCase();
@@ -292,7 +292,7 @@ export async function registerCompany(companyName: string, industry: string, siz
    Employee must wait for HR approval before accessing features.
    ========================================================================= */
 export async function joinCompany(code: string) {
-    const user = await currentUser();
+    const user = await getUser();
     if (!user) throw new Error("Unauthorized");
 
     try {
@@ -389,7 +389,7 @@ export async function joinCompany(code: string) {
    Updates profile info before joining.
    ========================================================================= */
 export async function updateEmployeeDetails(details: { department?: string; position?: string; location?: string }) {
-    const user = await currentUser();
+    const user = await getUser();
     if (!user) throw new Error("Unauthorized");
 
     try {
@@ -432,7 +432,7 @@ export async function updateEmployeeDetails(details: { department?: string; posi
 
 // Get registration stats for HR dashboard
 export async function getRegistrationStats() {
-    const user = await currentUser();
+    const user = await getUser();
     if (!user) return { success: false, error: "Unauthorized" };
 
     try {
@@ -513,7 +513,7 @@ export async function getRegistrationStats() {
 
 // Get pending employee registrations for HR
 export async function getPendingEmployeeApprovals() {
-    const user = await currentUser();
+    const user = await getUser();
     if (!user) return { success: false, error: "Unauthorized" };
 
     try {
@@ -617,7 +617,7 @@ async function seedLeaveBalancesForEmployee(empId: string, orgId: string): Promi
 
 // Approve an employee
 export async function approveEmployee(empId: string) {
-    const user = await currentUser();
+    const user = await getUser();
     if (!user) return { success: false, error: "Unauthorized" };
 
     try {
@@ -733,7 +733,7 @@ export async function approveEmployee(empId: string) {
 
 // Reject an employee
 export async function rejectEmployee(empId: string, reason: string) {
-    const user = await currentUser();
+    const user = await getUser();
     if (!user) return { success: false, error: "Unauthorized" };
 
     try {
@@ -819,7 +819,7 @@ export async function rejectEmployee(empId: string, reason: string) {
    Returns all employees (pending, approved, rejected) for HR onboarding view
    ========================================================================= */
 export async function getOnboardingEmployees() {
-    const user = await currentUser();
+    const user = await getUser();
     if (!user) return { success: false, error: "Unauthorized" };
 
     try {
@@ -877,7 +877,7 @@ export async function getOnboardingEmployees() {
    Allows a rejected employee to try again with a different company
    ========================================================================= */
 export async function resetRejectedEmployeeState() {
-    const user = await currentUser();
+    const user = await getUser();
     if (!user) return { success: false, error: "Unauthorized" };
 
     try {
@@ -919,7 +919,7 @@ export async function resetRejectedEmployeeState() {
 
 // Mark welcome animation as shown
 export async function markWelcomeShown() {
-    const user = await currentUser();
+    const user = await getUser();
     if (!user) throw new Error("Unauthorized");
 
     try {
@@ -936,7 +936,7 @@ export async function markWelcomeShown() {
 
 // Mark tutorial as completed
 export async function markTutorialCompleted() {
-    const user = await currentUser();
+    const user = await getUser();
     if (!user) throw new Error("Unauthorized");
 
     try {
@@ -960,7 +960,7 @@ export async function markTutorialCompleted() {
    Utility to check if employee can access features
    ========================================================================= */
 export async function checkFeatureAccess() {
-    const user = await currentUser();
+    const user = await getUser();
     if (!user) return { hasAccess: false, reason: "not_authenticated" };
 
     try {

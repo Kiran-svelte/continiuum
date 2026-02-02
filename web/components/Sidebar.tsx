@@ -1,8 +1,8 @@
 "use client";
 
-import { useUser } from "@clerk/nextjs";
+import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
     LayoutDashboard,
     FileText,
@@ -29,16 +29,31 @@ import {
     Moon,
     Bell
 } from "lucide-react";
-import { SignOutButton } from "@clerk/nextjs";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { formatDisplayName, getInitials } from "@/lib/utils";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
+import type { User as SupabaseUser } from "@supabase/supabase-js";
 
 export default function Sidebar() {
-    const { user } = useUser();
+    const [user, setUser] = useState<SupabaseUser | null>(null);
     const pathname = usePathname();
+    const router = useRouter();
+    const supabase = createClient();
     const isHR = pathname.includes("/hr");
     const [securityExpanded, setSecurityExpanded] = useState(pathname.includes("/hr/security"));
+
+    useEffect(() => {
+        const getUser = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            setUser(user);
+        };
+        getUser();
+    }, [supabase.auth]);
+
+    const handleSignOut = async () => {
+        await supabase.auth.signOut();
+        router.push('/sign-in');
+    };
 
     const hrLinks = [
         { href: "/hr/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -203,26 +218,27 @@ export default function Sidebar() {
                 {/* User Info */}
                 <div className="flex items-center gap-3 px-3 py-2.5 mb-2">
                     <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-gray-200 to-gray-100 dark:from-white/10 dark:to-white/5 flex items-center justify-center text-gray-600 dark:text-white/60 text-sm font-semibold">
-                        {getInitials(user?.fullName || user?.firstName || user?.emailAddresses?.[0]?.emailAddress)}
+                        {getInitials(user?.user_metadata?.full_name || user?.email)}
                     </div>
                     <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                            {formatDisplayName(user?.fullName || user?.firstName || user?.emailAddresses?.[0]?.emailAddress)}
+                            {formatDisplayName(user?.user_metadata?.full_name || user?.email)}
                         </p>
                         <p className="text-[11px] text-gray-400 dark:text-white/30 truncate">
-                            {user?.emailAddresses?.[0]?.emailAddress || ''}
+                            {user?.email || ''}
                         </p>
                     </div>
                 </div>
                 
-                <SignOutButton>
-                    <button className="w-full group flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-500 dark:text-white/40 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all duration-200">
-                        <div className="w-9 h-9 rounded-lg bg-gray-100 dark:bg-white/[0.02] group-hover:bg-red-100 dark:group-hover:bg-red-500/10 flex items-center justify-center transition-all">
-                            <LogOut className="w-[18px] h-[18px]" />
-                        </div>
-                        <span className="text-sm font-medium">Sign Out</span>
-                    </button>
-                </SignOutButton>
+                <button 
+                    onClick={handleSignOut}
+                    className="w-full group flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-500 dark:text-white/40 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all duration-200"
+                >
+                    <div className="w-9 h-9 rounded-lg bg-gray-100 dark:bg-white/[0.02] group-hover:bg-red-100 dark:group-hover:bg-red-500/10 flex items-center justify-center transition-all">
+                        <LogOut className="w-[18px] h-[18px]" />
+                    </div>
+                    <span className="text-sm font-medium">Sign Out</span>
+                </button>
             </div>
         </aside>
     );

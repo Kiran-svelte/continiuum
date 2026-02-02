@@ -1,10 +1,11 @@
 import Link from 'next/link';
 import { User, Briefcase, ArrowRight, Sparkles, Shield, Zap, Clock, ChevronRight, Check, Globe, Cpu } from 'lucide-react';
-import { auth } from '@clerk/nextjs/server';
+import { getUser } from '@/lib/supabase/server';
 import { TrustBadges } from '@/components/marketing/DataDrivenSections';
 
 export default async function Home() {
-  const { userId } = await auth();
+  const user = await getUser();
+  const userId = user?.id;
 
   return (
     <div className="min-h-screen bg-[#030305] text-white overflow-hidden relative">
