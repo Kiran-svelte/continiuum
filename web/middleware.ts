@@ -36,7 +36,7 @@ const isPublicRoute = createRouteMatcher([
     '/waitlist(.*)',
     '/sign-in(.*)',
     '/sign-up(.*)',
-    '/onboarding(.*)',           // Onboarding flow
+    // NOTE: /onboarding requires auth - removed from public routes
     '/employee/auth(.*)',
     '/employee/sign-in(.*)',
     '/employee/sign-up(.*)',
