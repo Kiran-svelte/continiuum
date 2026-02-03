@@ -61,22 +61,16 @@ export async function syncUser() {
             });
 
             if (existingByEmail) {
-                // Only link if the existing record is not already bound to a different Clerk user.
-                // This prevents one account from taking over another account's employee record.
-                if (existingByEmail.clerk_id && existingByEmail.clerk_id !== user.id) {
-                    return {
-                        success: false,
-                        error:
-                            "This email is already registered to a different account. Please sign in with the original account (or contact support to recover access).",
-                        employee: null,
-                    };
-                }
-
+                // Migration case: User signed up with Clerk before, now using Supabase
+                // We allow updating the clerk_id to the new Supabase user id
+                // since this is the same user (verified by email from OAuth/auth)
                 employee = await prisma.employee.update({
                     where: { email: email },
                     data: { clerk_id: user.id },
                     include: { company: true }
                 });
+                
+                console.log(`[syncUser] Migrated user ${email} from old auth to Supabase ID: ${user.id}`);
             } else {
                 // Create new employee
                 employee = await prisma.employee.create({
