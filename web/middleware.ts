@@ -36,6 +36,7 @@ const publicRoutes = [
     '/sign-in',
     '/sign-up',
     '/auth/callback',
+    '/auth/auth-error',
     '/employee/auth',
     '/employee/sign-in',
     '/employee/sign-up',

@@ -22,6 +22,9 @@ export default function SignUpPage() {
     setLoading(true);
     setError(null);
 
+    // Use production URL explicitly to avoid localhost redirect issues
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://continiuum.vercel.app';
+
     const { error } = await supabase.auth.signUp({
       email,
       password,
@@ -30,7 +33,7 @@ export default function SignUpPage() {
           full_name: fullName,
           role: mode,
         },
-        emailRedirectTo: `${window.location.origin}/auth/callback?next=/onboarding?intent=${mode}`,
+        emailRedirectTo: `${baseUrl}/auth/callback?next=/onboarding?intent=${mode}`,
       },
     });
 
@@ -48,10 +51,13 @@ export default function SignUpPage() {
     setLoading(true);
     setError(null);
 
+    // Use production URL explicitly to avoid localhost redirect issues
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://continiuum.vercel.app';
+    
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback?next=/onboarding?intent=${mode}`,
+        redirectTo: `${baseUrl}/auth/callback?next=/onboarding?intent=${mode}`,
       },
     });
 
