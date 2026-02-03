@@ -5,20 +5,20 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
+import { getUser } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
 import { startTrial, getTrialInfo, convertTrial } from '@/lib/billing/trial';
 
 // GET - Get current trial status
 export async function GET() {
     try {
-        const { userId } = await auth();
-        if (!userId) {
+        const user = await getUser();
+        if (!user) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
         const employee = await prisma.employee.findFirst({
-            where: { clerk_id: userId },
+            where: { clerk_id: user.id },
             select: { org_id: true },
         });
 
@@ -44,13 +44,13 @@ export async function GET() {
 // POST - Start a trial or convert to paid
 export async function POST(request: NextRequest) {
     try {
-        const { userId } = await auth();
-        if (!userId) {
+        const user = await getUser();
+        if (!user) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
         const employee = await prisma.employee.findFirst({
-            where: { clerk_id: userId },
+            where: { clerk_id: user.id },
             select: { org_id: true, role: true },
         });
 

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { useRouter } from "next/navigation";
-import { useUser } from "@clerk/nextjs";
+import { useSupabaseUser } from "@/lib/supabase/hooks";
 import { WelcomeAnimation } from "@/components/onboarding/welcome-animation";
 import { formatDisplayName } from "@/lib/utils";
 import { TutorialGuide } from "@/components/onboarding/tutorial-guide";
@@ -11,7 +11,7 @@ import { checkFeatureAccess } from "@/app/actions/onboarding";
 
 export default function EmployeeWelcomePage() {
     const router = useRouter();
-    const { user } = useUser();
+    const { user } = useSupabaseUser();
     const [phase, setPhase] = useState<"welcome" | "tutorial" | "done">("welcome");
     const [accessData, setAccessData] = useState<any>(null);
     const searchParams = useSearchParams();
@@ -49,7 +49,7 @@ export default function EmployeeWelcomePage() {
         router.push("/employee/dashboard");
     };
 
-    const userName = formatDisplayName(user?.fullName || user?.firstName || user?.emailAddresses?.[0]?.emailAddress, "there");
+    const userName = formatDisplayName(user?.user_metadata?.full_name || user?.email, "there");
 
     return (
         <>

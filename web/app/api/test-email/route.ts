@@ -11,7 +11,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
 import { google } from 'googleapis';
-import { auth } from "@clerk/nextjs/server";
+import { getUser } from "@/lib/supabase/server";
 
 const GMAIL_CONFIG = {
     clientId: process.env.GMAIL_CLIENT_ID || '',
@@ -29,8 +29,8 @@ function isDevelopment(): boolean {
 export async function GET() {
     // Security: Only allow in development or with explicit flag
     if (!isDevelopment()) {
-        const { userId } = await auth();
-        if (!userId) {
+        const user = await getUser();
+        if (!user) {
             return NextResponse.json({ error: "This endpoint is disabled in production" }, { status: 403 });
         }
     }
@@ -82,8 +82,8 @@ export async function GET() {
 export async function POST(request: NextRequest) {
     // Security: Only allow in development or with explicit flag
     if (!isDevelopment()) {
-        const { userId } = await auth();
-        if (!userId) {
+        const user = await getUser();
+        if (!user) {
             return NextResponse.json({ error: "This endpoint is disabled in production" }, { status: 403 });
         }
     }

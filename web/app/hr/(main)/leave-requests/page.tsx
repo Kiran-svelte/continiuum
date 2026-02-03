@@ -1,13 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '@clerk/nextjs';
 import { getLeaveRequests, updateLeaveRequestStatus } from "@/app/actions/hr";
 import { toast } from "sonner";
 import { useConfirm } from "@/components/ui/confirm-provider";
 
 export default function LeaveRequestsPage() {
-    const { getToken } = useAuth();
     const [requests, setRequests] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState<'all' | 'pending'>('pending');

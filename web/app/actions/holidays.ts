@@ -1,10 +1,13 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { currentUser } from "@clerk/nextjs/server";
+import { getUser } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { fetchCalendarificHolidays } from "@/lib/holidays/calendarific";
 import { cachePublicHolidaysForYear, ensurePublicHolidaysCached } from "@/lib/holidays/cache";
+
+// Alias for compatibility during Clerk to Supabase migration
+const currentUser = getUser;
 
 // Types
 interface Holiday {

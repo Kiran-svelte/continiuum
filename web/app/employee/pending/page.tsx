@@ -1,10 +1,10 @@
-import { currentUser } from "@clerk/nextjs/server";
+import { getUser } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { PendingApprovalStatus } from "@/components/onboarding/pending-approval";
 
 export default async function EmployeePendingPage() {
-    const user = await currentUser();
+    const user = await getUser();
     if (!user) return redirect("/sign-in");
 
     // Get employee data

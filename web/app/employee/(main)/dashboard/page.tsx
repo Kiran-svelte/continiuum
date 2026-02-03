@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { useUser } from '@clerk/nextjs';
+import { useSupabaseUser } from '@/lib/supabase/hooks';
 import { useRouter } from 'next/navigation';
 import { Clock, Calendar, FileText, Activity, LogIn, LogOut, CheckCircle2, Sparkles, Lock, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -10,7 +10,7 @@ import { getEmployeeDashboardStats, analyzeLeaveRequest, getTodayAttendance, che
 import { checkFeatureAccess } from '@/app/actions/onboarding';
 
 export default function EmployeeDashboard() {
-    const { user } = useUser();
+    const { user } = useSupabaseUser();
     const router = useRouter();
     
     // Access control state

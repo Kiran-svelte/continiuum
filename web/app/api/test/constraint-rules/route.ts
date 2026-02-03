@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
-import { currentUser } from "@clerk/nextjs/server";
+import { getUser } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { DEFAULT_CONSTRAINT_RULES } from "@/lib/constraint-rules-config";
+
+// Alias for compatibility during Clerk to Supabase migration
+const currentUser = getUser;
 
 /**
  * Direct test of constraint rules functionality
@@ -17,14 +20,14 @@ export async function GET() {
 
     try {
         // Step 1: Check auth
-        const user = await currentUser();
+        const user = await getUser();
         if (!user) {
             return NextResponse.json({ 
                 error: "Not authenticated",
                 hint: "Please login first" 
             }, { status: 401 });
         }
-        results.steps.push({ step: 1, name: "Auth check", status: "PASS", clerk_id: user.id });
+        results.steps.push({ step: 1, name: "Auth check", status: "PASS", user_id: user.id });
 
         // Step 2: Get employee
         const employee = await prisma.employee.findUnique({

@@ -14,7 +14,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { auth } from "@clerk/nextjs/server";
+import { getUser } from "@/lib/supabase/server";
 import {
     sendEmail,
     sendCheckInReminderEmail,
@@ -387,8 +387,8 @@ async function cleanupTestData() {
 export async function POST(request: NextRequest) {
     // Security: Only allow in development or with explicit flag
     if (!isDevelopment()) {
-        const { userId } = await auth();
-        if (!userId) {
+        const user = await getUser();
+        if (!user) {
             return NextResponse.json({ error: "This endpoint is disabled in production" }, { status: 403 });
         }
     }

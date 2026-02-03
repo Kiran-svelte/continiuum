@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { currentUser } from "@clerk/nextjs/server";
+import { getUser } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { DEFAULT_CONSTRAINT_RULES, RULE_CATEGORIES } from "@/lib/constraint-rules-config";
 
@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
         // ============================================
         // TEST 1: Authentication
         // ============================================
-        const user = await currentUser();
+        const user = await getUser();
         if (!user) {
             return NextResponse.json({
                 status: "AUTH_REQUIRED",
@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
             name: "Authentication",
             status: "PASS",
             message: "User authenticated successfully",
-            data: { clerk_id: user.id, email: user.emailAddresses[0]?.emailAddress }
+            data: { user_id: user.id, email: user.email }
         });
 
         // ============================================

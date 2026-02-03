@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { currentUser } from "@clerk/nextjs/server";
+import { getUser } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
 // Types
@@ -62,7 +62,7 @@ interface PayrollSummary {
 
 // Verify HR access
 async function verifyHRAccess() {
-    const user = await currentUser();
+    const user = await getUser();
     if (!user) return { success: false, error: "Unauthorized" };
     
     const employee = await prisma.employee.findUnique({
@@ -514,7 +514,7 @@ export async function markPayrollPaid(month: number, year: number) {
 
 // Get employee payslip
 export async function getPayslip(emp_id: string, month: number, year: number) {
-    const user = await currentUser();
+    const user = await getUser();
     if (!user) return { success: false, error: "Unauthorized" };
     
     try {

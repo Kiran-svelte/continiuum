@@ -8,10 +8,13 @@
  * or external storage URLs for larger files.
  */
 
-import { currentUser } from '@clerk/nextjs/server';
+import { getUser } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { DocType } from '@prisma/client';
+
+// Alias for compatibility during Clerk to Supabase migration
+const currentUser = getUser;
 
 interface UploadDocumentInput {
     employeeId: string;

@@ -11,10 +11,13 @@
  */
 
 import { prisma } from "@/lib/prisma";
-import { currentUser } from "@clerk/nextjs/server";
+import { getUser } from "@/lib/supabase/server";
 import { withRetry, getCircuitBreaker } from "@/lib/reliability";
 import { validateLeaveRequest, validateEmployee, ValidationResult } from "@/lib/integrity";
 import { logAudit, AuditAction } from "@/lib/audit";
+
+// Alias for compatibility during Clerk to Supabase migration
+const currentUser = getUser;
 
 // Circuit breakers for external services
 const aiCircuitBreaker = getCircuitBreaker('ai-engine');
@@ -84,7 +87,7 @@ export interface ValidatedLeaveInput {
 export async function submitValidatedLeaveRequest(
   input: ValidatedLeaveInput
 ): Promise<{ success: boolean; data?: any; errors?: string[] }> {
-  const user = await currentUser();
+  const user = await getUser();
   if (!user) {
     return { success: false, errors: ['Unauthorized'] };
   }

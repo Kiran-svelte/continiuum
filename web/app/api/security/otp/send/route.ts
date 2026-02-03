@@ -6,7 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { currentUser } from "@clerk/nextjs/server";
+import { getUser } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { 
   createOtpToken, 
@@ -17,7 +17,7 @@ import { sendEmail } from "@/lib/email-service";
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await currentUser();
+    const user = await getUser();
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

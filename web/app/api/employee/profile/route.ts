@@ -6,7 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { currentUser } from "@clerk/nextjs/server";
+import { getUser } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 
 // Prevent caching
@@ -15,8 +15,8 @@ export const revalidate = 0;
 
 export async function GET(request: NextRequest) {
   try {
-    const user = await currentUser();
-    console.log("[Employee Profile] Clerk user:", user?.id || "null");
+    const user = await getUser();
+    console.log("[Employee Profile] Supabase user:", user?.id || "null");
     
     if (!user) {
       return NextResponse.json(

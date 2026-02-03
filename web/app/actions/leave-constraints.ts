@@ -1,7 +1,10 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { currentUser } from "@clerk/nextjs/server";
+import { getUser } from "@/lib/supabase/server";
+
+// Alias for compatibility during Clerk to Supabase migration
+const currentUser = getUser;
 
 export type AIAnalysisResult = {
     approved: boolean;

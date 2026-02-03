@@ -4,22 +4,22 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { currentUser } from "@clerk/nextjs/server";
+import { getUser } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(request: NextRequest) {
   try {
-    const user = await currentUser();
+    const user = await getUser();
     
     if (!user) {
       return NextResponse.json({
         success: false,
-        error: "No Clerk user found",
-        details: "currentUser() returned null"
+        error: "No authenticated user found",
+        details: "getUser() returned null"
       });
     }
 
-    // Find employee by Clerk ID
+    // Find employee by Supabase ID
     const employee = await prisma.employee.findUnique({
       where: { clerk_id: user.id },
       select: {
@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      clerk: {
+      supabase: {
         id: user.id,
         email: user.emailAddresses[0]?.emailAddress,
       },

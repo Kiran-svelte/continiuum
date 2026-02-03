@@ -1,18 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { getUser } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 
 // GET - Fetch company settings
 export async function GET(req: NextRequest) {
     try {
-        const { userId } = await auth();
-        if (!userId) {
+        const user = await getUser();
+        if (!user) {
             return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
         }
 
         // Get employee to find their company
         const employee = await prisma.employee.findUnique({
-            where: { clerk_id: userId },
+            where: { clerk_id: user.id },
             include: { company: true }
         });
 
@@ -68,8 +68,8 @@ export async function GET(req: NextRequest) {
 // PUT - Update company settings (HR only)
 export async function PUT(req: NextRequest) {
     try {
-        const { userId } = await auth();
-        if (!userId) {
+        const user = await getUser();
+        if (!user) {
             return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
         }
 
@@ -78,7 +78,7 @@ export async function PUT(req: NextRequest) {
 
         // Get employee to verify HR role and find their company
         const employee = await prisma.employee.findUnique({
-            where: { clerk_id: userId },
+            where: { clerk_id: user.id },
             include: { company: true }
         });
 

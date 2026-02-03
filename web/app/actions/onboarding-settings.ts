@@ -1,8 +1,11 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { currentUser } from "@clerk/nextjs/server";
+import { getUser } from "@/lib/supabase/server";
 import { DEFAULT_CONSTRAINT_RULES } from "@/lib/constraint-rules-config";
+
+// Alias for compatibility during Clerk to Supabase migration
+const currentUser = getUser;
 
 // Types
 interface HolidaySettingsData {

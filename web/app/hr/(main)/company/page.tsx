@@ -1,4 +1,3 @@
-import { currentUser } from "@clerk/nextjs/server";
 import { getCompanyDetails } from "@/app/actions/hr";
 import { Copy, Building2, MapPin, Globe, Users } from "lucide-react";
 import CopyButton from "@/components/CopyButton"; // We'll create a small client component for this or inline it

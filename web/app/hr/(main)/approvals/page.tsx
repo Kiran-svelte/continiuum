@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { useUser, useAuth } from '@clerk/nextjs';
+import { useSupabaseUser, useSupabaseAuth } from '@/lib/supabase/hooks';
 import DashboardLayout from '@/components/hr/DashboardLayout';
 import { Check, X, Clock, User, Calendar } from 'lucide-react';
 import { toast } from "sonner";
@@ -17,8 +17,8 @@ export default function ApprovalsPage() {
 
 
 
-    const { user } = useUser();
-    const { getToken } = useAuth();
+    const { user } = useSupabaseUser();
+    const { getToken } = useSupabaseAuth();
     const { confirmAction, confirmDanger } = useConfirm();
 
     const fetchRequests = async () => {
@@ -62,7 +62,7 @@ export default function ApprovalsPage() {
                         'Authorization': `Bearer ${token}`
                     },
                     body: JSON.stringify({
-                        approvedBy: user?.fullName || 'HR User'
+                        approvedBy: user?.user_metadata?.full_name || user?.email || 'HR User'
                     })
                 });
                 if (res.ok) {

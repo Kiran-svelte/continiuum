@@ -10,7 +10,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
+import { getUser } from '@/lib/supabase/server';
 
 // Rate limit store (in-memory - use Redis for production cluster)
 const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
@@ -87,8 +87,8 @@ export async function checkApiRateLimit(
     // Get identifier (user ID if authenticated, IP otherwise)
     let identifier: string;
     try {
-        const { userId } = await auth();
-        identifier = userId || getClientIP(req);
+        const user = await getUser();
+        identifier = user?.id || getClientIP(req);
     } catch {
         identifier = getClientIP(req);
     }

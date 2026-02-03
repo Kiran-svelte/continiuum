@@ -61,7 +61,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { useAuth } from "@clerk/nextjs";
+import { createClient } from "@/lib/supabase/client";
 import {
     getCompanySettings,
     saveWorkSchedule,
@@ -240,7 +240,7 @@ const LEAVE_TYPE_COLORS = [
 // =========================================================================
 
 export default function HRSettingsPage() {
-    const { userId } = useAuth();
+    const [userId, setUserId] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -431,6 +431,12 @@ export default function HRSettingsPage() {
             setOtpState(prev => ({ ...prev, isVerifying: false, error: err.message }));
         }
     }, [otpCode, otpState.action, otpState.pendingCallback]);
+
+    // Fetch user ID on mount
+    useEffect(() => {
+        const supabase = createClient();
+        supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null));
+    }, []);
 
     // Fetch company settings on mount
     useEffect(() => {

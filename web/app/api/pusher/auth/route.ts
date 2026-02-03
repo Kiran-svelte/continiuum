@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { getUser } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { getPusherServer } from "@/lib/realtime/pusher-server";
 import { hrOrgChannelName } from "@/lib/realtime/channels";
@@ -12,8 +12,8 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Pusher not configured" }, { status: 501 });
     }
 
-    const { userId } = await auth();
-    if (!userId) {
+    const user = await getUser();
+    if (!user) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
     }
 
     const employee = await prisma.employee.findFirst({
-        where: { clerk_id: userId },
+        where: { clerk_id: user.id },
         select: { org_id: true, role: true },
     });
 

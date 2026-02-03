@@ -1,8 +1,11 @@
 "use server";
 
-import { currentUser } from "@clerk/nextjs/server";
+import { getUser } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+
+// Alias for compatibility during Clerk to Supabase migration
+const currentUser = getUser;
 
 const SETTINGS_ADMIN_ROLES = new Set(["hr", "admin", "hr_manager", "super_admin"]);
 const canManageCompanySettings = (role?: string | null) => SETTINGS_ADMIN_ROLES.has((role || "").toLowerCase());

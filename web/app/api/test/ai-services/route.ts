@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { currentUser } from "@clerk/nextjs/server";
+import { getUser } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
 
     try {
         // Check auth
-        const user = await currentUser();
+        const user = await getUser();
         if (!user) {
             return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
         }

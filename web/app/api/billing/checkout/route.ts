@@ -6,7 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { currentUser } from '@clerk/nextjs/server';
+import { getUser } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
 import { 
     createPaymentOrder,
@@ -17,10 +17,13 @@ import {
     getInvoices,
 } from '@/lib/billing/razorpay-lite';
 
+// Alias for compatibility during Clerk to Supabase migration
+const currentUser = getUser;
+
 // POST /api/billing/checkout - Create order or subscription
 export async function POST(request: NextRequest) {
     try {
-        const user = await currentUser();
+        const user = await getUser();
         if (!user) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }

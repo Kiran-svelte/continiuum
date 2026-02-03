@@ -1,9 +1,12 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { currentUser } from "@clerk/nextjs/server";
+import { getUser } from "@/lib/supabase/server";
 import { logAudit, AuditAction } from "@/lib/audit";
 import { sendEmail } from "@/lib/email-service";
+
+// Alias for compatibility during Clerk to Supabase migration
+const currentUser = getUser;
 
 // Resend client - dynamically imported only when needed
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

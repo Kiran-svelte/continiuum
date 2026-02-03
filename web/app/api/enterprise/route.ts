@@ -8,7 +8,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { getUser } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import {
     performHealthCheck,
@@ -25,13 +25,13 @@ import {
 
 // Verify admin access
 async function verifyAdminAccess(): Promise<{ authorized: boolean; userId?: string; error?: string }> {
-    const { userId } = await auth();
-    if (!userId) {
+    const user = await getUser();
+    if (!user) {
         return { authorized: false, error: "Unauthorized" };
     }
     
     const employee = await prisma.employee.findUnique({
-        where: { clerk_id: userId },
+        where: { clerk_id: user.id },
         select: { role: true }
     });
     

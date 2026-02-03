@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth, currentUser } from "@clerk/nextjs/server";
+import { getUser } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { checkRateLimit, rateLimitResponse } from "@/lib/security";
 
@@ -11,8 +11,8 @@ export async function POST(req: NextRequest) {
             return rateLimitResponse(rateLimit.resetTime);
         }
 
-        const { userId } = await auth();
-        if (!userId) {
+        const user = await getUser();
+        if (!user) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
@@ -31,13 +31,8 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Invalid Company Code" }, { status: 404 });
         }
 
-        // Get current user details from Clerk
-        const user = await currentUser();
-        if (!user) {
-            return NextResponse.json({ error: "Unable to get user details" }, { status: 401 });
-        }
-
-        const email = user.emailAddresses[0]?.emailAddress;
+        // Get current user details from Supabase
+        const email = user.email;
         const fullName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || email?.split('@')[0] || 'Employee';
 
         // Check if employee already exists

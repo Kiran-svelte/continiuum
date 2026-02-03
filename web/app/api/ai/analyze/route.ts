@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth, currentUser } from '@clerk/nextjs/server';
+import { getUser } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma'; // Assumed Prisma client location
 
 // AI Service URL (Internal Docker Network or Localhost)
@@ -7,21 +7,21 @@ const AI_SERVICE_URL = process.env.CONSTRAINT_ENGINE_URL || 'http://127.0.0.1:80
 
 export async function POST(req: NextRequest) {
     try {
-        // 1. Authenticate with Clerk
-        const { userId } = await auth();
-        const user = await currentUser();
+        // 1. Authenticate with Supabase
+        const user = await getUser();
 
-        if (!userId || !user) {
+        if (!user) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
+        const userId = user.id;
 
         // 2. Resolve internal Employee ID
-        // Strategy: Look up Employee table using Clerk ID or Email
+        // Strategy: Look up Employee table using Supabase ID or Email
         const employee = await prisma.employee.findFirst({
             where: {
                 OR: [
                     { clerk_id: userId },
-                    { email: user.emailAddresses[0].emailAddress }
+                    { email: user.email }
                 ]
             }
         });

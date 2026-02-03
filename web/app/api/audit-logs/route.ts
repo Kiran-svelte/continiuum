@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { getUser } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import crypto from "crypto";
 import { getPusherServer } from "@/lib/realtime/pusher-server";
@@ -27,7 +27,8 @@ function extractFromDetails(details: any) {
 // GET - Fetch audit logs with filtering
 export async function GET(request: NextRequest) {
     try {
-        const { userId } = await auth();
+        const user = await getUser();
+        const userId = user?.id;
         if (!userId) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }

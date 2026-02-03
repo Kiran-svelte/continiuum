@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { getUser } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { sendLeaveApprovalEmail, sendPriorityLeaveNotification } from "@/lib/email-service";
@@ -27,7 +27,8 @@ export async function POST(req: NextRequest) {
     const explanations: string[] = [];
     
     try {
-        const { userId } = await auth();
+        const user = await getUser();
+        const userId = user?.id;
         if (!userId) {
             return NextResponse.json({ 
                 success: false, 

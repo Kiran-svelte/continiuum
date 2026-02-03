@@ -1,11 +1,14 @@
 "use server";
 
-import { currentUser } from "@clerk/nextjs/server";
+import { getUser } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { withRetry } from "@/lib/reliability";
 import { sanitizeInput } from "@/lib/integrity";
 import { logAudit, AuditAction } from "@/lib/audit";
+
+// Alias for compatibility during Clerk to Supabase migration
+const currentUser = getUser;
 
 export async function getHRDashboardStats() {
     const user = await currentUser();

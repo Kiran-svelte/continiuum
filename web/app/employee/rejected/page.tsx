@@ -1,11 +1,11 @@
-import { currentUser } from "@clerk/nextjs/server";
+import { getUser } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { RejectedPageClient } from "./rejected-client";
 
 export default async function EmployeeRejectedPage() {
-    const user = await currentUser();
-    if (!user) return redirect("/employee/sign-in");
+    const user = await getUser();
+    if (!user) return redirect("/sign-in");
 
     // Get employee data
     const employee = await prisma.employee.findUnique({

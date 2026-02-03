@@ -3,18 +3,25 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { useRouter } from "next/navigation";
-import { useUser } from "@clerk/nextjs";
+import { createClient } from "@/lib/supabase/client";
 import { WelcomeAnimation } from "@/components/onboarding/welcome-animation";
 import { formatDisplayName } from "@/lib/utils";
 import { TutorialGuide } from "@/components/onboarding/tutorial-guide";
 import { checkFeatureAccess } from "@/app/actions/onboarding";
+import type { User } from "@supabase/supabase-js";
 
 export default function HRWelcomePage() {
     const router = useRouter();
-    const { user } = useUser();
+    const [user, setUser] = useState<User | null>(null);
     const [phase, setPhase] = useState<"welcome" | "tutorial" | "done">("welcome");
     const [accessData, setAccessData] = useState<any>(null);
     const searchParams = useSearchParams();
+    
+    // Fetch user on mount
+    useEffect(() => {
+        const supabase = createClient();
+        supabase.auth.getUser().then(({ data }) => setUser(data.user));
+    }, []);
 
     useEffect(() => {
         const check = async () => {
@@ -49,7 +56,7 @@ export default function HRWelcomePage() {
         router.push("/hr/dashboard");
     };
 
-    const userName = formatDisplayName(user?.fullName || user?.firstName || user?.emailAddresses?.[0]?.emailAddress, "there");
+    const userName = formatDisplayName(user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email, "there");
 
     return (
         <>

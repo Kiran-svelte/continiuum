@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { auth } from "@clerk/nextjs/server";
+import { getUser } from "@/lib/supabase/server";
 
 /**
  * Backend connectivity check
@@ -17,8 +17,8 @@ function isDevelopment(): boolean {
 export async function GET(request: NextRequest) {
     // In production, require authentication
     if (!isDevelopment()) {
-        const { userId } = await auth();
-        if (!userId) {
+        const user = await getUser();
+        if (!user) {
             return NextResponse.json({ 
                 error: "Unauthorized - Debug endpoints require authentication in production",
                 hint: "Set ALLOW_DEBUG_ENDPOINTS=true to bypass"
@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
     checks.env = {
         DATABASE_URL: process.env.DATABASE_URL ? "✅ SET" : "❌ MISSING",
         DIRECT_URL: process.env.DIRECT_URL ? "✅ SET" : "⚠️ MISSING",
-        CLERK_SECRET_KEY: process.env.CLERK_SECRET_KEY ? "✅ SET" : "❌ MISSING",
+        SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL ? "✅ SET" : "❌ MISSING",
         AI_SERVICE_URL: process.env.AI_SERVICE_URL ? "✅ SET" : "❌ MISSING",
         CONSTRAINT_ENGINE_URL: process.env.CONSTRAINT_ENGINE_URL ? "✅ SET" : "❌ MISSING",
     };

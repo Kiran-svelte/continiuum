@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth, currentUser } from "@clerk/nextjs/server";
+import { getUser } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { nanoid } from "nanoid";
 import { checkRateLimit, rateLimitResponse } from "@/lib/security";
@@ -12,10 +12,11 @@ export async function POST(req: NextRequest) {
             return rateLimitResponse(rateLimit.resetTime);
         }
 
-        const { userId } = await auth();
-        if (!userId) {
+        const user = await getUser();
+        if (!user) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
+        const userId = user.id;
 
         const { companyName, industry } = await req.json();
 
@@ -23,14 +24,9 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Company name is required" }, { status: 400 });
         }
 
-        // Get user details from Clerk
-        const user = await currentUser();
-        if (!user) {
-            return NextResponse.json({ error: "Unable to get user details" }, { status: 401 });
-        }
-
-        const email = user.emailAddresses[0]?.emailAddress;
-        const fullName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || email?.split('@')[0] || 'Admin';
+        // Get user details from Supabase
+        const email = user.email;
+        const fullName = user.user_metadata?.full_name || user.user_metadata?.name || email?.split('@')[0] || 'Admin';
 
         // Generate unique company code (e.g., COMP-1234)
         const suffix = nanoid(4).toUpperCase();

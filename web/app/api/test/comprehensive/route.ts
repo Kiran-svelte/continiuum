@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { currentUser } from "@clerk/nextjs/server";
+import { getUser } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -17,7 +17,7 @@ export async function GET() {
 
     try {
         // Test 1: Auth & User Setup
-        const user = await currentUser();
+        const user = await getUser();
         if (!user) {
             return NextResponse.json({
                 error: "Not authenticated",
@@ -27,8 +27,8 @@ export async function GET() {
 
         results.tests.auth = { 
             passed: true, 
-            clerk_id: user.id,
-            email: user.emailAddresses[0]?.emailAddress 
+            user_id: user.id,
+            email: user.email 
         };
         results.summary.passed++;
 

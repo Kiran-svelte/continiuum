@@ -1,18 +1,18 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { getUser } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { hrOrgChannelName } from "@/lib/realtime/channels";
 
 const HR_ROLES = new Set(["hr", "hr_manager", "admin", "super_admin", "manager"]);
 
 export async function GET() {
-    const { userId } = await auth();
-    if (!userId) {
+    const user = await getUser();
+    if (!user) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const employee = await prisma.employee.findFirst({
-        where: { clerk_id: userId },
+        where: { clerk_id: user.id },
         select: { org_id: true, role: true },
     });
 

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { auth } from "@clerk/nextjs/server";
+import { getUser } from "@/lib/supabase/server";
 import { DEFAULT_CONSTRAINT_RULES } from "@/lib/constraint-rules-config";
 
 // API endpoint for Python constraint engine to fetch active rules
@@ -9,7 +9,8 @@ import { DEFAULT_CONSTRAINT_RULES } from "@/lib/constraint-rules-config";
 export async function GET(request: NextRequest) {
     try {
         // SECURITY: Verify authentication
-        const { userId } = await auth();
+        const user = await getUser();
+        const userId = user?.id;
         if (!userId) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }

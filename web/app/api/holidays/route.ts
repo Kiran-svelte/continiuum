@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { isCalendarificConfigured } from "@/lib/holidays/calendarific";
 import { ensurePublicHolidaysCached } from "@/lib/holidays/cache";
-import { auth } from "@clerk/nextjs/server";
+import { getUser } from "@/lib/supabase/server";
 
 interface CachedHoliday {
     id: string;
@@ -112,10 +112,10 @@ export async function GET(req: NextRequest) {
         // Try to get company context for custom holidays
         let companyId: string | null = null;
         try {
-            const { userId } = await auth();
-            if (userId) {
+            const user = await getUser();
+            if (user) {
                 const employee = await prisma.employee.findFirst({
-                    where: { clerk_id: userId },
+                    where: { clerk_id: user.id },
                     select: { org_id: true }
                 });
                 companyId = employee?.org_id || null;

@@ -1,5 +1,5 @@
 import Sidebar from "@/components/Sidebar";
-import { currentUser } from "@clerk/nextjs/server";
+import { getUser } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 
@@ -9,7 +9,7 @@ export default async function DashboardLayout({
     children: React.ReactNode;
 }) {
     // Server-side guard: Check auth and onboarding/approval status
-    const user = await currentUser();
+    const user = await getUser();
     if (!user) {
         return redirect("/sign-in");
     }

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { getUser } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { logAudit, AuditAction } from "@/lib/audit";
 import { checkApiRateLimit, rateLimitedResponse } from "@/lib/api-rate-limit";
@@ -13,7 +13,8 @@ export async function POST(request: NextRequest) {
     }
     
     try {
-        const { userId } = await auth();
+        const user = await getUser();
+        const userId = user?.id;
         if (!userId) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }

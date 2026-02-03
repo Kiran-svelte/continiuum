@@ -1,4 +1,4 @@
-import { currentUser } from "@clerk/nextjs/server";
+import { getUser } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
@@ -6,7 +6,7 @@ import { NextResponse } from "next/server";
 // GET /api/debug/me
 export async function GET() {
     try {
-        const user = await currentUser();
+        const user = await getUser();
         if (!user) {
             return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
         }

@@ -6,7 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { currentUser } from "@clerk/nextjs/server";
+import { getUser } from "@/lib/supabase/server";
 import { 
   verifyOtpToken, 
   logSettingsChange,
@@ -15,9 +15,12 @@ import {
 } from "@/lib/otp-service";
 import { prisma } from "@/lib/prisma";
 
+// Alias for compatibility during Clerk to Supabase migration
+const currentUser = getUser;
+
 export async function POST(request: NextRequest) {
   try {
-    const user = await currentUser();
+    const user = await getUser();
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

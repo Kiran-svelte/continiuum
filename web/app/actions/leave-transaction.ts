@@ -1,13 +1,16 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { currentUser } from "@clerk/nextjs/server";
+import { getUser } from "@/lib/supabase/server";
 import { analyzeLeaveRequest, AIAnalysisResult } from "./leave-constraints";
 import { revalidatePath } from "next/cache";
 import { sendHRNewLeaveRequestEmail, sendLeaveApprovalEmail, sendLeaveSubmissionEmail } from "@/lib/email-service";
 import { withRetry } from "@/lib/reliability";
 import { leaveRequestSchema, sanitizeInput } from "@/lib/integrity";
 import { logAudit, AuditAction } from "@/lib/audit";
+
+// Alias for compatibility during Clerk to Supabase migration
+const currentUser = getUser;
 
 /**
  * Calculate actual working days between two dates

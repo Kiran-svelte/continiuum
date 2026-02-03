@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { currentUser } from "@clerk/nextjs/server";
+import { getUser } from "@/lib/supabase/server";
 
 /**
  * Debug endpoint to diagnose onboarding issues
@@ -51,13 +51,13 @@ export async function GET(request: NextRequest) {
         };
     }
 
-    // 3. Check Clerk authentication
+    // 3. Check Supabase authentication
     try {
-        const user = await currentUser();
+        const user = await getUser();
         if (user) {
-            checks.clerk_auth = {
+            checks.supabase_auth = {
                 status: "✅ AUTHENTICATED",
-                details: `User: ${user.emailAddresses[0]?.emailAddress || 'no email'}`
+                details: `User: ${user.email || 'no email'}`
             };
 
             // 4. Check if user exists in database
@@ -90,13 +90,13 @@ export async function GET(request: NextRequest) {
                 };
             }
         } else {
-            checks.clerk_auth = {
+            checks.supabase_auth = {
                 status: "⚠️ NOT AUTHENTICATED",
                 details: "No user session. Login required to test full flow."
             };
         }
     } catch (error: any) {
-        checks.clerk_auth = {
+        checks.supabase_auth = {
             status: "❌ ERROR",
             details: error?.message
         };

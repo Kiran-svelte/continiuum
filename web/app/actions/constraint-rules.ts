@@ -1,12 +1,15 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { currentUser } from "@clerk/nextjs/server";
+import { getUser } from "@/lib/supabase/server";
 import { 
     DEFAULT_CONSTRAINT_RULES, 
     RULE_CATEGORIES,
     type ConstraintRule 
 } from "@/lib/constraint-rules-config";
+
+// Alias for compatibility during Clerk to Supabase migration
+const currentUser = getUser;
 
 const POLICY_ADMIN_ROLES = new Set(["hr", "hr_manager", "admin", "super_admin"]);
 const hasPolicyAccess = (role?: string | null) => POLICY_ADMIN_ROLES.has((role || "").toLowerCase());

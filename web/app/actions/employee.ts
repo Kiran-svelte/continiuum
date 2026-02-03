@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { currentUser } from "@clerk/nextjs/server";
+import { getUser } from "@/lib/supabase/server";
 import { withRetry } from "@/lib/reliability";
 import { sanitizeInput } from "@/lib/integrity";
 import { logAudit, AuditAction } from "@/lib/audit";
@@ -32,7 +32,7 @@ function getWorkDaysPassed(date: Date): number {
 }
 
 export async function getEmployeeDashboardStats() {
-    const user = await currentUser();
+    const user = await getUser();
     if (!user) return { success: false, error: "Unauthorized" };
 
     try {
@@ -277,7 +277,7 @@ export async function getEmployeeDashboardStats() {
 }
 
 export async function analyzeLeaveRequest(text: string) {
-    const user = await currentUser();
+    const user = await getUser();
     if (!user) return { success: false, error: "Unauthorized" };
 
     try {
@@ -377,7 +377,7 @@ export async function updateEmployeeCompensation(params: {
     other_deductions?: number;
     gst_applicable?: boolean;
 }) {
-    const user = await currentUser();
+    const user = await getUser();
     if (!user) return { success: false, error: "Unauthorized" };
 
     try {
@@ -419,7 +419,7 @@ export async function updateEmployeeCompensation(params: {
 }
 
 export async function getLeaveHistory() {
-    const user = await currentUser();
+    const user = await getUser();
     if (!user) return { success: false, error: "Unauthorized" };
 
     try {
@@ -459,7 +459,7 @@ export async function getLeaveHistory() {
 }
 
 export async function getEmployeeProfile() {
-    const user = await currentUser();
+    const user = await getUser();
     if (!user) return { success: false, error: "Unauthorized" };
 
     try {
@@ -498,7 +498,7 @@ export async function getEmployeeProfile() {
 // ============================================================
 
 export async function getAttendanceRecords(limit = 30) {
-    const user = await currentUser();
+    const user = await getUser();
     if (!user) return { success: false, error: "Unauthorized" };
 
     try {
@@ -544,7 +544,7 @@ export async function getAttendanceRecords(limit = 30) {
 }
 
 export async function getTodayAttendance() {
-    const user = await currentUser();
+    const user = await getUser();
     if (!user) return { success: false, error: "Unauthorized" };
 
     try {
@@ -597,7 +597,7 @@ export async function getTodayAttendance() {
 }
 
 export async function checkIn() {
-    const user = await currentUser();
+    const user = await getUser();
     if (!user) return { success: false, error: "Unauthorized" };
 
     try {
@@ -666,7 +666,7 @@ export async function checkIn() {
 }
 
 export async function checkOut() {
-    const user = await currentUser();
+    const user = await getUser();
     if (!user) return { success: false, error: "Unauthorized" };
 
     try {
@@ -745,7 +745,7 @@ export async function checkOut() {
 
 export async function getHolidays(year?: number) {
     try {
-        const user = await currentUser();
+        const user = await getUser();
         if (!user) return { success: false, error: "Unauthorized", holidays: [] };
 
         const targetYear = year || new Date().getFullYear();

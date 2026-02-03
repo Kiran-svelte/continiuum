@@ -5,7 +5,7 @@
  * Blocks actions when limits are reached + shows upgrade prompts.
  */
 
-import { currentUser } from '@clerk/nextjs/server';
+import { getUser } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { checkPlanLimit, getSubscriptionStatus, PRICING_TIERS, type PricingTier, getUsageAnalytics } from './razorpay-lite';
@@ -36,7 +36,7 @@ export function withPlanLimit<T extends (...args: any[]) => Promise<any>>(
 ): T {
     return (async (...args: Parameters<T>) => {
         // Get current user's org
-        const user = await currentUser();
+        const user = await getUser();
         if (!user) {
             return { success: false, error: 'Unauthorized' };
         }
