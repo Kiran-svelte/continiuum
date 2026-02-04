@@ -21,14 +21,35 @@ export default function CopyButton({
     const [copied, setCopied] = useState(false);
 
     const handleCopy = async () => {
+        if (!text) {
+            toast.error("Nothing to copy");
+            return;
+        }
+        
         try {
-            await navigator.clipboard.writeText(text);
+            // Modern clipboard API
+            if (navigator.clipboard && window.isSecureContext) {
+                await navigator.clipboard.writeText(text);
+            } else {
+                // Fallback for older browsers or non-secure contexts
+                const textArea = document.createElement("textarea");
+                textArea.value = text;
+                textArea.style.position = "fixed";
+                textArea.style.left = "-999999px";
+                textArea.style.top = "-999999px";
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                document.execCommand("copy");
+                textArea.remove();
+            }
             setCopied(true);
             if (showToast) {
                 toast.success(toastMessage);
             }
             setTimeout(() => setCopied(false), 2000);
         } catch (error) {
+            console.error("Copy failed:", error);
             toast.error("Failed to copy to clipboard");
         }
     };
