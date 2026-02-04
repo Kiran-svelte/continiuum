@@ -44,7 +44,7 @@ export default function SignInPage() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${baseUrl}/auth/callback?next=/onboarding?intent=${mode}`,
+        redirectTo: `${baseUrl}/auth/callback?next=${encodeURIComponent(`/onboarding?intent=${mode}`)}`,
       },
     });
 

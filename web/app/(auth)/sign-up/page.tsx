@@ -33,7 +33,7 @@ export default function SignUpPage() {
           full_name: fullName,
           role: mode,
         },
-        emailRedirectTo: `${baseUrl}/auth/callback?next=/onboarding?intent=${mode}`,
+        emailRedirectTo: `${baseUrl}/auth/callback?next=${encodeURIComponent(`/onboarding?intent=${mode}`)}`,
       },
     });
 
@@ -57,7 +57,7 @@ export default function SignUpPage() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${baseUrl}/auth/callback?next=/onboarding?intent=${mode}`,
+        redirectTo: `${baseUrl}/auth/callback?next=${encodeURIComponent(`/onboarding?intent=${mode}`)}`,
       },
     });
 
