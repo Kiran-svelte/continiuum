@@ -193,6 +193,17 @@ export async function middleware(req: NextRequest) {
     // ROUTE PROTECTION
     // ============================================================
     
+    // If user IS authenticated and trying to visit sign-in/sign-up, redirect them away
+    // This prevents the bug where a logged-in user sees the login page again
+    const isUserOnAuthPage = path.startsWith('/sign-in') || path.startsWith('/sign-up') ||
+        path.startsWith('/hr/sign-in') || path.startsWith('/hr/sign-up') ||
+        path.startsWith('/employee/sign-in') || path.startsWith('/employee/sign-up') ||
+        path === '/hr/auth' || path === '/employee/auth';
+    if (user && isUserOnAuthPage) {
+        const redirectUrl = new URL('/onboarding', req.url);
+        return NextResponse.redirect(redirectUrl);
+    }
+
     // Public routes - no auth needed
     if (isPublicRoute(path)) {
         return applySecurityHeaders(response);

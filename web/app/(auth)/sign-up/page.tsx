@@ -2,7 +2,6 @@
 
 import { createClient } from "@/lib/supabase/client";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Building2, Users, ArrowRight, Mail, Lock, User, Loader2, AlertCircle, CheckCircle } from "lucide-react";
 
@@ -14,7 +13,6 @@ export default function SignUpPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [mode, setMode] = useState<"select" | "hr" | "employee">("select");
-  const router = useRouter();
   const supabase = createClient();
 
   const handleEmailSignUp = async (e: React.FormEvent) => {

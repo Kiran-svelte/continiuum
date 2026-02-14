@@ -257,8 +257,8 @@ export function OnboardingFlow({ user, intent, savedData }: { user: any; intent:
     };
 
     const handleCompanySettingsComplete = () => {
-        // Redirect to HR welcome screen after settings are saved
-        router.push("/hr/welcome");
+        // Hard redirect to HR welcome screen after settings are saved
+        window.location.href = "/hr/welcome";
     };
 
     const handleJoinCompany = async () => {
@@ -269,8 +269,8 @@ export function OnboardingFlow({ user, intent, savedData }: { user: any; intent:
         setLoading(true);
         const res = await joinCompany(companyCode);
         if (res.success) {
-            // Redirect to pending approval page
-            router.push("/employee/pending");
+            // Hard redirect to pending approval page
+            window.location.href = "/employee/pending";
         } else {
             setError(res.error || "Failed");
             setLoading(false);
@@ -693,7 +693,7 @@ export function OnboardingFlow({ user, intent, savedData }: { user: any; intent:
                         </p>
 
                         <button
-                            onClick={() => router.push("/employee/pending")}
+                            onClick={() => window.location.href = "/employee/pending"}
                             className="w-full py-3 rounded-xl bg-white/10 text-white font-medium hover:bg-white/20 transition-all"
                         >
                             Check Approval Status

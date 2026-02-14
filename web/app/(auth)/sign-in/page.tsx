@@ -2,7 +2,6 @@
 
 import { createClient } from "@/lib/supabase/client";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Building2, Users, ArrowRight, Mail, Lock, Loader2, AlertCircle } from "lucide-react";
 
@@ -12,7 +11,6 @@ export default function SignInPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mode, setMode] = useState<"select" | "hr" | "employee">("select");
-  const router = useRouter();
   const supabase = createClient();
 
   const handleEmailSignIn = async (e: React.FormEvent) => {
@@ -31,7 +29,8 @@ export default function SignInPage() {
       return;
     }
 
-    router.push(`/onboarding?intent=${mode}`);
+    // Use hard navigation (not router.push) to ensure the server sees the fresh auth cookies
+    window.location.href = `/onboarding?intent=${mode}`;
   };
 
   const handleGoogleSignIn = async () => {
