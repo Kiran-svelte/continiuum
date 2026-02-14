@@ -208,15 +208,33 @@ export async function submitLeaveRequest(formData: {
                 }
             });
 
-            // If no balance record, create one (Seed on fly logic)
+            // If no balance record, create one from company's leave type config
             if (!balance) {
+                // Look up the company's configured entitlement
+                const leaveTypeForBalance = await tx.leaveType.findFirst({
+                    where: {
+                        company_id: employee.org_id!,
+                        OR: [
+                            { code: formData.leaveType },
+                            { name: formData.leaveType }
+                        ],
+                        is_active: true,
+                    },
+                    select: { annual_quota: true }
+                });
+                const entitlement = leaveTypeForBalance ? Number(leaveTypeForBalance.annual_quota) : 0;
+
+                if (entitlement <= 0) {
+                    throw new Error(`No leave entitlement configured for "${formData.leaveType}". Please contact HR.`);
+                }
+
                 balance = await tx.leaveBalance.create({
                     data: {
                         emp_id: employee.emp_id,
                         leave_type: formData.leaveType,
                         year: currentYear,
                         country_code: employee.country_code || "IN",
-                        annual_entitlement: 12, // Default
+                        annual_entitlement: entitlement,
                         used_days: 0,
                         pending_days: 0,
                         carried_forward: 0

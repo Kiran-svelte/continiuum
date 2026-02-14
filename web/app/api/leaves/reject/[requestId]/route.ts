@@ -1,13 +1,15 @@
 /**
  * Reject Leave Request API
  * POST /api/leaves/reject/[requestId]
- * 
- * Rejects a pending leave request
+ *
+ * Rejects a pending/escalated leave request
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { getUser } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
+import { createAuditLog, AUDIT_ACTIONS } from "@/lib/audit-logger";
+import { revalidatePath } from "next/cache";
 
 export async function POST(
   request: NextRequest,
@@ -40,7 +42,7 @@ export async function POST(
     }
 
     // Only HR/Admin/Manager can reject
-    const allowedRoles = ["hr", "admin", "hr_manager", "manager"];
+    const allowedRoles = ["hr", "admin", "manager"];
     if (!allowedRoles.includes((hrEmployee.role || "").toLowerCase())) {
       return NextResponse.json(
         { success: false, error: "Not authorized to reject leaves" },
@@ -48,9 +50,9 @@ export async function POST(
       );
     }
 
-    // Find the leave request
+    // Find the leave request (request_id is a string, NOT int)
     const leaveRequest = await prisma.leaveRequest.findUnique({
-      where: { request_id: parseInt(requestId) },
+      where: { request_id: requestId },
       include: {
         employee: {
           select: { org_id: true, full_name: true, email: true },
@@ -73,53 +75,85 @@ export async function POST(
       );
     }
 
-    // Check if already processed
-    if (leaveRequest.status !== "pending") {
+    // Check if already processed - allow both "pending" and "escalated"
+    if (leaveRequest.status !== "pending" && leaveRequest.status !== "escalated") {
       return NextResponse.json(
         { success: false, error: `Request already ${leaveRequest.status}` },
         { status: 400 }
       );
     }
 
-    // Update the leave request to rejected
-    const updatedRequest = await prisma.leaveRequest.update({
-      where: { request_id: parseInt(requestId) },
-      data: {
-        status: "rejected",
-        approved_by: hrEmployee.emp_id,
-        approved_at: new Date(),
-        rejection_reason: reason || comments || "Rejected by HR",
-        approver_comments: comments || null,
-      },
-    });
+    const totalDays = Number(leaveRequest.total_days);
 
-    // Release pending days back to available (if they were reserved)
-    const existingBalance = await prisma.leaveBalance.findFirst({
-      where: {
-        emp_id: leaveRequest.emp_id,
-        leave_type: leaveRequest.leave_type,
-        year: new Date().getFullYear(),
-      },
-    });
-
-    if (existingBalance && Number(existingBalance.pending_days) > 0) {
-      await prisma.leaveBalance.update({
-        where: { balance_id: existingBalance.balance_id },
+    // Atomic transaction: update request + release pending balance
+    const updatedRequest = await prisma.$transaction(async (tx) => {
+      // 1. Update the leave request to rejected
+      const updated = await tx.leaveRequest.update({
+        where: { request_id: requestId },
         data: {
-          pending_days: {
-            decrement: Math.min(
-              Number(existingBalance.pending_days),
-              Number(leaveRequest.days_requested)
-            ),
-          },
+          status: "rejected",
+          approved_by: hrEmployee.emp_id,
+          approved_at: new Date(),
+          rejection_reason: reason || comments || "Rejected by HR",
+          approver_comments: comments || null,
         },
       });
-    }
+
+      // 2. Release pending days back to available
+      const existingBalance = await tx.leaveBalance.findFirst({
+        where: {
+          emp_id: leaveRequest.emp_id,
+          leave_type: leaveRequest.leave_type,
+          year: new Date().getFullYear(),
+        },
+      });
+
+      if (existingBalance && Number(existingBalance.pending_days) > 0) {
+        const pendingDecrement = Math.min(
+          Number(existingBalance.pending_days),
+          totalDays
+        );
+
+        await tx.leaveBalance.update({
+          where: { balance_id: existingBalance.balance_id },
+          data: {
+            pending_days: { decrement: pendingDecrement },
+          },
+        });
+      }
+
+      return updated;
+    });
+
+    // Audit log
+    await createAuditLog({
+      actor_id: hrEmployee.emp_id,
+      actor_role: hrEmployee.role,
+      action: AUDIT_ACTIONS.LEAVE_REJECTED || "LEAVE_REJECTED",
+      entity_type: "LeaveRequest",
+      entity_id: requestId,
+      resource_name: `${leaveRequest.leave_type} - ${totalDays} days`,
+      previous_state: { status: leaveRequest.status },
+      new_state: { status: "rejected", rejection_reason: reason || comments },
+      details: { reason, comments },
+      target_org: hrEmployee.org_id || "unknown",
+    }).catch((err) => console.error("Audit log failed:", err));
+
+    // Revalidate pages
+    revalidatePath("/hr/dashboard");
+    revalidatePath("/hr/leave-requests");
+    revalidatePath("/hr/approvals");
+    revalidatePath("/employee/dashboard");
+    revalidatePath("/employee/my-history");
 
     return NextResponse.json({
       success: true,
       message: "Leave request rejected",
-      request: updatedRequest,
+      request: {
+        request_id: updatedRequest.request_id,
+        status: updatedRequest.status,
+        rejection_reason: updatedRequest.rejection_reason,
+      },
     });
   } catch (error: any) {
     console.error("[Reject Leave] Error:", error);

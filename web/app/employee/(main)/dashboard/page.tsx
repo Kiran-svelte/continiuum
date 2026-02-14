@@ -265,7 +265,7 @@ export default function EmployeeDashboard() {
                     animate={{ opacity: 1, y: 0 }}
                     className="text-4xl font-bold text-white mb-2"
                 >
-                    Welcome back, {formatDisplayName(user?.fullName || user?.firstName || user?.emailAddresses?.[0]?.emailAddress, "there")}
+                    Welcome back, {formatDisplayName(user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email, "there")}
                 </motion.h1>
                 <motion.p
                     initial={{ opacity: 0 }}

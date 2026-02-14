@@ -83,36 +83,146 @@ export async function POST(req: NextRequest) {
 
         explanations.push(`Employee: ${employee.full_name} (${employee.department || 'No Department'})`);
 
-        // Determine status based on AI recommendation
-        const recommendationLower = (aiRecommendation || '').toString().toLowerCase();
-        const isAutoApprovable = recommendationLower === 'approve' || recommendationLower === 'approved';
-        
-        // Half-day requests always require HR approval
-        const requiresHRApproval = isHalfDay === true;
-        const requestStatus = (isAutoApprovable && !requiresHRApproval) ? "approved" : "escalated";
+        // ===== SERVER-SIDE CONSTRAINT VALIDATION =====
+        // Don't trust frontend's aiRecommendation. Validate constraints server-side.
+        let serverApproved = true;
+        let serverViolations: string[] = [];
+        let serverDecisionReason = '';
 
-        // Build decision explanation
-        let decisionReason = '';
-        if (requestStatus === 'approved') {
-            decisionReason = `✅ AUTO-APPROVED: All ${(aiAnalysis?.constraint_results?.total_rules || 'policy')} constraints satisfied. `;
-            decisionReason += `AI Confidence: ${Math.round((aiConfidence || 0.95) * 100)}%.`;
-            explanations.push(decisionReason);
-        } else {
-            if (requiresHRApproval) {
-                decisionReason = '⚠️ ESCALATED: Half-day leaves always require HR approval for accurate tracking.';
-            } else if (aiAnalysis?.violations?.length > 0) {
-                const violationSummary = aiAnalysis.violations
-                    .slice(0, 3)
-                    .map((v: any) => v.rule_name || v.message || 'Policy violation')
-                    .join(', ');
-                decisionReason = `⚠️ ESCALATED: ${aiAnalysis.violations.length} constraint(s) need HR review: ${violationSummary}`;
-            } else {
-                decisionReason = '⚠️ ESCALATED: Request requires HR approval based on policy rules.';
+        // 1. Fetch company's constraint rules
+        let constraintRules: Record<string, any> = {};
+        if (employee.org_id) {
+            const policy = await prisma.constraintPolicy.findFirst({
+                where: { org_id: employee.org_id, is_active: true }
+            });
+            if (policy?.rules) {
+                constraintRules = policy.rules as Record<string, any>;
             }
-            explanations.push(decisionReason);
         }
 
+        // 2. Fetch company's leave type config for this leave type
+        let leaveTypeConfig: any = null;
+        if (employee.org_id) {
+            leaveTypeConfig = await prisma.leaveType.findFirst({
+                where: {
+                    company_id: employee.org_id,
+                    OR: [{ code: leaveType }, { name: leaveType }],
+                    is_active: true,
+                }
+            });
+        }
+
+        // 3. Run server-side constraint checks
+        // RULE001: Maximum Leave Duration
+        const rule001 = constraintRules['RULE001'];
+        if (rule001 && rule001.is_active !== false) {
+            const maxDays = rule001.config?.limits?.[leaveType] || rule001.config?.default_max || 30;
+            if (days > maxDays) {
+                serverApproved = false;
+                serverViolations.push(`Maximum ${maxDays} days allowed for ${leaveType}, requested ${days}`);
+            }
+        }
+
+        // RULE006: Advance Notice
+        const rule006 = constraintRules['RULE006'];
+        if (rule006 && rule006.is_active !== false) {
+            const noticeDays = rule006.config?.notice_days?.[leaveType] || 0;
+            const startDateObj = new Date(startDate);
+            const today = new Date();
+            const daysDiff = Math.ceil((startDateObj.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+            if (daysDiff < noticeDays) {
+                serverApproved = false;
+                serverViolations.push(`${leaveType} requires ${noticeDays} days advance notice, only ${daysDiff} given`);
+            }
+        }
+
+        // RULE007: Consecutive Leave Limit
+        const rule007 = constraintRules['RULE007'];
+        if (rule007 && rule007.is_active !== false) {
+            const maxConsecutive = rule007.config?.max_consecutive?.[leaveType] || leaveTypeConfig?.max_consecutive;
+            if (maxConsecutive && days > maxConsecutive) {
+                serverApproved = false;
+                serverViolations.push(`Maximum ${maxConsecutive} consecutive days for ${leaveType}`);
+            }
+        }
+
+        // RULE003: Team Coverage - check if too many people already on leave
+        const rule003 = constraintRules['RULE003'];
+        if (rule003 && rule003.is_active !== false && employee.org_id) {
+            const minCoverage = rule003.config?.min_team_present || 3;
+            const department = employee.department || 'General';
+
+            const teamCount = await prisma.employee.count({
+                where: { org_id: employee.org_id, department, is_active: true }
+            });
+
+            const onLeaveCount = await prisma.leaveRequest.count({
+                where: {
+                    status: 'approved',
+                    employee: { org_id: employee.org_id, department },
+                    start_date: { lte: new Date(endDate) },
+                    end_date: { gte: new Date(startDate) }
+                }
+            });
+
+            const wouldRemain = teamCount - onLeaveCount - 1; // -1 for the requester
+            if (wouldRemain < minCoverage) {
+                serverApproved = false;
+                serverViolations.push(`Team coverage too low: only ${wouldRemain} would remain (minimum ${minCoverage} required)`);
+            }
+        }
+
+        // RULE013: Monthly Quota
+        const rule013 = constraintRules['RULE013'];
+        if (rule013 && rule013.is_active !== false) {
+            const maxPerMonth = rule013.config?.max_per_month || 5;
+            const exceptionTypes = rule013.config?.exception_types || [];
+            if (!exceptionTypes.includes(leaveType) && days > maxPerMonth) {
+                serverApproved = false;
+                serverViolations.push(`Monthly quota is ${maxPerMonth} days, requested ${days}`);
+            }
+        }
+
+        // Half-day requests always require HR approval
+        const requiresHRApproval = isHalfDay === true;
+        const requestStatus = (serverApproved && !requiresHRApproval && serverViolations.length === 0) ? "approved" : "escalated";
+
+        // Build decision explanation
+        if (requestStatus === 'approved') {
+            const ruleCount = Object.keys(constraintRules).filter(k => constraintRules[k].is_active !== false).length;
+            serverDecisionReason = `AUTO-APPROVED: All ${ruleCount || 'policy'} constraints passed. AI Confidence: ${Math.round((aiConfidence || 0.95) * 100)}%.`;
+            explanations.push(serverDecisionReason);
+        } else {
+            if (requiresHRApproval) {
+                serverDecisionReason = 'ESCALATED: Half-day leaves always require HR approval for accurate tracking.';
+            } else if (serverViolations.length > 0) {
+                serverDecisionReason = `ESCALATED: ${serverViolations.length} constraint(s) need HR review: ${serverViolations.join(', ')}`;
+            } else {
+                serverDecisionReason = 'ESCALATED: Request requires HR approval based on policy rules.';
+            }
+            explanations.push(serverDecisionReason);
+        }
+
+        const decisionReason = serverDecisionReason;
+
         leaveLogger.info(`${decisionReason}`, { userId, leaveType, days });
+
+        // Look up approval hierarchy for this employee
+        let currentApprover: string | null = null;
+        if (requestStatus === 'escalated') {
+            try {
+                const hierarchy = await prisma.approvalHierarchy.findUnique({
+                    where: { emp_id: employee.emp_id, is_active: true }
+                });
+                if (hierarchy) {
+                    currentApprover = hierarchy.level1_approver;
+                    explanations.push(`Assigned to approver: ${currentApprover}`);
+                }
+            } catch (err) {
+                // No hierarchy set up - will go to general HR pool
+                explanations.push('No approval hierarchy set - request goes to HR pool');
+            }
+        }
 
         // Perform atomic transaction
         const result = await prisma.$transaction(async (tx) => {
@@ -128,16 +238,37 @@ export async function POST(req: NextRequest) {
                 }
             });
 
-            // If no balance record exists, create one with defaults
+            // If no balance record exists, create one from company's leave type config
             if (!balance) {
-                explanations.push(`No existing ${leaveType} balance found - creating with 12 day entitlement`);
+                // Look up the company's configured entitlement for this leave type
+                let entitlement = 0;
+                if (employee.org_id) {
+                    const leaveTypeConfig = await tx.leaveType.findFirst({
+                        where: {
+                            company_id: employee.org_id,
+                            OR: [
+                                { code: leaveType },
+                                { name: leaveType }
+                            ],
+                            is_active: true,
+                        },
+                        select: { annual_quota: true }
+                    });
+                    entitlement = leaveTypeConfig ? Number(leaveTypeConfig.annual_quota) : 0;
+                }
+
+                if (entitlement <= 0) {
+                    throw new Error(`No leave entitlement configured for "${leaveType}". Please contact HR to set up leave types.`);
+                }
+
+                explanations.push(`No existing ${leaveType} balance found - creating with ${entitlement} day entitlement from company config`);
                 balance = await tx.leaveBalance.create({
                     data: {
                         emp_id: employee.emp_id,
                         leave_type: leaveType,
                         year: currentYear,
                         country_code: employee.country_code || "IN",
-                        annual_entitlement: 12,
+                        annual_entitlement: entitlement,
                         used_days: 0,
                         pending_days: 0,
                         carried_forward: 0
@@ -191,8 +322,10 @@ export async function POST(req: NextRequest) {
                     working_days: days,
                     reason: reason || decisionReason, // Include decision reason in the request reason
                     status: requestStatus,
+                    current_approver: currentApprover,
+                    escalation_reason: requestStatus === 'escalated' ? serverDecisionReason : null,
                     is_half_day: isHalfDay || false,
-                    ai_recommendation: isAutoApprovable ? "approve" : "escalate",
+                    ai_recommendation: serverApproved ? "approve" : "escalate",
                     ai_confidence: aiConfidence || 0.95,
                     ai_analysis_json: aiAnalysis ? JSON.stringify({
                         ...aiAnalysis,
@@ -235,9 +368,10 @@ export async function POST(req: NextRequest) {
 
             const priority = isCritical ? 'CRITICAL' : isUrgent ? 'URGENT' : 'HIGH';
 
-            // Get HR users to notify
+            // Get HR users to notify - ONLY from the same company
             const hrUsers = await prisma.employee.findMany({
                 where: {
+                    org_id: employee.org_id,
                     OR: [
                         { role: 'hr' },
                         { role: 'admin' }

@@ -1,8 +1,8 @@
 /**
  * Pending Leave Requests API
  * GET /api/leaves/pending
- * 
- * Returns pending leave requests for HR approval
+ *
+ * Returns pending and escalated leave requests for HR approval
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -32,8 +32,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Only HR/Admin can view pending requests
-    const allowedRoles = ["hr", "admin", "hr_manager", "manager"];
+    // Only HR/Admin/Manager can view pending requests
+    const allowedRoles = ["hr", "admin", "manager"];
     if (!allowedRoles.includes((hrEmployee.role || "").toLowerCase())) {
       return NextResponse.json(
         { success: false, error: "HR access required" },
@@ -41,13 +41,20 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Fetch pending leave requests for the same company
+    if (!hrEmployee.org_id) {
+      return NextResponse.json(
+        { success: false, error: "No company linked to your account" },
+        { status: 400 }
+      );
+    }
+
+    // Fetch pending AND escalated leave requests for the same company
     const pendingRequests = await prisma.leaveRequest.findMany({
       where: {
         employee: {
           org_id: hrEmployee.org_id,
         },
-        status: "pending",
+        status: { in: ["pending", "escalated"] },
       },
       include: {
         employee: {
@@ -56,12 +63,11 @@ export async function GET(request: NextRequest) {
             email: true,
             department: true,
             position: true,
-            profile_photo_url: true,
           },
         },
       },
       orderBy: {
-        requested_at: "desc",
+        created_at: "desc",
       },
     });
 
@@ -72,18 +78,19 @@ export async function GET(request: NextRequest) {
       employee_email: req.employee.email,
       department: req.employee.department,
       position: req.employee.position,
-      photo_url: req.employee.profile_photo_url,
       leave_type: req.leave_type,
       start_date: req.start_date.toISOString().split("T")[0],
       end_date: req.end_date.toISOString().split("T")[0],
-      days_requested: req.days_requested,
+      total_days: Number(req.total_days),
       reason: req.reason,
       status: req.status,
-      requested_at: req.requested_at,
-      ai_analysis: req.ai_analysis,
+      created_at: req.created_at,
+      ai_analysis_json: req.ai_analysis_json,
       ai_recommendation: req.ai_recommendation,
-      ai_confidence: req.ai_confidence,
+      ai_confidence: req.ai_confidence ? Number(req.ai_confidence) : null,
       escalation_reason: req.escalation_reason,
+      sla_deadline: req.sla_deadline,
+      sla_breached: req.sla_breached,
     }));
 
     return NextResponse.json({

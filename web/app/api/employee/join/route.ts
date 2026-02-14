@@ -32,18 +32,26 @@ export async function POST(req: NextRequest) {
         }
 
         // Get current user details from Supabase
-        const email = user.email;
-        const fullName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || email?.split('@')[0] || 'Employee';
+        const email = user.email || '';
+        const userMeta = user.user_metadata || {};
+        const fullName = userMeta.full_name || userMeta.name || email.split('@')[0] || 'Employee';
 
         // Check if employee already exists
         const existingEmployee = await prisma.employee.findUnique({
-            where: { clerk_id: userId }
+            where: { clerk_id: user.id }
         });
 
         if (existingEmployee) {
+            // If already linked to a company, don't allow re-joining
+            if (existingEmployee.org_id && existingEmployee.org_id !== company.id) {
+                return NextResponse.json({
+                    error: "You are already linked to another company. Contact HR if this is incorrect."
+                }, { status: 409 });
+            }
+
             // Update existing employee - link to company
             await prisma.employee.update({
-                where: { clerk_id: userId },
+                where: { clerk_id: user.id },
                 data: {
                     org_id: company.id,
                     onboarding_status: 'pending_approval',
@@ -53,13 +61,13 @@ export async function POST(req: NextRequest) {
         } else {
             // Create new employee record with basic info
             const emp_id = `EMP-${Date.now()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
-            
+
             await prisma.employee.create({
                 data: {
                     emp_id,
-                    clerk_id: userId,
+                    clerk_id: user.id,
                     full_name: fullName,
-                    email: email || '',
+                    email: email,
                     org_id: company.id,
                     role: 'employee',
                     onboarding_status: 'pending_approval',

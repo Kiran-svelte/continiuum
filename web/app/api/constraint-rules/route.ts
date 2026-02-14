@@ -100,7 +100,8 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
     try {
         // SECURITY: Verify authentication
-        const { userId } = await auth();
+        const user = await getUser();
+        const userId = user?.id;
         if (!userId) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }

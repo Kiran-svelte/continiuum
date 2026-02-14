@@ -217,6 +217,13 @@ model LeaveRequest {
   status           LeaveStatus @default(pending)
   current_approver String?
 
+  // Approval/Rejection tracking
+  approved_by       String?    // emp_id of who approved/rejected
+  approved_at       DateTime?  // When it was approved/rejected
+  rejection_reason  String?    @db.Text
+  approver_comments String?    @db.Text
+  escalation_reason String?    @db.Text
+
   // SLAs
   sla_deadline     DateTime?
   sla_breached     Boolean   @default(false)

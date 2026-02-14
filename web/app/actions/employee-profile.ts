@@ -180,6 +180,54 @@ export async function getEmployeeProfile(): Promise<{ success: boolean; profile?
 }
 
 /**
+ * Update employee profile
+ * Employees can only update limited personal fields.
+ */
+export async function updateEmployeeProfile(data: {
+    full_name?: string;
+    phone?: string;
+    emergency_contact_name?: string;
+    emergency_contact_phone?: string;
+}): Promise<{ success: boolean; error?: string }> {
+    const user = await currentUser();
+    if (!user) {
+        return { success: false, error: "Unauthorized" };
+    }
+
+    try {
+        const employee = await prisma.employee.findUnique({
+            where: { clerk_id: user.id },
+            select: { emp_id: true }
+        });
+
+        if (!employee) {
+            return { success: false, error: "Employee not found" };
+        }
+
+        // Only allow updating safe fields - not role, not org, not status
+        const updateData: any = {};
+        if (data.full_name?.trim()) updateData.full_name = data.full_name.trim();
+        if (data.phone !== undefined) updateData.phone = data.phone.trim();
+        if (data.emergency_contact_name !== undefined) updateData.emergency_contact_name = data.emergency_contact_name.trim();
+        if (data.emergency_contact_phone !== undefined) updateData.emergency_contact_phone = data.emergency_contact_phone.trim();
+
+        if (Object.keys(updateData).length === 0) {
+            return { success: false, error: "No fields to update" };
+        }
+
+        await prisma.employee.update({
+            where: { emp_id: employee.emp_id },
+            data: updateData
+        });
+
+        return { success: true };
+    } catch (error: any) {
+        console.error("[updateEmployeeProfile] Error:", error);
+        return { success: false, error: error.message || "Failed to update profile" };
+    }
+}
+
+/**
  * Get available leave types for employee's company
  * Used in leave request forms
  */

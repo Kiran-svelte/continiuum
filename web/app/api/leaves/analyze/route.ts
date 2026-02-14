@@ -498,6 +498,54 @@ export async function POST(req: NextRequest) {
             console.warn("[API] Team stats lookup failed:", teamErr);
         }
 
+        // Fetch company's constraint rules and leave rules
+        let constraintRules: Record<string, any> = {};
+        let leaveRules: any[] = [];
+        let companyBlackoutDates: string[] = [];
+
+        if (employee?.org_id) {
+            try {
+                // Get constraint policies
+                const policy = await prisma.constraintPolicy.findFirst({
+                    where: { org_id: employee.org_id, is_active: true }
+                });
+                if (policy?.rules) {
+                    constraintRules = policy.rules as Record<string, any>;
+                }
+
+                // Get leave rules
+                const rules = await prisma.leaveRule.findMany({
+                    where: { company_id: employee.org_id, is_active: true },
+                    orderBy: { priority: 'desc' }
+                });
+                leaveRules = rules.map(r => ({
+                    id: r.id,
+                    name: r.name,
+                    rule_type: r.rule_type,
+                    config: r.config,
+                    is_blocking: r.is_blocking
+                }));
+
+                // Extract blackout dates from leave rules
+                for (const rule of rules) {
+                    if (rule.rule_type === 'blackout') {
+                        const config = rule.config as any;
+                        if (config?.dates) {
+                            companyBlackoutDates.push(...config.dates);
+                        }
+                    }
+                }
+            } catch (ruleErr) {
+                console.warn("[API] Constraint rules lookup failed:", ruleErr);
+            }
+        }
+
+        // Extract dynamic values from constraint rules
+        const rule003Config = constraintRules['RULE003']?.config || {};
+        const rule004Config = constraintRules['RULE004']?.config || {};
+        const minCoverage = rule003Config.min_team_present || 3;
+        const maxConcurrentLeave = rule004Config.max_concurrent || 5;
+
         // Build request for AI engine - it expects leave_type at root level
         const aiRequest: any = {
             employee_id: employee.emp_id,
@@ -513,15 +561,17 @@ export async function POST(req: NextRequest) {
                 team: {
                     teamSize: teamCount || 1,
                     alreadyOnLeave: onLeaveCount,
-                    min_coverage: 3,
-                    max_concurrent_leave: 5
+                    min_coverage: minCoverage,
+                    max_concurrent_leave: maxConcurrentLeave
                 },
-                blackoutDates: []
+                blackoutDates: companyBlackoutDates
             },
             leave_balance: {
                 remaining: remainingLeave
             },
-            holiday_warning: holidayWarning
+            holiday_warning: holidayWarning,
+            constraint_rules: constraintRules,
+            leave_rules: leaveRules,
         };
 
         // Add dates if parsed successfully
