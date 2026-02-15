@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Clock, CheckCircle, AlertCircle, RefreshCw, Mail, Building2 } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { checkFeatureAccess } from "@/app/actions/onboarding";
 
 interface PendingApprovalProps {
@@ -14,7 +13,6 @@ interface PendingApprovalProps {
 export function PendingApprovalStatus({ employeeName, companyName }: PendingApprovalProps) {
     const [checking, setChecking] = useState(false);
     const [status, setStatus] = useState<"pending" | "approved" | "rejected">("pending");
-    const router = useRouter();
 
     const checkStatus = async () => {
         setChecking(true);
@@ -22,9 +20,9 @@ export function PendingApprovalStatus({ employeeName, companyName }: PendingAppr
         
         if (result.hasAccess) {
             setStatus("approved");
-            // Redirect to dashboard after approval
+            // Hard redirect to dashboard after approval to ensure fresh server state
             setTimeout(() => {
-                router.push("/employee/dashboard");
+                window.location.href = "/employee/dashboard";
             }, 2000);
         } else if (result.reason === "pending_approval") {
             if ((result as any).status === "rejected") {
@@ -43,7 +41,7 @@ export function PendingApprovalStatus({ employeeName, companyName }: PendingAppr
         const interval = setInterval(() => checkStatus(), 30000);
         return () => clearInterval(interval);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [router]);
+    }, []);
 
     return (
         <div className="min-h-screen w-full flex items-center justify-center bg-[#0a0a0f] text-white p-4 relative overflow-hidden">
@@ -234,7 +232,7 @@ export function PendingApprovalStatus({ employeeName, companyName }: PendingAppr
                         </p>
 
                         <button
-                            onClick={() => router.push("/employee/rejected")}
+                            onClick={() => window.location.href = "/employee/rejected"}
                             className="w-full py-3 rounded-xl bg-white/10 text-white font-medium hover:bg-white/20 transition-all"
                         >
                             Back to Home

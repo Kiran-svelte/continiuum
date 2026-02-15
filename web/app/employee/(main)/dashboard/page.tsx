@@ -58,8 +58,8 @@ export default function EmployeeDashboard() {
             if (!result.hasAccess && result.reason === "pending_approval") {
                 setAccessStatus({ hasAccess: false, isPending: true, loading: false });
             } else if (!result.hasAccess) {
-                // Not authenticated or no profile
-                router.push("/employee/sign-in");
+                // Not authenticated or no profile - hard redirect
+                window.location.href = "/sign-in";
             } else {
                 // Check if we need to show welcome/tutorial
                 if ((result as any).showWelcome) {

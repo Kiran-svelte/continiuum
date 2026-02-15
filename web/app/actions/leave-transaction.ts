@@ -33,18 +33,38 @@ async function calculateWorkingDays(
     // Default work days: Monday=1 to Friday=5
     const workDays = company?.work_days || [1, 2, 3, 4, 5];
     
-    // Get holidays for the date range
-    const holidays = await prisma.holiday.findMany({
-        where: {
-            company_id: orgId,
-            date: {
-                gte: startDate,
-                lte: endDate
+    // Get public holidays for the date range
+    // Also check company-specific custom holidays from CompanySettings
+    const [publicHolidays, companySettings] = await Promise.all([
+        prisma.publicHoliday.findMany({
+            where: {
+                country_code: "IN",
+                date: {
+                    gte: startDate,
+                    lte: endDate
+                }
+            },
+            select: { date: true }
+        }),
+        prisma.companySettings.findFirst({
+            where: { company_id: orgId },
+            select: { custom_holidays: true }
+        })
+    ]);
+
+    const holidayDates = new Set(publicHolidays.map(h => h.date.toISOString().split('T')[0]));
+
+    // Add company-specific custom holidays
+    if (companySettings?.custom_holidays && Array.isArray(companySettings.custom_holidays)) {
+        for (const customHoliday of companySettings.custom_holidays as Array<{ date?: string }>) {
+            if (customHoliday.date) {
+                const d = new Date(customHoliday.date);
+                if (d >= startDate && d <= endDate) {
+                    holidayDates.add(d.toISOString().split('T')[0]);
+                }
             }
-        },
-        select: { date: true }
-    });
-    const holidayDates = new Set(holidays.map(h => h.date.toISOString().split('T')[0]));
+        }
+    }
     
     // Count working days
     let count = 0;
@@ -302,8 +322,8 @@ export async function submitLeaveRequest(formData: {
                     ai_recommendation: isAutoApprovable ? "approve" : "escalate",
                     ai_confidence: 0.95,
                     ai_analysis_json: JSON.stringify(analysis) as any,
-                    // SLA
-                    sla_deadline: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24h SLA
+                    // SLA - use company-configured hours (defaults to 48h)
+                    sla_deadline: new Date(Date.now() + (employee.company?.sla_hours || 48) * 60 * 60 * 1000)
                 }
             });
 

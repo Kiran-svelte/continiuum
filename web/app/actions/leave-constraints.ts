@@ -92,22 +92,9 @@ function getLeaveTypeConfig(leaveTypes: any[], typeCode: string) {
             is_paid: found.is_paid,
         };
     }
-    
-    // Return defaults if not found
-    return {
-        code: typeCode.toUpperCase(),
-        name: typeCode,
-        annual_quota: 12,
-        max_consecutive: 5,
-        min_notice_days: 1,
-        requires_document: false,
-        requires_approval: true,
-        half_day_allowed: true,
-        gender_specific: null,
-        carry_forward: false,
-        max_carry_forward: 0,
-        is_paid: true,
-    };
+
+    // No default fallback - company must configure leave types
+    return null;
 }
 
 /**
@@ -261,6 +248,14 @@ export async function analyzeLeaveRequest(
         // 3. Get leave type configuration for this company
         const leaveTypeConfig = getLeaveTypeConfig(leaveTypes, leaveDetails.type);
 
+        // If leave type not configured for this company, reject
+        if (!leaveTypeConfig) {
+            return {
+                error: `Leave type "${leaveDetails.type}" is not configured for ${employee.company.name}. Please contact HR to set up leave types.`,
+                explanation: `The leave type "${leaveDetails.type}" has not been configured in your company's leave policy. HR needs to add this leave type before you can apply.`
+            };
+        }
+
         // 4. Validate against company-specific leave type rules
         const violations: string[] = [];
         const suggestions: string[] = [];
@@ -358,14 +353,15 @@ export async function analyzeLeaveRequest(
             }
         }
 
-        // 8. Check probation restriction
+        // 8. Check probation restriction using company-configured period
         if (!company?.probation_leave && employee.onboarding_status !== 'completed') {
             const hireDate = (employee as any).hire_date;
             if (hireDate) {
+                const probationDays = company?.probation_period_days || 180;
                 const probationEnd = new Date(hireDate);
-                probationEnd.setDate(probationEnd.getDate() + 90); // 90 day probation
+                probationEnd.setDate(probationEnd.getDate() + probationDays);
                 if (new Date() < probationEnd) {
-                    violations.push("Leave not available during probation period");
+                    violations.push(`Leave not available during probation period (${probationDays} days)`);
                     suggestions.push("Contact HR for special circumstances");
                 }
             }

@@ -52,7 +52,8 @@ export default function Sidebar() {
 
     const handleSignOut = async () => {
         await supabase.auth.signOut();
-        router.push('/sign-in');
+        // Hard redirect after sign-out to ensure server sees cleared session
+        window.location.href = '/sign-in';
     };
 
     const hrLinks = [

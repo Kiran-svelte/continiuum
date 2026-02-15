@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ShieldCheck, Building2, UserPlus, CheckCircle, ArrowRight, User, AlertCircle, Clock, Save, Settings2 } from "lucide-react";
 import { acceptTerms, registerCompany, joinCompany, updateEmployeeDetails, saveOnboardingProgress } from "@/app/actions/onboarding";
-import { useRouter } from "next/navigation";
 import { CompanySettings } from "./company-settings";
 
 interface OnboardingData {
@@ -92,7 +91,6 @@ export function OnboardingFlow({ user, intent, savedData }: { user: any; intent:
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [autoSaveStatus, setAutoSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
-    const router = useRouter();
 
     // Created company ID (for settings step) - restore from user.org_id if on constraints step
     // This fixes the issue where refresh loses the companyId

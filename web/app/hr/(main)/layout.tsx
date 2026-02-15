@@ -2,6 +2,7 @@ import Sidebar from "@/components/Sidebar";
 import { getUser } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { hasRole } from "@/lib/rbac";
 
 export default async function DashboardLayout({
     children,
@@ -22,6 +23,8 @@ export default async function DashboardLayout({
             select: {
                 org_id: true,
                 role: true,
+                primary_role: true,
+                secondary_roles: true,
                 onboarding_status: true,
                 onboarding_completed: true,
                 terms_accepted_at: true,
@@ -42,10 +45,13 @@ export default async function DashboardLayout({
         return redirect("/onboarding?intent=hr");
     }
 
+    // Use RBAC multi-role check: allow if any effective role is hr or admin
+    const isHROrAdmin = hasRole(employee, ["hr", "admin"]);
+
     // If user is not HR/Admin, only redirect to employee dashboard when they are
     // actually an approved employee in a company. Otherwise keep them in HR onboarding
     // (common right after /hr/sign-up, before company registration completes).
-    if (employee.role !== "hr" && employee.role !== "admin") {
+    if (!isHROrAdmin) {
         const isApprovedEmployee = employee.org_id && employee.approval_status === "approved";
         if (isApprovedEmployee) {
             return redirect("/employee/dashboard");

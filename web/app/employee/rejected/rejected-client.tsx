@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { resetRejectedEmployeeState } from "@/app/actions/onboarding";
 import { XCircle, RefreshCw, ArrowRight, Loader2 } from "lucide-react";
 
@@ -11,20 +10,19 @@ interface RejectedPageClientProps {
 }
 
 export function RejectedPageClient({ rejectionReason, employeeName }: RejectedPageClientProps) {
-    const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     const handleTryAgain = async () => {
         setLoading(true);
         setError(null);
-        
+
         try {
             const result = await resetRejectedEmployeeState();
-            
+
             if (result.success) {
-                // Redirect to onboarding with employee intent
-                router.push("/onboarding?intent=employee");
+                // Hard redirect to onboarding to ensure fresh server state
+                window.location.href = "/onboarding?intent=employee";
             } else {
                 setError(result.error || "Failed to reset. Please try again.");
             }

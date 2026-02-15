@@ -2,6 +2,7 @@ import Sidebar from "@/components/Sidebar";
 import { getUser } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { hasRole } from "@/lib/rbac";
 
 export default async function DashboardLayout({
     children,
@@ -20,6 +21,8 @@ export default async function DashboardLayout({
         select: {
             org_id: true,
             role: true,
+            primary_role: true,
+            secondary_roles: true,
             onboarding_status: true,
             onboarding_completed: true,
             approval_status: true,
@@ -35,8 +38,8 @@ export default async function DashboardLayout({
         return redirect("/onboarding?intent=employee");
     }
 
-    // If HR/Admin, redirect to HR dashboard
-    if (employee.role === "hr" || employee.role === "admin") {
+    // If HR/Admin (primary or secondary role), redirect to HR dashboard
+    if (hasRole(employee, ["hr", "admin"])) {
         return redirect("/hr/dashboard");
     }
 

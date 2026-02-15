@@ -46,21 +46,16 @@ const publicRoutes = [
     '/hr/sign-up',
     '/api/webhook',
     '/api/holidays',
-    '/api/test-gmail',
-    '/api/test-email',
     '/api/health',
     '/api/status',
-    '/api/debug/backend-check',
     '/api/platform',
     '/api/cron',
-    '/api/admin',
-    '/api/enterprise',
     '/api/waitlist',
     '/status',
 ];
 
 function isPublicRoute(pathname: string): boolean {
-    return publicRoutes.some(route => 
+    return publicRoutes.some(route =>
         pathname === route || pathname.startsWith(`${route}/`) || pathname.startsWith(`${route}?`)
     );
 }
@@ -78,10 +73,12 @@ function isAuthRoute(pathname: string): boolean {
 }
 
 function isSensitiveRoute(pathname: string): boolean {
-    return pathname.startsWith('/api/payroll') || 
+    return pathname.startsWith('/api/payroll') ||
            pathname.startsWith('/api/company/settings') ||
            pathname.startsWith('/hr/payroll') ||
-           pathname.startsWith('/hr/security');
+           pathname.startsWith('/hr/security') ||
+           pathname.startsWith('/hr/roles') ||
+           pathname.startsWith('/admin');
 }
 
 // ============================================================
@@ -91,23 +88,23 @@ function isSensitiveRoute(pathname: string): boolean {
 function checkRateLimit(identifier: string, config: { windowMs: number; maxRequests: number }): boolean {
     const now = Date.now();
     const entry = rateLimitStore.get(identifier);
-    
+
     if (!entry || entry.resetTime < now) {
         rateLimitStore.set(identifier, { count: 1, resetTime: now + config.windowMs });
         return true;
     }
-    
+
     entry.count++;
     if (entry.count > config.maxRequests) {
         return false;
     }
-    
+
     return true;
 }
 
 function getClientIP(req: NextRequest): string {
-    return req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 
-           req.headers.get('x-real-ip') || 
+    return req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+           req.headers.get('x-real-ip') ||
            'unknown';
 }
 
@@ -136,7 +133,7 @@ export async function middleware(req: NextRequest) {
     // ============================================================
     // SUPABASE SESSION MANAGEMENT
     // ============================================================
-    
+
     const supabase = createServerClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -162,15 +159,15 @@ export async function middleware(req: NextRequest) {
 
     // Refresh session if expired - this is important for server components
     const { data: { user } } = await supabase.auth.getUser();
-    
+
     // ============================================================
     // RATE LIMITING - Skip for public routes to allow health checks
     // ============================================================
-    
+
     if (!isPublicRoute(path)) {
         let rateLimitConfig = RATE_LIMITS.default;
         let rateLimitKey = `default:${ip}`;
-        
+
         if (isAuthRoute(path)) {
             rateLimitConfig = RATE_LIMITS.auth;
             rateLimitKey = `auth:${ip}`;
@@ -178,7 +175,7 @@ export async function middleware(req: NextRequest) {
             rateLimitConfig = RATE_LIMITS.api;
             rateLimitKey = `api:${ip}:${path}`;
         }
-        
+
         if (!checkRateLimit(rateLimitKey, rateLimitConfig)) {
             const rateLimitResponse = NextResponse.json(
                 { error: 'Too many requests. Please try again later.' },
@@ -188,13 +185,12 @@ export async function middleware(req: NextRequest) {
             return applySecurityHeaders(rateLimitResponse);
         }
     }
-    
+
     // ============================================================
     // ROUTE PROTECTION
     // ============================================================
-    
+
     // If user IS authenticated and trying to visit sign-in/sign-up, redirect them away
-    // This prevents the bug where a logged-in user sees the login page again
     const isUserOnAuthPage = path.startsWith('/sign-in') || path.startsWith('/sign-up') ||
         path.startsWith('/hr/sign-in') || path.startsWith('/hr/sign-up') ||
         path.startsWith('/employee/sign-in') || path.startsWith('/employee/sign-up') ||
@@ -208,7 +204,7 @@ export async function middleware(req: NextRequest) {
     if (isPublicRoute(path)) {
         return applySecurityHeaders(response);
     }
-    
+
     // Not logged in - redirect to sign-in
     if (!user) {
         // For API routes, return 401 instead of redirect
@@ -223,19 +219,24 @@ export async function middleware(req: NextRequest) {
         signInUrl.searchParams.set('redirect', path);
         return NextResponse.redirect(signInUrl);
     }
-    
+
     // User is logged in but on onboarding - let them continue
     if (isOnboardingRoute(path)) {
         return applySecurityHeaders(response);
     }
-    
+
     // Log access to sensitive routes
     if (isSensitiveRoute(path)) {
         console.log(`[SECURITY] Sensitive access: ${path} by user ${user.id} from ${ip}`);
     }
-    
-    // For employee/HR routes, we let them through
-    // The individual pages will check for profile completion and role
+
+    // NOTE: Role-based access control is handled in page layouts and server actions
+    // using lib/auth-guard.ts and lib/rbac.ts. Middleware only handles auth + rate limiting.
+    // Route groups:
+    //   /employee/* - Employee portal (layout checks role)
+    //   /hr/*       - HR portal (layout checks role is hr/admin)
+    //   /manager/*  - Manager portal (layout checks management roles)
+    //   /admin/*    - Admin portal (layout checks admin role)
     return applySecurityHeaders(response);
 }
 
@@ -247,4 +248,3 @@ export const config = {
         '/(api|trpc)(.*)',
     ],
 };
-

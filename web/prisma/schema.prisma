@@ -8,7 +8,10 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-// Enums
+// ============================================================================
+// ENUMS
+// ============================================================================
+
 enum UnitType {
   company
   division
@@ -44,6 +47,12 @@ enum DocType {
   contract
   id_proof
   tax_form
+  offer_letter
+  experience_letter
+  payslip
+  pan_card
+  aadhaar
+  bank_details
   other
 }
 
@@ -55,48 +64,14 @@ enum AIRecommendation {
 }
 
 enum UserRole {
-  hr
   employee
+  team_lead
   manager
+  director
+  hr
   admin
 }
 
-// 1. Organization Structure
-model OrganizationUnit {
-  unit_id        Int               @id @default(autoincrement())
-  unit_code      String            @unique
-  unit_name      String
-  unit_type      UnitType
-  parent_unit_id Int?
-  head_emp_id    String?
-  country_code   String            @default("IN")
-  location       String?
-  cost_center    String?
-  is_active      Boolean           @default(true)
-  created_at     DateTime          @default(now())
-
-  parent   OrganizationUnit?  @relation("OrgHierarchy", fields: [parent_unit_id], references: [unit_id])
-  children OrganizationUnit[] @relation("OrgHierarchy")
-
-  @@map("organization_units")
-}
-
-// 2. Job Levels
-model JobLevel {
-  level_id             Int     @id @default(autoincrement())
-  level_code           String  @unique
-  level_name           String
-  level_rank           Int
-  can_approve_leave    Boolean @default(false)
-  max_reportees        Int     @default(0)
-  min_experience_years Int     @default(0)
-  is_management        Boolean @default(false)
-  is_executive         Boolean @default(false)
-
-  @@map("job_levels")
-}
-
-// Enums for Onboarding Status
 enum OnboardingStatus {
   not_started
   in_progress
@@ -111,22 +86,169 @@ enum ApprovalStatus {
   rejected
 }
 
-// 3. Employees
+enum EmployeeStatus {
+  onboarding
+  probation
+  active
+  on_notice
+  suspended
+  terminated
+  resigned
+  exited
+}
+
+enum RegularizationStatus {
+  pending
+  approved
+  rejected
+}
+
+enum PayrollRunStatus {
+  draft
+  generated
+  under_review
+  approved
+  processed
+  paid
+  rejected
+}
+
+enum MovementType {
+  promotion
+  transfer
+  role_change
+  department_change
+  designation_change
+}
+
+enum ShiftType {
+  morning
+  afternoon
+  night
+  general
+  flexible
+  rotational
+}
+
+enum NotificationChannel {
+  in_app
+  email
+  sms
+  whatsapp
+}
+
+enum ReimbursementStatus {
+  submitted
+  under_review
+  approved
+  rejected
+  paid
+}
+
+enum DocVerificationStatus {
+  pending
+  verified
+  rejected
+  expired
+}
+
+// ============================================================================
+// 1. ORGANIZATION STRUCTURE
+// ============================================================================
+
+model OrganizationUnit {
+  unit_id        Int               @id @default(autoincrement())
+  unit_code      String            @unique
+  unit_name      String
+  unit_type      UnitType
+  parent_unit_id Int?
+  head_emp_id    String?
+  company_id     String?
+  country_code   String            @default("IN")
+  location       String?
+  cost_center    String?
+  is_active      Boolean           @default(true)
+  deleted_at     DateTime?
+  created_at     DateTime          @default(now())
+
+  parent    OrganizationUnit?  @relation("OrgHierarchy", fields: [parent_unit_id], references: [unit_id])
+  children  OrganizationUnit[] @relation("OrgHierarchy")
+  employees Employee[]
+
+  @@index([company_id])
+  @@index([unit_type])
+  @@map("organization_units")
+}
+
+// ============================================================================
+// 2. JOB LEVELS
+// ============================================================================
+
+model JobLevel {
+  level_id             Int       @id @default(autoincrement())
+  level_code           String    @unique
+  level_name           String
+  level_rank           Int
+  company_id           String?
+  can_approve_leave    Boolean   @default(false)
+  max_reportees        Int       @default(0)
+  min_experience_years Int       @default(0)
+  is_management        Boolean   @default(false)
+  is_executive         Boolean   @default(false)
+
+  employees Employee[]
+
+  @@index([company_id])
+  @@map("job_levels")
+}
+
+// ============================================================================
+// 3. EMPLOYEES
+// ============================================================================
+
 model Employee {
   emp_id          String    @id @unique
   full_name       String
   email           String    @unique
+  phone           String?
   department      String?
+  designation     String?
   position        String?
   manager_id      String?
   hire_date       DateTime?
-  employment_type String?
+  employment_type String?   // full_time, part_time, contract, intern
   work_location   String?
   level_code      String?   @default("L3")
   country_code    String?   @default("IN")
   gender          Gender?
-  role            UserRole  @default(employee)
   is_active       Boolean   @default(true)
+
+  // Role system (multi-role support)
+  role            UserRole  @default(employee)      // Primary role (kept for backward compat)
+  primary_role    UserRole  @default(employee)      // Primary role determines dashboard
+  secondary_roles Json?                              // String[] of additional roles
+
+  // Employee lifecycle status
+  status              EmployeeStatus @default(onboarding)
+  employee_code       String?        // Company-specific ID (e.g., EMP-001)
+
+  // Organization unit link
+  org_unit_id         Int?
+  org_unit            OrganizationUnit? @relation(fields: [org_unit_id], references: [unit_id])
+
+  // Job level link
+  job_level_id        Int?
+  job_level           JobLevel? @relation(fields: [job_level_id], references: [level_id])
+
+  // Probation
+  probation_end_date  DateTime?
+  probation_confirmed Boolean  @default(false)
+
+  // Resignation / exit
+  notice_period_days  Int?      @default(30)
+  resignation_date    DateTime?
+  last_working_date   DateTime?
+  exit_date           DateTime?
 
   // Auth & Integrations
   clerk_id             String? @unique
@@ -135,9 +257,11 @@ model Employee {
   google_refresh_token String?
   slack_user_id        String?
 
-  // Relations
+  // Self-referencing manager relation
   manager            Employee?          @relation("Manager", fields: [manager_id], references: [emp_id])
   reports            Employee[]         @relation("Manager")
+
+  // Core feature relations
   leave_requests     LeaveRequest[]
   leave_balances     LeaveBalance[]
   approval_hierarchy ApprovalHierarchy?
@@ -149,20 +273,20 @@ model Employee {
   org_id  String?
   company Company? @relation(fields: [org_id], references: [id])
 
-  // Onboarding - Enhanced for partial save & HR approval flow
+  // Onboarding
   terms_accepted_at      DateTime?
   onboarding_status      OnboardingStatus @default(not_started)
-  onboarding_step        String?          // Current step: "legal", "details", "join", etc.
-  onboarding_data        Json?            // Stores partial form data for resume
+  onboarding_step        String?
+  onboarding_data        Json?
   approval_status        ApprovalStatus   @default(pending)
-  approved_by            String?          // HR who approved
+  approved_by            String?
   approved_at            DateTime?
   rejection_reason       String?
   onboarding_completed   Boolean          @default(false)
   tutorial_completed     Boolean          @default(false)
   welcome_shown          Boolean          @default(false)
 
-  // Compensation Settings (Optional per employee)
+  // Legacy Compensation (backward compat - new system uses SalaryStructure)
   base_salary       Decimal? @db.Decimal(10, 2)
   pf_rate           Decimal? @db.Decimal(4, 3) @default(0.12)
   insurance_amount  Decimal? @db.Decimal(10, 2)
@@ -171,13 +295,71 @@ model Employee {
   other_deductions  Decimal? @db.Decimal(10, 2)
   gst_applicable    Boolean? @default(false)
 
-  // Audits (Actions performed by this employee)
+  // Soft delete
+  deleted_at DateTime?
+
+  // Audit relations
   audits_triggered AuditLog[] @relation("Actor")
 
+  // New feature relations
+  shifts              EmployeeShift[]
+  salary_structure    SalaryStructure?
+  salary_revisions    SalaryRevision[]
+  reimbursements      Reimbursement[]
+  notifications_received Notification[] @relation("NotificationRecipient")
+  status_history      EmployeeStatusHistory[]
+  movements           EmployeeMovement[]
+  regularizations     AttendanceRegularization[]
+  exit_checklist      ExitChecklist?
+  leave_encashments   LeaveEncashment[]
+  payroll_slips       PayrollSlip[]
+
+  @@index([org_id])
+  @@index([status])
+  @@index([primary_role])
+  @@index([org_unit_id])
+  @@index([clerk_id])
+  @@index([manager_id])
   @@map("employees")
 }
 
-// 4. Approval Hierarchy
+// ============================================================================
+// 4. RBAC - PERMISSIONS
+// ============================================================================
+
+model Permission {
+  id           String   @id @default(uuid())
+  code         String   @unique  // e.g., "leave.approve_team"
+  name         String            // "Approve Team Leave"
+  module       String            // "leave", "attendance", "payroll", etc.
+  description  String?
+  is_active    Boolean  @default(true)
+  created_at   DateTime @default(now())
+
+  role_permissions RolePermission[]
+
+  @@index([module])
+  @@map("permissions")
+}
+
+model RolePermission {
+  id            String     @id @default(uuid())
+  company_id    String
+  role          UserRole
+  permission_id String
+  permission    Permission @relation(fields: [permission_id], references: [id], onDelete: Cascade)
+  granted       Boolean    @default(true)
+  created_at    DateTime   @default(now())
+
+  @@unique([company_id, role, permission_id])
+  @@index([company_id, role])
+  @@map("role_permissions")
+}
+
+// ============================================================================
+// 5. APPROVAL HIERARCHY
+// ============================================================================
+
 model ApprovalHierarchy {
   hierarchy_id    Int      @id @default(autoincrement())
   emp_id          String   @unique
@@ -195,7 +377,10 @@ model ApprovalHierarchy {
   @@map("approval_hierarchy")
 }
 
-// 5. Leave Requests (Renamed from _enterprise)
+// ============================================================================
+// 6. LEAVE REQUESTS
+// ============================================================================
+
 model LeaveRequest {
   request_id   String   @id
   emp_id       String
@@ -218,8 +403,8 @@ model LeaveRequest {
   current_approver String?
 
   // Approval/Rejection tracking
-  approved_by       String?    // emp_id of who approved/rejected
-  approved_at       DateTime?  // When it was approved/rejected
+  approved_by       String?    @db.Text
+  approved_at       DateTime?
   rejection_reason  String?    @db.Text
   approver_comments String?    @db.Text
   escalation_reason String?    @db.Text
@@ -229,17 +414,29 @@ model LeaveRequest {
   sla_breached     Boolean   @default(false)
   escalation_count Int       @default(0)
 
+  // Cancellation
+  cancelled_at     DateTime?
+  cancel_reason    String?   @db.Text
+
+  // Soft delete
+  deleted_at DateTime?
+
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
   employee Employee @relation(fields: [emp_id], references: [emp_id])
 
-  @@index([emp_id])
-  @@index([status])
-  @@map("leave_requests") // CLEANED UP
+  @@index([emp_id, status])
+  @@index([status, created_at])
+  @@index([current_approver])
+  @@index([sla_deadline, sla_breached])
+  @@map("leave_requests")
 }
 
-// 7. Leave Balances (Renamed from _v2)
+// ============================================================================
+// 7. LEAVE BALANCES
+// ============================================================================
+
 model LeaveBalance {
   balance_id   Int    @id @default(autoincrement())
   emp_id       String
@@ -251,14 +448,18 @@ model LeaveBalance {
   carried_forward    Decimal @default(0) @db.Decimal(5, 2)
   used_days          Decimal @default(0) @db.Decimal(5, 2)
   pending_days       Decimal @default(0) @db.Decimal(5, 2)
+  encashed_days      Decimal @default(0) @db.Decimal(5, 2)
 
   employee Employee @relation(fields: [emp_id], references: [emp_id])
 
   @@unique([emp_id, leave_type, year])
-  @@map("leave_balances") // CLEANED UP
+  @@map("leave_balances")
 }
 
-// 8. Multi-Tenancy
+// ============================================================================
+// 8. COMPANY (Multi-Tenancy)
+// ============================================================================
+
 model Company {
   id         String   @id @default(uuid())
   company_id String?  @unique @default(uuid())
@@ -269,6 +470,7 @@ model Company {
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt @default(now())
 
+  // Core relations
   employees     Employee[]
   policies      ConstraintPolicy[]
   audit_logs    AuditLog[]
@@ -278,31 +480,54 @@ model Company {
   payments      Payment[]
   leave_types   LeaveType[]
   leave_rules   LeaveRule[]
-  settings      CompanySettings?   // One-to-one relation
+  settings      CompanySettings?
 
   // Metadata
   size     String?
   location String?
   website  String?
-  
-  // Subscription Tier (cached for quick access)
+  logo_url String?
+
+  // Subscription Tier (cached)
   subscription_tier String @default("FREE")
 
   // Work Schedule Settings
-  work_start_time    String   @default("09:00") // HH:mm format
-  work_end_time      String   @default("18:00") // HH:mm format
-  grace_period_mins  Int      @default(15)      // Grace period for late check-in
-  half_day_hours     Decimal  @default(4) @db.Decimal(3, 1) // Hours for half day
-  full_day_hours     Decimal  @default(8) @db.Decimal(3, 1) // Hours for full day
-  work_days          Json     @default("[1,2,3,4,5]") // Mon=1 to Sun=7
+  work_start_time    String   @default("09:00")
+  work_end_time      String   @default("18:00")
+  grace_period_mins  Int      @default(15)
+  half_day_hours     Decimal  @default(4) @db.Decimal(3, 1)
+  full_day_hours     Decimal  @default(8) @db.Decimal(3, 1)
+  work_days          Json     @default("[1,2,3,4,5]")
   timezone           String   @default("Asia/Kolkata")
-  
+
   // Leave Settings
-  leave_year_start   String   @default("01-01") // MM-DD format for leave year
-  carry_forward_max  Int      @default(5)       // Max days to carry forward
-  probation_leave    Boolean  @default(false)   // Allow leave during probation
-  negative_balance   Boolean  @default(false)   // Allow negative leave balance
-  
+  leave_year_start   String   @default("01-01")
+  carry_forward_max  Int      @default(5)
+  probation_leave    Boolean  @default(false)
+  negative_balance   Boolean  @default(false)
+
+  // Probation & Notice (configurable per company, not hardcoded)
+  probation_period_days Int   @default(180)
+  notice_period_days    Int   @default(30)
+  sla_hours             Int   @default(48)
+
+  // Leave encashment (India-specific)
+  encashment_enabled   Boolean  @default(false)
+  encashment_max_days  Int      @default(30)
+  encashment_per_day   Decimal? @db.Decimal(10, 2)
+
+  // Payroll settings (India-compliant)
+  pf_enabled           Boolean  @default(true)
+  pf_employer_rate     Decimal  @default(12)    @db.Decimal(5, 2)
+  pf_employee_rate     Decimal  @default(12)    @db.Decimal(5, 2)
+  pf_ceiling           Decimal  @default(15000) @db.Decimal(10, 2)
+  esi_enabled          Boolean  @default(false)
+  esi_employer_rate    Decimal  @default(3.25)  @db.Decimal(5, 2)
+  esi_employee_rate    Decimal  @default(0.75)  @db.Decimal(5, 2)
+  esi_ceiling          Decimal  @default(21000) @db.Decimal(10, 2)
+  pt_state             String?
+  tds_enabled          Boolean  @default(true)
+
   // Onboarding Settings
   onboarding_completed Boolean @default(false)
 
@@ -311,43 +536,62 @@ model Company {
   razorpay_customer_id String?
   billing_email        String?
   billing_phone        String?
-  gstin                String? // GST Number for India
+  gstin                String?
 
   // Legal
   legal_agreed_at DateTime?
 
+  // Soft delete
+  deleted_at DateTime?
+
+  // New feature relations
+  shifts                 Shift[]
+  salary_components      SalaryComponent[]
+  notification_templates NotificationTemplate[]
+  payroll_runs           PayrollRun[]
+
   @@map("companies")
 }
 
-// 8b. Leave Types (Dynamic per company)
+// ============================================================================
+// 8b. LEAVE TYPES (Dynamic per company)
+// ============================================================================
+
 model LeaveType {
   id              String   @id @default(uuid())
   company_id      String
-  code            String   // e.g., "CL", "SL", "PL", "ML"
-  name            String   // e.g., "Casual Leave", "Sick Leave"
+  code            String
+  name            String
   description     String?
-  color           String   @default("#6366f1") // For UI display
-  
+  color           String   @default("#6366f1")
+
   // Entitlement
   annual_quota    Decimal  @db.Decimal(5, 2) @default(0)
-  max_consecutive Int      @default(5)        // Max consecutive days allowed
-  min_notice_days Int      @default(1)        // Advance notice required
-  
+  max_consecutive Int      @default(5)
+  min_notice_days Int      @default(1)
+
   // Restrictions
-  requires_document Boolean @default(false)   // e.g., medical certificate
+  requires_document Boolean @default(false)
   requires_approval Boolean @default(true)
   half_day_allowed  Boolean @default(true)
-  gender_specific   Gender? // null = all, M/F/O for specific
-  
+  gender_specific   Gender?
+
   // Carry Forward
   carry_forward     Boolean @default(false)
   max_carry_forward Int     @default(0)
-  
+
+  // Encashment
+  encashable        Boolean @default(false)
+
+  // Probation restriction
+  available_during_probation Boolean @default(false)
+
   // Status
   is_active       Boolean  @default(true)
   is_paid         Boolean  @default(true)
   sort_order      Int      @default(0)
-  
+  deleted_at      DateTime?
+
   created_at      DateTime @default(now())
   updated_at      DateTime @updatedAt
 
@@ -357,36 +601,30 @@ model LeaveType {
   @@map("leave_types")
 }
 
-// 8c. Leave Rules (Dynamic policies per company)
+// ============================================================================
+// 8c. LEAVE RULES (Dynamic policies per company)
+// ============================================================================
+
 model LeaveRule {
   id              String   @id @default(uuid())
   company_id      String
-  name            String   // e.g., "No leave on Mondays", "Max 2 people per day"
+  name            String
   description     String?
-  
-  // Rule Type
-  rule_type       String   // "blackout", "max_concurrent", "min_gap", "department_limit", "custom"
-  
-  // Rule Configuration (JSON for flexibility)
-  config          Json     // Stores rule-specific settings
-  // Examples:
-  // blackout: { "dates": ["2024-12-25"], "days_of_week": [1] }
-  // max_concurrent: { "max_employees": 2, "department": "Engineering" }
-  // min_gap: { "days": 7, "leave_types": ["CL", "PL"] }
-  
-  // Enforcement
-  is_blocking     Boolean  @default(true)    // If false, show warning only
-  priority        Int      @default(0)        // Higher = checked first
-  
-  // Scope
+
+  rule_type       String   // "blackout", "max_concurrent", "min_gap", "department_limit", "sandwich", "monthly_quota", "custom"
+  config          Json
+
+  is_blocking     Boolean  @default(true)
+  priority        Int      @default(0)
+
   applies_to_all  Boolean  @default(true)
-  departments     Json?    // ["Engineering", "HR"] if not applies_to_all
-  
-  // Status
+  departments     Json?
+
   is_active       Boolean  @default(true)
   effective_from  DateTime @default(now())
   effective_to    DateTime?
-  
+  deleted_at      DateTime?
+
   created_at      DateTime @default(now())
   updated_at      DateTime @updatedAt
 
@@ -395,7 +633,37 @@ model LeaveRule {
   @@map("leave_rules")
 }
 
-// 9. Policies
+// ============================================================================
+// 9. LEAVE ENCASHMENT (India-specific)
+// ============================================================================
+
+model LeaveEncashment {
+  id             String   @id @default(uuid())
+  emp_id         String
+  leave_type     String
+  days           Decimal  @db.Decimal(5, 2)
+  per_day_amount Decimal  @db.Decimal(10, 2)
+  total_amount   Decimal  @db.Decimal(12, 2)
+  year           Int
+  reason         String   // "year_end", "resignation", "policy"
+
+  status         String   @default("pending") // pending | approved | paid
+  approved_by    String?
+  approved_at    DateTime?
+  paid_in_payroll_id String?
+
+  created_at     DateTime @default(now())
+
+  employee Employee @relation(fields: [emp_id], references: [emp_id])
+
+  @@index([emp_id, year])
+  @@map("leave_encashments")
+}
+
+// ============================================================================
+// 10. CONSTRAINT POLICIES (Legacy)
+// ============================================================================
+
 model ConstraintPolicy {
   id         String   @id @default(uuid())
   org_id     String
@@ -410,61 +678,58 @@ model ConstraintPolicy {
   @@map("constraint_policies")
 }
 
-// 10. Audit Logs (Enterprise-Grade - Immutable & Tamper-Proof)
+// ============================================================================
+// 11. AUDIT LOGS (Enterprise-Grade)
+// ============================================================================
+
 model AuditLog {
   id               String   @id @default(uuid())
-  
-  // WHO - Actor Information
-  actor_type       String   @default("user") // "user", "system", "ai"
-  actor_id         String   // Employee ID or system identifier
-  actor_role       String?  // Role at time of action (hr_manager, employee, etc.)
-  
-  // WHAT - Action Details
-  action           String   // e.g. "LEAVE_CREATED", "EMPLOYEE_JOINED", "AI_DECISION"
-  entity_type      String   // e.g. "LeaveRequest", "Employee", "Attendance"
-  entity_id        String   // ID of the modified entity
-  resource_name    String?  // Human-readable name of resource
-  previous_state   Json?    // State before change (for updates)
-  new_state        Json?    // State after change (for updates)
-  details          Json?    // Additional context/metadata
-  
-  // WHEN - Timestamp with precision
+
+  actor_type       String   @default("user")
+  actor_id         String
+  actor_role       String?
+
+  action           String
+  entity_type      String
+  entity_id        String
+  resource_name    String?
+  previous_state   Json?
+  new_state        Json?
+  details          Json?
+
   created_at       DateTime @default(now()) @db.Timestamptz(3)
-  
-  // WHERE - Origin Information
-  ip_address       String?  // Client IP address
-  user_agent       String?  // Browser/client info
-  request_id       String?  // Unique request correlation ID
-  
-  // WHY - AI Decision Logging
-  decision         String?  // "approved", "rejected", "pending_review"
-  decision_reason  String?  // Human-readable explanation
-  confidence_score Float?   // AI confidence (0.0-1.0)
-  model_version    String?  // AI model version used
-  rules_evaluated  Json?    // List of rules checked by AI
-  
-  // Organization
-  target_org       String   // Company ID
-  
-  // Integrity - Tamper-proof
-  integrity_hash   String?  // SHA-256 hash of log entry
-  prev_hash        String?  // Hash of previous entry (chain)
-  
-  // Relations
+
+  ip_address       String?
+  user_agent       String?
+  request_id       String?
+
+  decision         String?
+  decision_reason  String?
+  confidence_score Float?
+  model_version    String?
+  rules_evaluated  Json?
+
+  target_org       String
+
+  integrity_hash   String?
+  prev_hash        String?
+
   actor            Employee? @relation("Actor", fields: [actor_id], references: [emp_id])
   company          Company  @relation(fields: [target_org], references: [id])
 
-  // Indexes for fast querying
   @@index([created_at])
   @@index([actor_id])
   @@index([entity_type, entity_id])
   @@index([action])
   @@index([target_org, created_at])
-  
+
   @@map("audit_logs")
 }
 
-// 11. Attendance (NEW)
+// ============================================================================
+// 12. ATTENDANCE
+// ============================================================================
+
 model Attendance {
   id          String    @id @default(uuid())
   emp_id      String
@@ -472,15 +737,104 @@ model Attendance {
   check_in    DateTime?
   check_out   DateTime?
   total_hours Decimal?  @db.Decimal(4, 2)
-  status      String    // PRESENT, ABSENT, LATE, HALF_DAY
-  
+  status      String    // PRESENT, ABSENT, LATE, HALF_DAY, WFH, ON_LEAVE, HOLIDAY
+
+  // Shift tracking
+  shift_id    String?
+  shift       Shift?    @relation(fields: [shift_id], references: [id])
+
+  // Enhanced tracking
+  late_minutes      Int      @default(0)
+  overtime_minutes  Int      @default(0)
+  is_wfh            Boolean  @default(false)
+
+  // Location tracking (optional geo-fencing)
+  check_in_location  Json?   // { lat, lng, address }
+  check_out_location Json?
+
   employee    Employee  @relation(fields: [emp_id], references: [emp_id])
 
+  // Regularization link
+  regularization AttendanceRegularization?
+
   @@unique([emp_id, date])
+  @@index([emp_id, status])
   @@map("attendance")
 }
 
-// 12. Payroll (NEW)
+// ============================================================================
+// 13. ATTENDANCE REGULARIZATION
+// ============================================================================
+
+model AttendanceRegularization {
+  id             String   @id @default(uuid())
+  emp_id         String
+  employee       Employee @relation(fields: [emp_id], references: [emp_id])
+  attendance_id  String   @unique
+  attendance     Attendance @relation(fields: [attendance_id], references: [id])
+
+  original_in    DateTime?
+  original_out   DateTime?
+  requested_in   DateTime
+  requested_out  DateTime
+  reason         String
+
+  status         RegularizationStatus @default(pending)
+  approved_by    String?
+  approved_at    DateTime?
+  rejection_reason String?
+
+  created_at     DateTime @default(now())
+
+  @@index([emp_id, status])
+  @@map("attendance_regularizations")
+}
+
+// ============================================================================
+// 14. SHIFT MANAGEMENT
+// ============================================================================
+
+model Shift {
+  id             String    @id @default(uuid())
+  company_id     String
+  company        Company   @relation(fields: [company_id], references: [id])
+  name           String
+  code           String
+  type           ShiftType @default(general)
+  start_time     String    // "09:00"
+  end_time       String    // "18:00"
+  break_minutes  Int       @default(60)
+  grace_minutes  Int       @default(15)
+  is_overnight   Boolean   @default(false)
+  is_default     Boolean   @default(false)
+  is_active      Boolean   @default(true)
+  deleted_at     DateTime?
+
+  employees      EmployeeShift[]
+  attendances    Attendance[]
+
+  @@unique([company_id, code])
+  @@map("shifts")
+}
+
+model EmployeeShift {
+  id             String    @id @default(uuid())
+  emp_id         String
+  employee       Employee  @relation(fields: [emp_id], references: [emp_id])
+  shift_id       String
+  shift          Shift     @relation(fields: [shift_id], references: [id])
+  effective_from DateTime
+  effective_to   DateTime?
+  is_active      Boolean   @default(true)
+
+  @@index([emp_id, is_active])
+  @@map("employee_shifts")
+}
+
+// ============================================================================
+// 15. PAYROLL (Legacy - kept for backward compat)
+// ============================================================================
+
 model Payroll {
   id             String        @id @default(uuid())
   emp_id         String
@@ -499,55 +853,359 @@ model Payroll {
   @@map("payroll")
 }
 
-// 13. Documents (NEW)
+// ============================================================================
+// 16. SALARY COMPONENTS (India-Compliant)
+// ============================================================================
+
+model SalaryComponent {
+  id             String   @id @default(uuid())
+  company_id     String
+  company        Company  @relation(fields: [company_id], references: [id])
+  name           String   // "Basic", "HRA", "DA", "Special Allowance"
+  code           String   // "BASIC", "HRA", "DA", "SA"
+  type           String   // "earning" | "deduction" | "employer_contribution"
+  calculation    String   // "fixed" | "percentage_of_basic" | "percentage_of_gross" | "percentage_of_ctc"
+  default_value  Decimal? @db.Decimal(10, 2)
+  percentage     Decimal? @db.Decimal(5, 2)
+  is_taxable     Boolean  @default(true)
+  is_statutory   Boolean  @default(false)
+  is_active      Boolean  @default(true)
+  sort_order     Int      @default(0)
+
+  @@unique([company_id, code])
+  @@map("salary_components")
+}
+
+model SalaryStructure {
+  id             String   @id @default(uuid())
+  emp_id         String   @unique
+  employee       Employee @relation(fields: [emp_id], references: [emp_id])
+  ctc            Decimal  @db.Decimal(12, 2)   // Annual CTC
+  basic          Decimal  @db.Decimal(10, 2)   // Monthly basic
+  components     Json     // Array of { component_code, amount, percentage }
+  effective_from DateTime
+  is_active      Boolean  @default(true)
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+
+  @@map("salary_structures")
+}
+
+model SalaryRevision {
+  id              String   @id @default(uuid())
+  emp_id          String
+  employee        Employee @relation(fields: [emp_id], references: [emp_id])
+  old_ctc         Decimal  @db.Decimal(12, 2)
+  new_ctc         Decimal  @db.Decimal(12, 2)
+  reason          String
+  effective_from  DateTime
+  approved_by     String?
+  approved_at     DateTime?
+  status          String   @default("pending") // pending | approved | rejected
+  created_at      DateTime @default(now())
+
+  @@index([emp_id])
+  @@map("salary_revisions")
+}
+
+// ============================================================================
+// 17. PAYROLL RUN (New - India-Compliant)
+// ============================================================================
+
+model PayrollRun {
+  id               String          @id @default(uuid())
+  company_id       String
+  company          Company         @relation(fields: [company_id], references: [id])
+  month            Int
+  year             Int
+  status           PayrollRunStatus @default(draft)
+  generated_by     String?
+  approved_by      String?
+  processed_by     String?
+  generated_at     DateTime?
+  approved_at      DateTime?
+  processed_at     DateTime?
+  total_gross      Decimal         @db.Decimal(14, 2) @default(0)
+  total_deductions Decimal         @db.Decimal(14, 2) @default(0)
+  total_net        Decimal         @db.Decimal(14, 2) @default(0)
+  total_pf         Decimal         @db.Decimal(14, 2) @default(0)
+  total_esi        Decimal         @db.Decimal(14, 2) @default(0)
+  total_tds        Decimal         @db.Decimal(14, 2) @default(0)
+  total_pt         Decimal         @db.Decimal(14, 2) @default(0)
+  employee_count   Int             @default(0)
+  notes            String?
+
+  slips            PayrollSlip[]
+
+  @@unique([company_id, month, year])
+  @@map("payroll_runs")
+}
+
+model PayrollSlip {
+  id              String     @id @default(uuid())
+  payroll_run_id  String
+  payroll_run     PayrollRun @relation(fields: [payroll_run_id], references: [id])
+  emp_id          String
+  employee        Employee   @relation(fields: [emp_id], references: [emp_id])
+
+  // Attendance summary
+  working_days      Int
+  present_days      Decimal   @db.Decimal(5, 2)
+  absent_days       Decimal   @db.Decimal(5, 2) @default(0)
+  paid_leave_days   Decimal   @db.Decimal(5, 2) @default(0)
+  unpaid_leave_days Decimal   @db.Decimal(5, 2) @default(0)
+  late_count        Int       @default(0)
+  overtime_hours    Decimal   @db.Decimal(5, 2) @default(0)
+
+  // Earnings breakdown
+  basic             Decimal   @db.Decimal(10, 2)
+  hra               Decimal   @db.Decimal(10, 2) @default(0)
+  da                Decimal   @db.Decimal(10, 2) @default(0)
+  special_allowance Decimal   @db.Decimal(10, 2) @default(0)
+  other_earnings    Json?     // Array of { name, amount }
+  gross_salary      Decimal   @db.Decimal(10, 2)
+
+  // Deductions breakdown (India-compliant)
+  pf_employee       Decimal   @db.Decimal(10, 2) @default(0)
+  pf_employer       Decimal   @db.Decimal(10, 2) @default(0)
+  esi_employee      Decimal   @db.Decimal(10, 2) @default(0)
+  esi_employer      Decimal   @db.Decimal(10, 2) @default(0)
+  professional_tax  Decimal   @db.Decimal(10, 2) @default(0)
+  tds               Decimal   @db.Decimal(10, 2) @default(0)
+  lop_deduction     Decimal   @db.Decimal(10, 2) @default(0)
+  other_deductions  Json?     // Array of { name, amount }
+  total_deductions  Decimal   @db.Decimal(10, 2)
+
+  // Net
+  net_pay           Decimal   @db.Decimal(10, 2)
+
+  @@unique([payroll_run_id, emp_id])
+  @@index([emp_id])
+  @@map("payroll_slips")
+}
+
+// ============================================================================
+// 18. REIMBURSEMENTS
+// ============================================================================
+
+model Reimbursement {
+  id             String              @id @default(uuid())
+  emp_id         String
+  employee       Employee            @relation(fields: [emp_id], references: [emp_id])
+  category       String              // "travel", "medical", "food", "communication", "other"
+  amount         Decimal             @db.Decimal(10, 2)
+  description    String
+  receipt_url    String?
+
+  status         ReimbursementStatus @default(submitted)
+  approved_by    String?
+  approved_at    DateTime?
+  rejection_reason String?
+  paid_in_payroll_id String?
+
+  submitted_at   DateTime            @default(now())
+
+  @@index([emp_id, status])
+  @@map("reimbursements")
+}
+
+// ============================================================================
+// 19. DOCUMENTS
+// ============================================================================
+
 model Document {
-  id          String   @id @default(uuid())
-  emp_id      String
-  type        DocType
-  name        String
-  file_url    String
-  verified    Boolean  @default(false)
+  id              String   @id @default(uuid())
+  emp_id          String
+  type            DocType
+  name            String
+  file_url        String
+  file_size       Int?
+  mime_type       String?
+
+  // Verification workflow
+  verification_status DocVerificationStatus @default(pending)
+  verified_by     String?
+  verified_at     DateTime?
+  rejection_reason String?
+
+  // Expiry tracking
+  expiry_date     DateTime?
+  renewal_reminder_sent Boolean @default(false)
+
+  verified    Boolean  @default(false) // Legacy field
   uploaded_at DateTime @default(now())
 
   employee Employee @relation(fields: [emp_id], references: [emp_id])
 
+  @@index([emp_id])
+  @@index([verification_status])
   @@map("documents")
 }
 
-// 14. Company Settings (Holiday Calendar & Email Notifications)
+// ============================================================================
+// 20. EMPLOYEE LIFECYCLE
+// ============================================================================
+
+model EmployeeStatusHistory {
+  id             String         @id @default(uuid())
+  emp_id         String
+  employee       Employee       @relation(fields: [emp_id], references: [emp_id])
+  from_status    EmployeeStatus
+  to_status      EmployeeStatus
+  reason         String?
+  changed_by     String
+  effective_date DateTime
+  created_at     DateTime       @default(now())
+
+  @@index([emp_id])
+  @@map("employee_status_history")
+}
+
+model EmployeeMovement {
+  id               String       @id @default(uuid())
+  emp_id           String
+  employee         Employee     @relation(fields: [emp_id], references: [emp_id])
+  type             MovementType
+
+  from_department  String?
+  from_designation String?
+  from_role        UserRole?
+  from_org_unit_id Int?
+  from_manager_id  String?
+
+  to_department    String?
+  to_designation   String?
+  to_role          UserRole?
+  to_org_unit_id   Int?
+  to_manager_id    String?
+
+  reason           String?
+  effective_date   DateTime
+  approved_by      String?
+  approved_at      DateTime?
+  status           String   @default("pending") // pending | approved | rejected
+
+  created_at       DateTime @default(now())
+
+  @@index([emp_id])
+  @@map("employee_movements")
+}
+
+model ExitChecklist {
+  id             String   @id @default(uuid())
+  emp_id         String   @unique
+  employee       Employee @relation(fields: [emp_id], references: [emp_id])
+
+  equipment_returned     Boolean @default(false)
+  id_card_returned       Boolean @default(false)
+  knowledge_transfer     Boolean @default(false)
+  pending_leaves_settled Boolean @default(false)
+  final_settlement_done  Boolean @default(false)
+  exit_interview_done    Boolean @default(false)
+  access_revoked         Boolean @default(false)
+  documents_collected    Boolean @default(false)
+
+  custom_items           Json?   // Array of { name, completed }
+
+  completed_at           DateTime?
+  processed_by           String?
+
+  created_at             DateTime @default(now())
+  updated_at             DateTime @updatedAt
+
+  @@map("exit_checklists")
+}
+
+// ============================================================================
+// 21. NOTIFICATIONS
+// ============================================================================
+
+model Notification {
+  id           String              @id @default(uuid())
+  recipient_id String
+  recipient    Employee            @relation("NotificationRecipient", fields: [recipient_id], references: [emp_id])
+
+  title        String
+  message      String
+  type         String              // "leave_approved", "attendance_reminder", "payroll_ready", etc.
+  channel      NotificationChannel @default(in_app)
+  priority     String              @default("normal") // low | normal | high | urgent
+
+  entity_type  String?             // "leave_request", "attendance", "payroll"
+  entity_id    String?
+  action_url   String?
+
+  read_at      DateTime?
+  sent_at      DateTime            @default(now())
+
+  @@index([recipient_id, read_at])
+  @@index([recipient_id, type])
+  @@map("notifications")
+}
+
+model NotificationTemplate {
+  id           String              @id @default(uuid())
+  company_id   String
+  company      Company             @relation(fields: [company_id], references: [id])
+  event_type   String
+  channel      NotificationChannel
+  subject      String?
+  body         String              @db.Text
+  is_active    Boolean             @default(true)
+
+  @@unique([company_id, event_type, channel])
+  @@map("notification_templates")
+}
+
+model NotificationPreference {
+  id           String              @id @default(uuid())
+  emp_id       String
+  event_type   String
+  channel      NotificationChannel
+  enabled      Boolean             @default(true)
+
+  @@unique([emp_id, event_type, channel])
+  @@map("notification_preferences")
+}
+
+// ============================================================================
+// 22. COMPANY SETTINGS
+// ============================================================================
+
 model CompanySettings {
   id                  String   @id @default(uuid())
   company_id          String   @unique
-  
-  // Holiday Settings
-  holiday_mode        String   @default("auto") // "auto" or "manual"
+
+  holiday_mode        String   @default("auto")
   country_code        String   @default("IN")
-  custom_holidays     Json?    // For additional custom holidays
-  blocked_dates       Json?    // Dates blocked for leave requests
-  
-  // Email Notification Settings (per-company control)
-  email_checkin_reminder    Boolean @default(true)   // Send check-in reminder emails
-  email_checkout_reminder   Boolean @default(true)   // Send check-out reminder emails  
-  email_hr_missing_alerts   Boolean @default(true)   // Alert HR about missing check-ins
-  email_leave_notifications Boolean @default(true)   // Leave request/approval emails
-  email_approval_reminders  Boolean @default(true)   // Remind HR about pending approvals
-  
-  // Reminder Timing (minutes after/before work time)
-  checkin_reminder_1_mins   Int     @default(10)     // First reminder X mins after start
-  checkin_reminder_2_mins   Int     @default(60)     // Second reminder X mins after start
-  checkout_reminder_1_mins  Int     @default(60)     // First reminder X mins before end
-  checkout_reminder_2_mins  Int     @default(10)     // Second reminder X mins after end
-  
+  custom_holidays     Json?
+  blocked_dates       Json?
+
+  // Email Notification Settings
+  email_checkin_reminder    Boolean @default(true)
+  email_checkout_reminder   Boolean @default(true)
+  email_hr_missing_alerts   Boolean @default(true)
+  email_leave_notifications Boolean @default(true)
+  email_approval_reminders  Boolean @default(true)
+
+  // Reminder Timing
+  checkin_reminder_1_mins   Int     @default(10)
+  checkin_reminder_2_mins   Int     @default(60)
+  checkout_reminder_1_mins  Int     @default(60)
+  checkout_reminder_2_mins  Int     @default(10)
+
   created_at          DateTime @default(now())
   updated_at          DateTime @updatedAt
 
-  // Relation to Company
   company             Company  @relation(fields: [company_id], references: [id], onDelete: Cascade)
 
   @@map("company_settings")
 }
 
-// 15. Public Holidays Cache
+// ============================================================================
+// 23. PUBLIC HOLIDAYS
+// ============================================================================
+
 model PublicHoliday {
   id           String   @id @default(uuid())
   date         DateTime @db.Date
@@ -563,14 +1221,17 @@ model PublicHoliday {
   @@map("public_holidays")
 }
 
-// 16. Waitlist for Marketing
+// ============================================================================
+// 24-27. PLATFORM & MARKETING
+// ============================================================================
+
 model Waitlist {
   id             String   @id @default(uuid())
   email          String   @unique
   company_name   String?
   employee_count String?
   source         String?  @default("website")
-  status         String   @default("pending") // pending, invited, converted
+  status         String   @default("pending")
   created_at     DateTime @default(now())
   invited_at     DateTime?
   notes          String?
@@ -578,15 +1239,14 @@ model Waitlist {
   @@map("waitlist")
 }
 
-// 17. Subscription & Billing
 model Subscription {
   id                       String    @id @default(uuid())
   subscription_id          String    @unique @default(uuid())
   org_id                   String
-  plan                     String    @default("FREE") // FREE, STARTER, GROWTH, ENTERPRISE
-  plan_tier                String    @default("FREE") // Duplicate for backwards compatibility
-  status                   String    @default("active") // active, trialing, past_due, canceled
-  billing_cycle            String    @default("monthly") // monthly, yearly
+  plan                     String    @default("FREE")
+  plan_tier                String    @default("FREE")
+  status                   String    @default("active")
+  billing_cycle            String    @default("monthly")
   stripe_customer_id       String?
   stripe_subscription_id   String?
   razorpay_customer_id     String?
@@ -602,14 +1262,14 @@ model Subscription {
 
   company Company @relation(fields: [org_id], references: [id])
 
+  @@index([org_id])
   @@map("subscriptions")
 }
 
-// 18. Usage Tracking for Metered Billing
 model UsageRecord {
   id          String   @id @default(uuid())
   org_id      String
-  feature     String   // api_call, employee_added, report_generated, etc.
+  feature     String
   quantity    Int      @default(1)
   recorded_at DateTime @default(now())
   metadata    Json?
@@ -620,7 +1280,6 @@ model UsageRecord {
   @@map("usage_records")
 }
 
-// 19. API Keys for External Integrations
 model ApiKey {
   id         String   @id @default(uuid())
   org_id     String
@@ -636,25 +1295,24 @@ model ApiKey {
   @@map("api_keys")
 }
 
-// 20. Payment History for Razorpay Transactions
 model Payment {
   id                    String   @id @default(uuid())
   org_id                String
-  amount                Int      // Amount in paise
+  amount                Int
   currency              String   @default("INR")
-  status                String   // created, captured, failed, refunded
+  status                String
   razorpay_payment_id   String?  @unique
   razorpay_order_id     String?
   razorpay_signature    String?
-  method                String?  // upi, card, netbanking, wallet
+  method                String?
   bank                  String?
   wallet                String?
-  vpa                   String?  // UPI VPA
+  vpa                   String?
   error_code            String?
   error_description     String?
-  fee                   Int?     // Razorpay fee in paise
-  tax                   Int?     // GST on Razorpay fee
-  invoice_id            String?  // Razorpay invoice ID
+  fee                   Int?
+  tax                   Int?
+  invoice_id            String?
   international         Boolean  @default(false)
   refund_status         String?
   amount_refunded       Int?
@@ -669,27 +1327,27 @@ model Payment {
   @@map("payments")
 }
 
-// 21. System Incidents for Status Page (Critical Fix #9, #10, #11)
+// ============================================================================
+// 28-30. SYSTEM MONITORING
+// ============================================================================
+
 model SystemIncident {
   id               String    @id @default(uuid())
   title            String
   description      String    @db.Text
-  status           String    @default("investigating") // investigating, identified, monitoring, resolved
-  severity         String    @default("minor")         // minor, major, critical
-  affected_services Json     @default("[]")            // ["web", "database", "auth", "email"]
-  
-  // Timeline
+  status           String    @default("investigating")
+  severity         String    @default("minor")
+  affected_services Json     @default("[]")
+
   started_at       DateTime  @default(now())
   identified_at    DateTime?
   resolved_at      DateTime?
-  
-  // Updates (stored as JSON array)
-  updates          Json      @default("[]")  // [{ message: string, timestamp: string, author: string }]
-  
-  // Notification tracking
+
+  updates          Json      @default("[]")
+
   notification_sent Boolean  @default(false)
-  notified_users   Json     @default("[]")   // User IDs who were notified
-  
+  notified_users   Json     @default("[]")
+
   created_at       DateTime  @default(now())
   updated_at       DateTime  @updatedAt
 
@@ -698,78 +1356,66 @@ model SystemIncident {
   @@map("system_incidents")
 }
 
-// 22. System Uptime Records for Real SLA Tracking (Critical Fix #4, #8)
 model UptimeRecord {
   id           String   @id @default(uuid())
-  service      String   // web, database, auth, email, ai
-  status       String   // operational, degraded, down
+  service      String
+  status       String
   latency_ms   Int?
   checked_at   DateTime @default(now())
-  
-  // Error details if not operational
   error_message String?
-  
+
   @@index([service, checked_at])
   @@map("uptime_records")
 }
 
-// 23. Platform Statistics for Marketing Page (Critical Fix #1)
 model PlatformStats {
   id              String   @id @default(uuid())
-  stat_type       String   @unique // "companies", "employees", "uptime", "rating"
-  stat_value      String   // Actual value
-  display_value   String   // Formatted for display (e.g., "500+")
+  stat_type       String   @unique
+  stat_value      String
+  display_value   String
   is_verified     Boolean  @default(false)
   last_calculated DateTime @default(now())
-  
+
   created_at      DateTime @default(now())
   updated_at      DateTime @updatedAt
 
   @@map("platform_stats")
 }
 
-// 24. Pricing Plans from Database (Critical Fix #2, #3)
 model PricingPlan {
   id              String   @id @default(uuid())
-  code            String   @unique // "FREE", "STARTER", "GROWTH", "ENTERPRISE"
+  code            String   @unique
   name            String
   description     String?
-  
-  // Pricing
+
   price_monthly   Decimal  @db.Decimal(10, 2)
   price_yearly    Decimal  @db.Decimal(10, 2)
   currency        String   @default("INR")
-  
-  // Limits
-  max_employees   Int?     // null = unlimited
+
+  max_employees   Int?
   max_hr_admins   Int      @default(1)
-  
-  // Features (JSON array)
-  features        Json     @default("[]") // ["Leave management", "Basic attendance", ...]
-  
-  // SLA
-  sla_uptime      Decimal  @db.Decimal(5, 2) @default(95.00)  // 95.00%, 99.00%, 99.50%, 99.90%
-  sla_support     String   @default("Community")              // Community, Email (48h), Priority (24h), 24/7 Phone
-  sla_response    String?                                     // null, "48 hours", "24 hours", "1 hour"
-  
-  // Stripe/Razorpay IDs
+
+  features        Json     @default("[]")
+
+  sla_uptime      Decimal  @db.Decimal(5, 2) @default(95.00)
+  sla_support     String   @default("Community")
+  sla_response    String?
+
   stripe_price_monthly    String?
   stripe_price_yearly     String?
   razorpay_plan_monthly   String?
   razorpay_plan_yearly    String?
-  
-  // Display
+
   is_popular      Boolean  @default(false)
   is_active       Boolean  @default(true)
   sort_order      Int      @default(0)
-  
+
   created_at      DateTime @default(now())
   updated_at      DateTime @updatedAt
 
   @@map("pricing_plans")
 }
 
-// 25. Customer Testimonials from Real Users (Critical Fix #5)
 model Testimonial {
   id              String   @id @default(uuid())
   name            String
@@ -777,59 +1423,59 @@ model Testimonial {
   company         String
   avatar_url      String?
   content         String   @db.Text
-  rating          Int      @default(5)  // 1-5 stars
-  
-  // Verification
+  rating          Int      @default(5)
+
   is_verified     Boolean  @default(false)
   verified_at     DateTime?
-  source          String?  // "google", "trustpilot", "direct"
-  source_url      String?  // Link to original review
-  
-  // Display
+  source          String?
+  source_url      String?
+
   is_featured     Boolean  @default(false)
   is_active       Boolean  @default(true)
   sort_order      Int      @default(0)
-  
+
   created_at      DateTime @default(now())
   updated_at      DateTime @updatedAt
 
   @@map("testimonials")
 }
 
-// 26. OTP Verification Tokens for Sensitive Operations
+// ============================================================================
+// 31-32. SECURITY
+// ============================================================================
+
 model OtpToken {
   id            String    @id @default(uuid())
-  user_id       String    // Clerk user ID
-  company_id    String    // Company ID for scoping
-  email         String    // Email where OTP was sent
-  code          String    // Hashed OTP code
-  action        String    // "settings_change", "delete_employee", "export_data"
-  context       Json?     // Additional context about the operation
-  attempts      Int       @default(0)  // Failed verification attempts
-  max_attempts  Int       @default(3)  // Max allowed attempts
-  expires_at    DateTime  // When the OTP expires
-  verified_at   DateTime? // When it was successfully verified
+  user_id       String
+  company_id    String
+  email         String
+  code          String
+  action        String
+  context       Json?
+  attempts      Int       @default(0)
+  max_attempts  Int       @default(3)
+  expires_at    DateTime
+  verified_at   DateTime?
   created_at    DateTime  @default(now())
-  
+
   @@index([user_id, action])
   @@index([email, code])
   @@map("otp_tokens")
 }
 
-// 27. Settings Change Audit Log for security tracking
 model SettingsAuditLog {
   id            String   @id @default(uuid())
   company_id    String
   user_id       String
   user_email    String
-  action        String   // "work_schedule_changed", "leave_type_created", etc.
-  previous_value Json?   // What it was before
-  new_value     Json?    // What it changed to
-  otp_verified  Boolean  @default(false) // Was OTP verification used?
+  action        String
+  previous_value Json?
+  new_value     Json?
+  otp_verified  Boolean  @default(false)
   ip_address    String?
   user_agent    String?
   created_at    DateTime @default(now())
-  
+
   @@index([company_id])
   @@index([user_id])
   @@map("settings_audit_logs")
