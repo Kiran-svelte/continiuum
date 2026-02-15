@@ -27,7 +27,19 @@ import {
     Settings,
     Sun,
     Moon,
-    Bell
+    Bell,
+    CheckSquare,
+    ClipboardList,
+    Network,
+    Layers,
+    GitBranch,
+    Receipt,
+    IndianRupee,
+    Banknote,
+    TrendingUp,
+    UserX,
+    FolderOpen,
+    Mail,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { formatDisplayName, getInitials } from "@/lib/utils";
@@ -40,6 +52,7 @@ export default function Sidebar() {
     const router = useRouter();
     const supabase = createClient();
     const isHR = pathname.includes("/hr");
+    const isManager = pathname.includes("/manager");
     const [securityExpanded, setSecurityExpanded] = useState(pathname.includes("/hr/security"));
 
     useEffect(() => {
@@ -60,13 +73,32 @@ export default function Sidebar() {
         { href: "/hr/dashboard", label: "Dashboard", icon: LayoutDashboard },
         { href: "/hr/company", label: "Profile", icon: Building2 },
         { href: "/hr/employee-registrations", label: "New Registrations", icon: UserPlus },
+        { href: "/hr/employees", label: "Employees", icon: Users },
         { href: "/hr/leave-requests", label: "Leave Requests", icon: FileText },
         { href: "/hr/attendance", label: "Attendance", icon: Clock },
-        { href: "/hr/employees", label: "Employees", icon: Users },
         { href: "/hr/payroll", label: "Payroll", icon: Wallet },
+        { href: "/hr/salary-structures", label: "Salary Structures", icon: IndianRupee },
+        { href: "/hr/reimbursements", label: "Reimbursements", icon: Receipt },
+        { href: "/hr/organization", label: "Org Structure", icon: Network },
+        { href: "/hr/job-levels", label: "Job Levels", icon: Layers },
+        { href: "/hr/employee-movements", label: "Movements", icon: TrendingUp },
+        { href: "/hr/exits", label: "Exit Management", icon: UserX },
+        { href: "/hr/documents", label: "Documents", icon: FolderOpen },
+        { href: "/hr/approval-hierarchies", label: "Approval Chains", icon: GitBranch },
+        { href: "/hr/leave-encashment", label: "Leave Encashment", icon: Banknote },
+        { href: "/hr/reports", label: "Reports", icon: BarChart3 },
         { href: "/hr/settings", label: "Settings", icon: Settings },
         { href: "/hr/holiday-settings", label: "Holiday Calendar", icon: Calendar },
         { href: "/hr/notification-settings", label: "Email Notifications", icon: Bell },
+        { href: "/hr/notification-templates", label: "Templates", icon: Mail },
+    ];
+
+    const managerLinks = [
+        { href: "/manager/dashboard", label: "Dashboard", icon: LayoutDashboard },
+        { href: "/manager/team", label: "My Team", icon: Users },
+        { href: "/manager/approvals", label: "Approvals", icon: CheckSquare },
+        { href: "/manager/attendance", label: "Team Attendance", icon: Clock },
+        { href: "/manager/reports", label: "Reports", icon: BarChart3 },
     ];
 
     const securityLinks = [
@@ -78,28 +110,30 @@ export default function Sidebar() {
         { href: "/employee/dashboard", label: "Dashboard", icon: LayoutDashboard },
         { href: "/employee/request-leave", label: "Request Leave", icon: CalendarPlus },
         { href: "/employee/history", label: "My History", icon: BarChart3 },
+        { href: "/employee/attendance", label: "Attendance", icon: Clock },
+        { href: "/employee/documents", label: "Documents", icon: FolderOpen },
         { href: "/employee/profile", label: "My Profile", icon: User },
     ];
 
-    const links = isHR ? hrLinks : empLinks;
-    const accentColor = isHR ? 'purple' : 'cyan';
+    const links = isHR ? hrLinks : isManager ? managerLinks : empLinks;
+    const accentColor = isHR ? 'purple' : isManager ? 'indigo' : 'cyan';
 
     return (
         <aside className="w-[280px] fixed h-screen bg-white dark:bg-[#08080c]/95 backdrop-blur-2xl border-r border-gray-200 dark:border-white/[0.04] flex flex-col z-50 transition-colors duration-300">
             {/* Ambient Glow - Only in dark mode */}
-            <div className={`absolute top-0 left-0 w-full h-32 bg-gradient-to-b ${isHR ? 'from-purple-500/5' : 'from-cyan-500/5'} to-transparent pointer-events-none dark:block hidden`} />
+            <div className={`absolute top-0 left-0 w-full h-32 bg-gradient-to-b ${isHR ? 'from-purple-500/5' : isManager ? 'from-indigo-500/5' : 'from-cyan-500/5'} to-transparent pointer-events-none dark:block hidden`} />
             
             {/* Logo Section */}
             <div className="relative p-6 pb-4">
                 <div className="flex items-center gap-3 mb-4">
-                    <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${isHR ? 'from-purple-500 to-pink-500' : 'from-cyan-500 to-blue-500'} flex items-center justify-center shadow-lg ${isHR ? 'shadow-purple-500/20' : 'shadow-cyan-500/20'}`}>
+                    <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${isHR ? 'from-purple-500 to-pink-500' : isManager ? 'from-indigo-500 to-blue-500' : 'from-cyan-500 to-blue-500'} flex items-center justify-center shadow-lg ${isHR ? 'shadow-purple-500/20' : isManager ? 'shadow-indigo-500/20' : 'shadow-cyan-500/20'}`}>
                         <Sparkles className="w-5 h-5 text-white" />
                     </div>
                     <div>
                         <h1 className="text-lg font-bold text-gray-900 dark:text-white tracking-tight">Continuum</h1>
                         <div className="flex items-center gap-2 mt-0.5">
-                            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${isHR ? 'border-purple-500/30 text-purple-600 dark:text-purple-400 bg-purple-500/10' : 'border-cyan-500/30 text-cyan-600 dark:text-cyan-400 bg-cyan-500/10'} uppercase tracking-wider`}>
-                                {isHR ? 'HR Panel' : 'Employee'}
+                            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${isHR ? 'border-purple-500/30 text-purple-600 dark:text-purple-400 bg-purple-500/10' : isManager ? 'border-indigo-500/30 text-indigo-600 dark:text-indigo-400 bg-indigo-500/10' : 'border-cyan-500/30 text-cyan-600 dark:text-cyan-400 bg-cyan-500/10'} uppercase tracking-wider`}>
+                                {isHR ? 'HR Panel' : isManager ? 'Manager' : 'Employee'}
                             </span>
                         </div>
                     </div>
@@ -131,18 +165,18 @@ export default function Sidebar() {
                             key={link.href}
                             href={link.href}
                             className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 relative ${isActive
-                                ? `${isHR ? 'bg-purple-100 dark:bg-gradient-to-r dark:from-purple-500/15 dark:to-purple-500/5' : 'bg-cyan-100 dark:bg-gradient-to-r dark:from-cyan-500/15 dark:to-cyan-500/5'} text-gray-900 dark:text-white`
+                                ? `${isHR ? 'bg-purple-100 dark:bg-gradient-to-r dark:from-purple-500/15 dark:to-purple-500/5' : isManager ? 'bg-indigo-100 dark:bg-gradient-to-r dark:from-indigo-500/15 dark:to-indigo-500/5' : 'bg-cyan-100 dark:bg-gradient-to-r dark:from-cyan-500/15 dark:to-cyan-500/5'} text-gray-900 dark:text-white`
                                 : 'text-gray-600 dark:text-white/50 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/[0.03]'
                             }`}
                             style={{ animationDelay: `${index * 30}ms` }}
                         >
                             {/* Active Indicator Bar */}
                             {isActive && (
-                                <div className={`absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-full ${isHR ? 'bg-purple-500' : 'bg-cyan-500'} shadow-[0_0_8px_rgba(168,85,247,0.5)]`} />
+                                <div className={`absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-full ${isHR ? 'bg-purple-500' : isManager ? 'bg-indigo-500' : 'bg-cyan-500'} shadow-[0_0_8px_rgba(168,85,247,0.5)]`} />
                             )}
                             
-                            <div className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all duration-200 ${isActive 
-                                ? `${isHR ? 'bg-purple-200 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400' : 'bg-cyan-200 dark:bg-cyan-500/20 text-cyan-600 dark:text-cyan-400'}` 
+                            <div className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all duration-200 ${isActive
+                                ? `${isHR ? 'bg-purple-200 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400' : isManager ? 'bg-indigo-200 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400' : 'bg-cyan-200 dark:bg-cyan-500/20 text-cyan-600 dark:text-cyan-400'}` 
                                 : 'bg-gray-100 dark:bg-white/[0.03] text-gray-500 dark:text-white/40 group-hover:text-gray-700 dark:group-hover:text-white/70 group-hover:bg-gray-200 dark:group-hover:bg-white/[0.05]'
                             }`}>
                                 <Icon className="w-[18px] h-[18px]" />
@@ -151,7 +185,7 @@ export default function Sidebar() {
                             <span className="text-sm font-medium flex-1">{link.label}</span>
                             
                             {isActive && (
-                                <div className={`w-1.5 h-1.5 rounded-full ${isHR ? 'bg-purple-600 dark:bg-purple-400' : 'bg-cyan-600 dark:bg-cyan-400'} shadow-[0_0_6px_currentColor]`} />
+                                <div className={`w-1.5 h-1.5 rounded-full ${isHR ? 'bg-purple-600 dark:bg-purple-400' : isManager ? 'bg-indigo-600 dark:bg-indigo-400' : 'bg-cyan-600 dark:bg-cyan-400'} shadow-[0_0_6px_currentColor]`} />
                             )}
                         </Link>
                     );

@@ -489,6 +489,114 @@ export async function saveApprovalSettings(companyId: string, settings: Approval
 }
 
 /* =========================================================================
+   2c. PAYROLL SETTINGS (PF, ESI, PT, TDS)
+   ========================================================================= */
+
+export interface PayrollSettings {
+    pf_enabled: boolean;
+    pf_employer_rate: number;
+    pf_employee_rate: number;
+    pf_ceiling: number;
+    esi_enabled: boolean;
+    esi_employer_rate: number;
+    esi_employee_rate: number;
+    esi_ceiling: number;
+    pt_state: string | null;
+    tds_enabled: boolean;
+}
+
+export async function savePayrollSettings(companyId: string, settings: PayrollSettings) {
+    const user = await currentUser();
+    if (!user) throw new Error("Unauthorized");
+
+    try {
+        const employee = await prisma.employee.findUnique({
+            where: { clerk_id: user.id },
+            select: { org_id: true, role: true },
+        });
+
+        if (!employee || employee.org_id !== companyId || !canManageCompanySettings(employee.role)) {
+            return { success: false, error: "Not authorized" };
+        }
+
+        await prisma.company.update({
+            where: { id: companyId },
+            data: {
+                pf_enabled: settings.pf_enabled,
+                pf_employer_rate: settings.pf_employer_rate,
+                pf_employee_rate: settings.pf_employee_rate,
+                pf_ceiling: settings.pf_ceiling,
+                esi_enabled: settings.esi_enabled,
+                esi_employer_rate: settings.esi_employer_rate,
+                esi_employee_rate: settings.esi_employee_rate,
+                esi_ceiling: settings.esi_ceiling,
+                pt_state: settings.pt_state,
+                tds_enabled: settings.tds_enabled,
+            },
+        });
+
+        revalidatePath("/hr/settings");
+        return { success: true };
+    } catch (error: any) {
+        console.error("Failed to save payroll settings:", error);
+        return { success: false, error: error.message || "Failed to save payroll settings" };
+    }
+}
+
+export async function getPayrollSettings(companyId: string) {
+    const user = await currentUser();
+    if (!user) throw new Error("Unauthorized");
+
+    try {
+        const employee = await prisma.employee.findUnique({
+            where: { clerk_id: user.id },
+            select: { org_id: true, role: true },
+        });
+
+        if (!employee || employee.org_id !== companyId || !canManageCompanySettings(employee.role)) {
+            return { success: false, error: "Not authorized" };
+        }
+
+        const company = await prisma.company.findUnique({
+            where: { id: companyId },
+            select: {
+                pf_enabled: true,
+                pf_employer_rate: true,
+                pf_employee_rate: true,
+                pf_ceiling: true,
+                esi_enabled: true,
+                esi_employer_rate: true,
+                esi_employee_rate: true,
+                esi_ceiling: true,
+                pt_state: true,
+                tds_enabled: true,
+            },
+        });
+
+        if (!company) return { success: false, error: "Company not found" };
+
+        return {
+            success: true,
+            payroll: {
+                pf_enabled: company.pf_enabled,
+                pf_employer_rate: Number(company.pf_employer_rate),
+                pf_employee_rate: Number(company.pf_employee_rate),
+                pf_ceiling: Number(company.pf_ceiling),
+                esi_enabled: company.esi_enabled,
+                esi_employer_rate: Number(company.esi_employer_rate),
+                esi_employee_rate: Number(company.esi_employee_rate),
+                esi_ceiling: Number(company.esi_ceiling),
+                pt_state: company.pt_state,
+                tds_enabled: company.tds_enabled,
+            },
+        };
+    } catch (error: any) {
+        console.error("Failed to get payroll settings:", error);
+        return { success: false, error: error.message || "Failed to get payroll settings" };
+    }
+}
+
+/* =========================================================================
    3. CREATE/UPDATE LEAVE TYPES
    ========================================================================= */
 export async function createLeaveType(companyId: string, leaveType: LeaveTypeInput) {

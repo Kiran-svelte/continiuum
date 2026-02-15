@@ -33,7 +33,9 @@ import {
     ToggleRight,
     Zap,
     ChevronRight,
-    Search
+    Search,
+    Wallet,
+    Timer,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -70,10 +72,13 @@ import {
     createLeaveType,
     updateLeaveType,
     deleteLeaveType,
+    savePayrollSettings,
+    getPayrollSettings,
     type WorkScheduleSettings,
     type LeaveSettings,
     type LeaveTypeInput,
-    type ApprovalSettingsInput
+    type ApprovalSettingsInput,
+    type PayrollSettings,
 } from "@/app/actions/company-settings";
 import {
     getCompanyConstraintRules,
@@ -81,6 +86,12 @@ import {
     updateRuleConfig,
     type ConstraintRule
 } from "@/app/actions/constraint-rules";
+import {
+    getCompanyShifts,
+    createShift,
+    updateShift,
+    deleteShift,
+} from "@/app/actions/shifts";
 import {
     Dialog,
     DialogContent,
@@ -1155,6 +1166,14 @@ export default function HRSettingsPage() {
                         <Shield className="h-4 w-4" />
                         Approval Rules
                     </TabsTrigger>
+                    <TabsTrigger value="payroll" className="flex items-center gap-2">
+                        <Wallet className="h-4 w-4" />
+                        Payroll
+                    </TabsTrigger>
+                    <TabsTrigger value="shifts" className="flex items-center gap-2">
+                        <Timer className="h-4 w-4" />
+                        Shifts
+                    </TabsTrigger>
                 </TabsList>
 
                 {/* Work Schedule Tab */}
@@ -1686,6 +1705,16 @@ export default function HRSettingsPage() {
                         </CardContent>
                     </Card>
                 </TabsContent>
+
+                {/* Payroll Settings Tab */}
+                <TabsContent value="payroll">
+                    <PayrollSettingsTab companyId={companyId} />
+                </TabsContent>
+
+                {/* Shifts Tab */}
+                <TabsContent value="shifts">
+                    <ShiftsSettingsTab companyId={companyId} />
+                </TabsContent>
             </Tabs>
 
             {/* Sticky Save Footer - Only show when there are unsaved changes */}
@@ -2096,5 +2125,682 @@ function LeaveTypeDialogWithDropdown({
                 </DialogFooter>
             </DialogContent>
         </Dialog>
+    );
+}
+
+// ============================================================================
+// PAYROLL SETTINGS TAB
+// ============================================================================
+
+const PT_STATES = [
+    { value: "", label: "Not Applicable" },
+    { value: "maharashtra", label: "Maharashtra" },
+    { value: "karnataka", label: "Karnataka" },
+    { value: "telangana", label: "Telangana" },
+    { value: "tamilnadu", label: "Tamil Nadu" },
+    { value: "westbengal", label: "West Bengal" },
+    { value: "gujarat", label: "Gujarat" },
+    { value: "andhrapradesh", label: "Andhra Pradesh" },
+];
+
+function PayrollSettingsTab({ companyId }: { companyId: string }) {
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const [settings, setSettings] = useState<PayrollSettings>({
+        pf_enabled: true,
+        pf_employer_rate: 12,
+        pf_employee_rate: 12,
+        pf_ceiling: 15000,
+        esi_enabled: false,
+        esi_employer_rate: 3.25,
+        esi_employee_rate: 0.75,
+        esi_ceiling: 21000,
+        pt_state: null,
+        tds_enabled: true,
+    });
+
+    useEffect(() => {
+        async function load() {
+            const result = await getPayrollSettings(companyId);
+            if (result.success && "payroll" in result) {
+                setSettings(result.payroll as PayrollSettings);
+            }
+            setLoading(false);
+        }
+        load();
+    }, [companyId]);
+
+    const handleSave = async () => {
+        setSaving(true);
+        await savePayrollSettings(companyId, settings);
+        setSaving(false);
+    };
+
+    if (loading) {
+        return (
+            <Card>
+                <CardContent className="p-12 text-center">
+                    <Loader2 className="h-6 w-6 animate-spin mx-auto text-gray-400" />
+                    <p className="text-sm text-gray-500 mt-2">Loading payroll settings...</p>
+                </CardContent>
+            </Card>
+        );
+    }
+
+    return (
+        <div className="space-y-6">
+            {/* PF Settings */}
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <Wallet className="h-5 w-5 text-purple-500" />
+                        Provident Fund (PF)
+                    </CardTitle>
+                    <CardDescription>
+                        Employee and employer PF contribution settings
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="flex items-center justify-between p-3 border rounded-lg">
+                        <div>
+                            <Label>PF Enabled</Label>
+                            <p className="text-xs text-gray-500">Enable Provident Fund deduction</p>
+                        </div>
+                        <Switch
+                            checked={settings.pf_enabled}
+                            onCheckedChange={(checked) =>
+                                setSettings((s) => ({ ...s, pf_enabled: checked }))
+                            }
+                        />
+                    </div>
+                    {settings.pf_enabled && (
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="space-y-2">
+                                <Label>Employee Rate (%)</Label>
+                                <Input
+                                    type="number"
+                                    step="0.01"
+                                    value={settings.pf_employee_rate}
+                                    onChange={(e) =>
+                                        setSettings((s) => ({
+                                            ...s,
+                                            pf_employee_rate: parseFloat(e.target.value) || 0,
+                                        }))
+                                    }
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Employer Rate (%)</Label>
+                                <Input
+                                    type="number"
+                                    step="0.01"
+                                    value={settings.pf_employer_rate}
+                                    onChange={(e) =>
+                                        setSettings((s) => ({
+                                            ...s,
+                                            pf_employer_rate: parseFloat(e.target.value) || 0,
+                                        }))
+                                    }
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>PF Wage Ceiling (INR)</Label>
+                                <Input
+                                    type="number"
+                                    value={settings.pf_ceiling}
+                                    onChange={(e) =>
+                                        setSettings((s) => ({
+                                            ...s,
+                                            pf_ceiling: parseFloat(e.target.value) || 0,
+                                        }))
+                                    }
+                                />
+                                <p className="text-xs text-gray-500">
+                                    PF is calculated on basic salary up to this ceiling
+                                </p>
+                            </div>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+
+            {/* ESI Settings */}
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <Shield className="h-5 w-5 text-blue-500" />
+                        Employee State Insurance (ESI)
+                    </CardTitle>
+                    <CardDescription>
+                        ESI contribution settings for employees earning below threshold
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="flex items-center justify-between p-3 border rounded-lg">
+                        <div>
+                            <Label>ESI Enabled</Label>
+                            <p className="text-xs text-gray-500">
+                                Enable ESI for employees with gross salary below ceiling
+                            </p>
+                        </div>
+                        <Switch
+                            checked={settings.esi_enabled}
+                            onCheckedChange={(checked) =>
+                                setSettings((s) => ({ ...s, esi_enabled: checked }))
+                            }
+                        />
+                    </div>
+                    {settings.esi_enabled && (
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="space-y-2">
+                                <Label>Employee Rate (%)</Label>
+                                <Input
+                                    type="number"
+                                    step="0.01"
+                                    value={settings.esi_employee_rate}
+                                    onChange={(e) =>
+                                        setSettings((s) => ({
+                                            ...s,
+                                            esi_employee_rate: parseFloat(e.target.value) || 0,
+                                        }))
+                                    }
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Employer Rate (%)</Label>
+                                <Input
+                                    type="number"
+                                    step="0.01"
+                                    value={settings.esi_employer_rate}
+                                    onChange={(e) =>
+                                        setSettings((s) => ({
+                                            ...s,
+                                            esi_employer_rate: parseFloat(e.target.value) || 0,
+                                        }))
+                                    }
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Gross Salary Ceiling (INR)</Label>
+                                <Input
+                                    type="number"
+                                    value={settings.esi_ceiling}
+                                    onChange={(e) =>
+                                        setSettings((s) => ({
+                                            ...s,
+                                            esi_ceiling: parseFloat(e.target.value) || 0,
+                                        }))
+                                    }
+                                />
+                                <p className="text-xs text-gray-500">
+                                    ESI applies only when gross salary is below this amount
+                                </p>
+                            </div>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+
+            {/* PT & TDS Settings */}
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <Building className="h-5 w-5 text-green-500" />
+                        Professional Tax & TDS
+                    </CardTitle>
+                    <CardDescription>
+                        State-wise professional tax and income tax deduction settings
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label>Professional Tax State</Label>
+                            <select
+                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                value={settings.pt_state || ""}
+                                onChange={(e) =>
+                                    setSettings((s) => ({
+                                        ...s,
+                                        pt_state: e.target.value || null,
+                                    }))
+                                }
+                            >
+                                {PT_STATES.map((state) => (
+                                    <option key={state.value} value={state.value}>
+                                        {state.label}
+                                    </option>
+                                ))}
+                            </select>
+                            <p className="text-xs text-gray-500">
+                                Professional tax slabs vary by state
+                            </p>
+                        </div>
+                        <div className="flex items-center justify-between p-3 border rounded-lg">
+                            <div>
+                                <Label>TDS Enabled</Label>
+                                <p className="text-xs text-gray-500">
+                                    Enable Tax Deducted at Source
+                                </p>
+                            </div>
+                            <Switch
+                                checked={settings.tds_enabled}
+                                onCheckedChange={(checked) =>
+                                    setSettings((s) => ({ ...s, tds_enabled: checked }))
+                                }
+                            />
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* Save Button */}
+            <div className="flex justify-end">
+                <Button
+                    onClick={handleSave}
+                    disabled={saving}
+                    className="bg-purple-500 hover:bg-purple-600"
+                >
+                    {saving ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : (
+                        <Save className="h-4 w-4 mr-2" />
+                    )}
+                    Save Payroll Settings
+                </Button>
+            </div>
+        </div>
+    );
+}
+
+// ============================================================================
+// SHIFTS SETTINGS TAB
+// ============================================================================
+
+const SHIFT_TYPES = [
+    { value: "general", label: "General" },
+    { value: "morning", label: "Morning" },
+    { value: "afternoon", label: "Afternoon" },
+    { value: "night", label: "Night" },
+    { value: "flexible", label: "Flexible" },
+    { value: "rotational", label: "Rotational" },
+];
+
+function ShiftsSettingsTab({ companyId }: { companyId: string }) {
+    const [loading, setLoading] = useState(true);
+    const [shifts, setShifts] = useState<any[]>([]);
+    const [showDialog, setShowDialog] = useState(false);
+    const [editing, setEditing] = useState<any>(null);
+    const [saving, setSaving] = useState(false);
+    const [form, setForm] = useState({
+        name: "",
+        code: "",
+        type: "general",
+        start_time: "09:00",
+        end_time: "18:00",
+        break_minutes: 60,
+        grace_minutes: 15,
+        is_overnight: false,
+        is_default: false,
+    });
+
+    useEffect(() => {
+        loadShifts();
+    }, []);
+
+    async function loadShifts() {
+        const result = await getCompanyShifts();
+        if (result.success && "shifts" in result) {
+            setShifts(result.shifts as any[]);
+        }
+        setLoading(false);
+    }
+
+    function resetForm() {
+        setForm({
+            name: "",
+            code: "",
+            type: "general",
+            start_time: "09:00",
+            end_time: "18:00",
+            break_minutes: 60,
+            grace_minutes: 15,
+            is_overnight: false,
+            is_default: false,
+        });
+        setEditing(null);
+    }
+
+    function openCreate() {
+        resetForm();
+        setShowDialog(true);
+    }
+
+    function openEdit(shift: any) {
+        setForm({
+            name: shift.name,
+            code: shift.code,
+            type: shift.type,
+            start_time: shift.start_time,
+            end_time: shift.end_time,
+            break_minutes: shift.break_minutes,
+            grace_minutes: shift.grace_minutes,
+            is_overnight: shift.is_overnight,
+            is_default: shift.is_default,
+        });
+        setEditing(shift);
+        setShowDialog(true);
+    }
+
+    async function handleSave() {
+        setSaving(true);
+        if (editing) {
+            await updateShift(editing.id, {
+                name: form.name,
+                type: form.type as any,
+                start_time: form.start_time,
+                end_time: form.end_time,
+                break_minutes: form.break_minutes,
+                grace_minutes: form.grace_minutes,
+                is_overnight: form.is_overnight,
+                is_default: form.is_default,
+            });
+        } else {
+            await createShift({
+                name: form.name,
+                code: form.code,
+                type: form.type as any,
+                start_time: form.start_time,
+                end_time: form.end_time,
+                break_minutes: form.break_minutes,
+                grace_minutes: form.grace_minutes,
+                is_overnight: form.is_overnight,
+                is_default: form.is_default,
+            });
+        }
+        setSaving(false);
+        setShowDialog(false);
+        resetForm();
+        await loadShifts();
+    }
+
+    async function handleDelete(shiftId: string) {
+        if (!confirm("Are you sure you want to delete this shift?")) return;
+        await deleteShift(shiftId);
+        await loadShifts();
+    }
+
+    if (loading) {
+        return (
+            <Card>
+                <CardContent className="p-12 text-center">
+                    <Loader2 className="h-6 w-6 animate-spin mx-auto text-gray-400" />
+                    <p className="text-sm text-gray-500 mt-2">Loading shifts...</p>
+                </CardContent>
+            </Card>
+        );
+    }
+
+    return (
+        <>
+            <Card>
+                <CardHeader>
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <CardTitle className="flex items-center gap-2">
+                                <Timer className="h-5 w-5 text-purple-500" />
+                                Shift Management
+                            </CardTitle>
+                            <CardDescription>
+                                Define work shifts and their timings
+                            </CardDescription>
+                        </div>
+                        <Button
+                            onClick={openCreate}
+                            className="bg-purple-500 hover:bg-purple-600"
+                        >
+                            <Plus className="h-4 w-4 mr-2" />
+                            Add Shift
+                        </Button>
+                    </div>
+                </CardHeader>
+                <CardContent>
+                    {shifts.length === 0 ? (
+                        <div className="text-center py-8 text-gray-500">
+                            <Timer className="h-10 w-10 mx-auto mb-3 text-gray-300" />
+                            <p className="text-sm">No shifts defined yet.</p>
+                            <p className="text-xs text-gray-400 mt-1">
+                                Create shifts to manage different work schedules
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="space-y-3">
+                            {shifts.map((shift: any) => (
+                                <div
+                                    key={shift.id}
+                                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                                >
+                                    <div className="flex items-center gap-4">
+                                        <div
+                                            className={`w-10 h-10 rounded-lg flex items-center justify-center text-xs font-bold ${
+                                                shift.is_default
+                                                    ? "bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400"
+                                                    : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400"
+                                            }`}
+                                        >
+                                            {shift.code}
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-medium text-gray-900 dark:text-white">
+                                                {shift.name}
+                                                {shift.is_default && (
+                                                    <Badge variant="secondary" className="ml-2 text-[10px]">
+                                                        Default
+                                                    </Badge>
+                                                )}
+                                            </p>
+                                            <div className="flex gap-3 mt-0.5">
+                                                <span className="text-xs text-gray-500">
+                                                    {shift.start_time} - {shift.end_time}
+                                                </span>
+                                                <span className="text-xs text-gray-400">
+                                                    Break: {shift.break_minutes}m
+                                                </span>
+                                                <span className="text-xs text-gray-400">
+                                                    Grace: {shift.grace_minutes}m
+                                                </span>
+                                                {shift.is_overnight && (
+                                                    <span className="text-xs text-amber-500">
+                                                        Overnight
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => openEdit(shift)}
+                                        >
+                                            <Edit2 className="h-4 w-4" />
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => handleDelete(shift.id)}
+                                            className="text-red-500 hover:text-red-600"
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+
+            {/* Shift Dialog */}
+            <Dialog open={showDialog} onOpenChange={setShowDialog}>
+                <DialogContent className="max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>
+                            {editing ? "Edit Shift" : "Create Shift"}
+                        </DialogTitle>
+                        <DialogDescription>
+                            {editing
+                                ? "Update shift details"
+                                : "Define a new work shift"}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label>Shift Name</Label>
+                                <Input
+                                    value={form.name}
+                                    onChange={(e) =>
+                                        setForm((f) => ({ ...f, name: e.target.value }))
+                                    }
+                                    placeholder="Morning Shift"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Code</Label>
+                                <Input
+                                    value={form.code}
+                                    onChange={(e) =>
+                                        setForm((f) => ({
+                                            ...f,
+                                            code: e.target.value.toUpperCase(),
+                                        }))
+                                    }
+                                    placeholder="MS"
+                                    disabled={!!editing}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label>Shift Type</Label>
+                            <select
+                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                value={form.type}
+                                onChange={(e) =>
+                                    setForm((f) => ({ ...f, type: e.target.value }))
+                                }
+                            >
+                                {SHIFT_TYPES.map((t) => (
+                                    <option key={t.value} value={t.value}>
+                                        {t.label}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label>Start Time</Label>
+                                <Input
+                                    type="time"
+                                    value={form.start_time}
+                                    onChange={(e) =>
+                                        setForm((f) => ({
+                                            ...f,
+                                            start_time: e.target.value,
+                                        }))
+                                    }
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>End Time</Label>
+                                <Input
+                                    type="time"
+                                    value={form.end_time}
+                                    onChange={(e) =>
+                                        setForm((f) => ({
+                                            ...f,
+                                            end_time: e.target.value,
+                                        }))
+                                    }
+                                />
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label>Break (minutes)</Label>
+                                <Input
+                                    type="number"
+                                    value={form.break_minutes}
+                                    onChange={(e) =>
+                                        setForm((f) => ({
+                                            ...f,
+                                            break_minutes: parseInt(e.target.value) || 0,
+                                        }))
+                                    }
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Grace Period (minutes)</Label>
+                                <Input
+                                    type="number"
+                                    value={form.grace_minutes}
+                                    onChange={(e) =>
+                                        setForm((f) => ({
+                                            ...f,
+                                            grace_minutes: parseInt(e.target.value) || 0,
+                                        }))
+                                    }
+                                />
+                            </div>
+                        </div>
+
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between p-3 border rounded-lg">
+                                <Label>Overnight Shift</Label>
+                                <Switch
+                                    checked={form.is_overnight}
+                                    onCheckedChange={(checked) =>
+                                        setForm((f) => ({ ...f, is_overnight: checked }))
+                                    }
+                                />
+                            </div>
+                            <div className="flex items-center justify-between p-3 border rounded-lg">
+                                <Label>Default Shift</Label>
+                                <Switch
+                                    checked={form.is_default}
+                                    onCheckedChange={(checked) =>
+                                        setForm((f) => ({ ...f, is_default: checked }))
+                                    }
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => setShowDialog(false)}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            onClick={handleSave}
+                            disabled={saving || !form.name || !form.code}
+                            className="bg-purple-500 hover:bg-purple-600"
+                        >
+                            {saving ? (
+                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                            ) : (
+                                <Check className="h-4 w-4 mr-2" />
+                            )}
+                            {editing ? "Update" : "Create"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </>
     );
 }

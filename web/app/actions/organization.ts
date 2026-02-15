@@ -410,3 +410,366 @@ export async function getReportingChain(empId: string) {
 
   return { success: true, employee, chain };
 }
+
+// ============================================================================
+// JOB LEVEL CRUD
+// ============================================================================
+
+/**
+ * Create a new job level for the company.
+ */
+export async function createJobLevel(data: {
+  level_code: string;
+  level_name: string;
+  level_rank: number;
+  can_approve_leave?: boolean;
+  max_reportees?: number;
+  min_experience_years?: number;
+  is_management?: boolean;
+  is_executive?: boolean;
+}) {
+  const auth = await requireHRAccess();
+  if (!auth.success) return auth;
+
+  const code = data.level_code.toUpperCase().replace(/[^A-Z0-9_]/g, "");
+  if (!code || !data.level_name.trim()) {
+    return { success: false, error: "Code and name are required" };
+  }
+
+  const existing = await prisma.jobLevel.findUnique({
+    where: { level_code: code },
+  });
+  if (existing) {
+    return { success: false, error: `Level code "${code}" already exists` };
+  }
+
+  const level = await prisma.jobLevel.create({
+    data: {
+      level_code: code,
+      level_name: data.level_name.trim(),
+      level_rank: data.level_rank,
+      company_id: auth.employee.org_id,
+      can_approve_leave: data.can_approve_leave ?? false,
+      max_reportees: data.max_reportees ?? 0,
+      min_experience_years: data.min_experience_years ?? 0,
+      is_management: data.is_management ?? false,
+      is_executive: data.is_executive ?? false,
+    },
+  });
+
+  revalidatePath("/hr/job-levels");
+  return { success: true, level };
+}
+
+/**
+ * Delete a job level (only if no employees assigned).
+ */
+export async function deleteJobLevel(levelId: number) {
+  const auth = await requireHRAccess();
+  if (!auth.success) return auth;
+
+  const empCount = await prisma.employee.count({
+    where: { job_level_id: levelId, is_active: true, deleted_at: null },
+  });
+  if (empCount > 0) {
+    return { success: false, error: `Cannot delete: ${empCount} employee(s) are assigned to this level` };
+  }
+
+  await prisma.jobLevel.delete({ where: { level_id: levelId } });
+
+  revalidatePath("/hr/job-levels");
+  return { success: true };
+}
+
+// ============================================================================
+// REIMBURSEMENT MANAGEMENT
+// ============================================================================
+
+/**
+ * Approve a reimbursement request.
+ */
+export async function approveReimbursement(id: string) {
+  const auth = await requireHRAccess();
+  if (!auth.success) return auth;
+
+  const reimbursement = await prisma.reimbursement.findUnique({
+    where: { id },
+    include: { employee: { select: { org_id: true } } },
+  });
+
+  if (!reimbursement) return { success: false, error: "Reimbursement not found" };
+  if (reimbursement.employee.org_id !== auth.employee.org_id) {
+    return { success: false, error: "Not authorized" };
+  }
+  if (reimbursement.status !== "submitted") {
+    return { success: false, error: `Already ${reimbursement.status}` };
+  }
+
+  await prisma.reimbursement.update({
+    where: { id },
+    data: {
+      status: "approved",
+      approved_by: auth.employee.emp_id,
+      approved_at: new Date(),
+    },
+  });
+
+  revalidatePath("/hr/reimbursements");
+  return { success: true };
+}
+
+/**
+ * Reject a reimbursement request.
+ */
+export async function rejectReimbursement(id: string, reason: string) {
+  const auth = await requireHRAccess();
+  if (!auth.success) return auth;
+
+  if (!reason.trim()) return { success: false, error: "Reason is required" };
+
+  const reimbursement = await prisma.reimbursement.findUnique({
+    where: { id },
+    include: { employee: { select: { org_id: true } } },
+  });
+
+  if (!reimbursement) return { success: false, error: "Reimbursement not found" };
+  if (reimbursement.employee.org_id !== auth.employee.org_id) {
+    return { success: false, error: "Not authorized" };
+  }
+  if (reimbursement.status !== "submitted") {
+    return { success: false, error: `Already ${reimbursement.status}` };
+  }
+
+  await prisma.reimbursement.update({
+    where: { id },
+    data: {
+      status: "rejected",
+      rejection_reason: reason.trim(),
+    },
+  });
+
+  revalidatePath("/hr/reimbursements");
+  return { success: true };
+}
+
+// ============================================================================
+// LEAVE ENCASHMENT MANAGEMENT
+// ============================================================================
+
+/**
+ * Approve a leave encashment request.
+ */
+export async function approveLeaveEncashment(id: string) {
+  const auth = await requireHRAccess();
+  if (!auth.success) return auth;
+
+  const encashment = await prisma.leaveEncashment.findUnique({
+    where: { id },
+    include: { employee: { select: { org_id: true } } },
+  });
+
+  if (!encashment) return { success: false, error: "Encashment request not found" };
+  if (encashment.employee.org_id !== auth.employee.org_id) {
+    return { success: false, error: "Not authorized" };
+  }
+  if (encashment.status !== "pending") {
+    return { success: false, error: `Already ${encashment.status}` };
+  }
+
+  await prisma.leaveEncashment.update({
+    where: { id },
+    data: {
+      status: "approved",
+      approved_by: auth.employee.emp_id,
+      approved_at: new Date(),
+    },
+  });
+
+  revalidatePath("/hr/leave-encashment");
+  return { success: true };
+}
+
+/**
+ * Reject a leave encashment request.
+ */
+export async function rejectLeaveEncashment(id: string) {
+  const auth = await requireHRAccess();
+  if (!auth.success) return auth;
+
+  const encashment = await prisma.leaveEncashment.findUnique({
+    where: { id },
+    include: { employee: { select: { org_id: true } } },
+  });
+
+  if (!encashment) return { success: false, error: "Encashment request not found" };
+  if (encashment.employee.org_id !== auth.employee.org_id) {
+    return { success: false, error: "Not authorized" };
+  }
+  if (encashment.status !== "pending") {
+    return { success: false, error: `Already ${encashment.status}` };
+  }
+
+  await prisma.leaveEncashment.update({
+    where: { id },
+    data: { status: "rejected" },
+  });
+
+  revalidatePath("/hr/leave-encashment");
+  return { success: true };
+}
+
+// ============================================================================
+// APPROVAL HIERARCHY CRUD
+// ============================================================================
+
+/**
+ * Create or update an approval hierarchy for an employee.
+ */
+export async function upsertApprovalHierarchy(data: {
+  emp_id: string;
+  level_1_approver: string | null;
+  level_2_approver: string | null;
+  level_3_approver: string | null;
+  hr_partner: string | null;
+}) {
+  const auth = await requireHRAccess();
+  if (!auth.success) return auth;
+
+  // Verify employee belongs to same company
+  const employee = await prisma.employee.findUnique({
+    where: { emp_id: data.emp_id },
+    select: { org_id: true },
+  });
+  if (!employee || employee.org_id !== auth.employee.org_id) {
+    return { success: false, error: "Employee not found or not in your company" };
+  }
+
+  const hierarchy = await prisma.approvalHierarchy.upsert({
+    where: { emp_id: data.emp_id },
+    create: {
+      emp_id: data.emp_id,
+      level_1_approver: data.level_1_approver,
+      level_2_approver: data.level_2_approver,
+      level_3_approver: data.level_3_approver,
+      hr_partner: data.hr_partner,
+    },
+    update: {
+      level_1_approver: data.level_1_approver,
+      level_2_approver: data.level_2_approver,
+      level_3_approver: data.level_3_approver,
+      hr_partner: data.hr_partner,
+    },
+  });
+
+  revalidatePath("/hr/approval-hierarchies");
+  return { success: true, hierarchy };
+}
+
+/**
+ * Delete an approval hierarchy for an employee.
+ */
+export async function deleteApprovalHierarchy(empId: string) {
+  const auth = await requireHRAccess();
+  if (!auth.success) return auth;
+
+  await prisma.approvalHierarchy.delete({
+    where: { emp_id: empId },
+  });
+
+  revalidatePath("/hr/approval-hierarchies");
+  return { success: true };
+}
+
+// ============================================================================
+// NOTIFICATION TEMPLATE CRUD
+// ============================================================================
+
+/**
+ * Create a notification template.
+ */
+export async function createNotificationTemplate(data: {
+  event_type: string;
+  channel: string;
+  subject?: string;
+  body: string;
+}) {
+  const auth = await requireHRAccess();
+  if (!auth.success) return auth;
+
+  if (!data.body.trim()) return { success: false, error: "Body is required" };
+
+  const orgId = auth.employee.org_id;
+  if (!orgId) return { success: false, error: "Not linked to company" };
+
+  // Check for duplicate
+  const existing = await prisma.notificationTemplate.findUnique({
+    where: {
+      company_id_event_type_channel: {
+        company_id: orgId,
+        event_type: data.event_type,
+        channel: data.channel as any,
+      },
+    },
+  });
+  if (existing) {
+    return { success: false, error: `Template for ${data.event_type} via ${data.channel} already exists` };
+  }
+
+  const template = await prisma.notificationTemplate.create({
+    data: {
+      company_id: orgId,
+      event_type: data.event_type,
+      channel: data.channel as any,
+      subject: data.subject || null,
+      body: data.body.trim(),
+    },
+  });
+
+  revalidatePath("/hr/notification-templates");
+  return { success: true, template };
+}
+
+/**
+ * Toggle a notification template's active status.
+ */
+export async function toggleNotificationTemplate(id: string) {
+  const auth = await requireHRAccess();
+  if (!auth.success) return auth;
+
+  const template = await prisma.notificationTemplate.findUnique({
+    where: { id },
+  });
+  if (!template) return { success: false, error: "Template not found" };
+  if (template.company_id !== auth.employee.org_id) {
+    return { success: false, error: "Not authorized" };
+  }
+
+  await prisma.notificationTemplate.update({
+    where: { id },
+    data: { is_active: !template.is_active },
+  });
+
+  revalidatePath("/hr/notification-templates");
+  return { success: true };
+}
+
+/**
+ * Delete a notification template.
+ */
+export async function deleteNotificationTemplate(id: string) {
+  const auth = await requireHRAccess();
+  if (!auth.success) return auth;
+
+  const template = await prisma.notificationTemplate.findUnique({
+    where: { id },
+  });
+  if (!template) return { success: false, error: "Template not found" };
+  if (template.company_id !== auth.employee.org_id) {
+    return { success: false, error: "Not authorized" };
+  }
+
+  await prisma.notificationTemplate.delete({ where: { id } });
+
+  revalidatePath("/hr/notification-templates");
+  return { success: true };
+}
