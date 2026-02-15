@@ -50,7 +50,7 @@ export default function SignUpPage() {
     setError(null);
 
     // Use production URL explicitly to avoid localhost redirect issues
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://continiuum.vercel.app';
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://frontend-navy-eight-37.vercel.app';
     
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
@@ -60,7 +60,12 @@ export default function SignUpPage() {
     });
 
     if (error) {
-      setError(error.message);
+      // Provide clearer error message for provider not enabled
+      if (error.message.includes('provider') || error.message.includes('not enabled')) {
+        setError('Google sign-up is not configured yet. Please use email/password to sign up.');
+      } else {
+        setError(error.message);
+      }
       setLoading(false);
     }
   };
