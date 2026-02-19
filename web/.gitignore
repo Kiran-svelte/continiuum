@@ -36,6 +36,12 @@ yarn-error.log*
 # vercel
 .vercel
 
+# deployment artefacts & files that may contain secrets
+deploy*.json
+vercel_status.json
+sprite_key.json
+promote.json
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
